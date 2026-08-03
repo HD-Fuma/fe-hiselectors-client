@@ -107,7 +107,7 @@ describe('HiHi aside and public shop reference contract', () => {
     expect(compactShopCss).toMatch(/\.selector-badge \{[^}]*width: 32px;[^}]*height: 32px;/)
     expect(compactShopCss).toMatch(/\.selector-profile h2 \{[^}]*font-size: 24px;[^}]*font-weight: 700;[^}]*line-height: 30px;/)
     expect(compactShopCss).toMatch(/\.me-space-button \{[^}]*gap: 4px;[^}]*width: 100%;[^}]*max-width: 520px;[^}]*height: 44px;[^}]*font-size: 14px;[^}]*line-height: 14px;/)
-    expect(compactShopCss).toMatch(/\.shop-product-grid \{[^}]*grid-template-columns: 168px 168px;[^}]*column-gap: 16px;/)
+    expect(compactShopCss).toMatch(/\.shop-product-grid \{[^}]*grid-template-columns: repeat\(3, 168px\);[^}]*column-gap: 8px;[^}]*row-gap: 24px;/)
     expect(compactShopCss).toMatch(/\.shop-product img \{[^}]*width: 168px;[^}]*height: 168px;[^}]*aspect-ratio: 1;/)
     expect(compactShopCss).toMatch(/\.shop-group-heading \{[^}]*font-size: 18px;[^}]*font-weight: 700;[^}]*line-height: 24px;/)
     expect(compactShopCss).toMatch(/\.shop-group-heading-row \{[^}]*margin-bottom: 24px;/)
@@ -117,9 +117,12 @@ describe('HiHi aside and public shop reference contract', () => {
     expect(compactShopCss).toMatch(/\.shop-disclosure \{[^}]*font-size: 13px;[^}]*line-height: 18px;/)
 
     const mobileRules = compactShopCss.slice(compactShopCss.indexOf('@media (max-width: 480px)'))
-    expect(mobileRules).toMatch(/\.shop-product-grid \{[^}]*grid-template-columns: 168px 168px;[^}]*column-gap: 16px;/)
+    expect(mobileRules).toMatch(/\.shop-product-grid \{[^}]*grid-template-columns: repeat\(3, minmax\(0, 1fr\)\);[^}]*column-gap: 8px;/)
+    expect(mobileRules).toMatch(/\.shop-product \{[^}]*width: 100%;/)
+    expect(mobileRules).toMatch(/\.shop-product img \{[^}]*width: 100%;[^}]*height: auto;/)
 
     expect(552 - (16 * 2)).toBe(520)
-    expect((168 * 2) + 16).toBeLessThanOrEqual(390 - (16 * 2))
+    expect((168 * 3) + (8 * 2)).toBe(520)
+    expect((390 - (16 * 2) - (8 * 2)) / 3).toBe(114)
   })
 })

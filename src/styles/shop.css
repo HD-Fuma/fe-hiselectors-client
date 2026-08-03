@@ -439,9 +439,9 @@
 
 .shop-product-grid {
   display: grid;
-  grid-template-columns: 168px 168px;
-  column-gap: 16px;
-  row-gap: 32px;
+  grid-template-columns: repeat(3, 168px);
+  column-gap: 8px;
+  row-gap: 24px;
   justify-content: start;
 }
 
@@ -1064,8 +1064,17 @@
   }
 
   .shop-product-grid {
-    grid-template-columns: 168px 168px;
-    column-gap: 16px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    column-gap: 8px;
+  }
+
+  .shop-product {
+    width: 100%;
+  }
+
+  .shop-product img {
+    width: 100%;
+    height: auto;
   }
 
   .group-editor-screen {
