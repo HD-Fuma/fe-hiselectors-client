@@ -83,7 +83,6 @@ export function CampaignDetailScreen() {
         <section className="campaign-info">
           <dl>
             <div><dt>캠페인 기간</dt><dd>2026.08.01 - 2026.08.31</dd></div>
-            <div><dt>활동 수수료</dt><dd>상품별 최대 8%</dd></div>
           </dl>
           <div className="brand-chips" aria-label="참여 브랜드">
             {['TIME', 'SYSTEM', 'MINE', 'BYREDO'].map((brand) => <span key={brand}>{brand}</span>)}

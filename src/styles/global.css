@@ -227,10 +227,9 @@ ol {
   height: 100dvh;
   min-height: 640px;
   overflow: hidden;
-  border-right: 0;
-  border-left: 0;
+  border: 1px solid var(--line);
   background: var(--white);
-  box-shadow: inset 1px 0 var(--line), inset -1px 0 var(--line);
+  box-shadow: none;
 }
 
 .panel-page {
@@ -250,7 +249,7 @@ ol {
   align-items: center;
   height: 52px;
   padding: 0 16px;
-  border-bottom: 1px solid var(--line-soft);
+  border-bottom: 0;
   background: rgba(255, 255, 255, 0.98);
 }
 
@@ -2108,6 +2107,7 @@ input:focus-visible + .product-check {
 
 @media (max-width: 480px) {
   .client-panel {
+    border: 0;
     box-shadow: none;
   }
 

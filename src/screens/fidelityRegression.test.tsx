@@ -68,3 +68,47 @@ describe('reference typography and packaged font', () => {
     expect(within(screen.getByRole('main')).getByText('나의 대표 SNS')).toBeTruthy()
   })
 })
+
+describe('shared panel and campaign fidelity', () => {
+  it('uses one outer frame without a header divider and removes it on mobile', () => {
+    const baseCss = compactCss.slice(0, compactCss.indexOf('@media'))
+    const mobileCss = compactCss.slice(compactCss.indexOf('@media (max-width: 480px)'))
+    const clientPanelRule = baseCss.match(/\.client-panel \{([^}]*)\}/)?.[1] ?? ''
+
+    expect(clientPanelRule).toContain('border: 1px solid var(--line);')
+    expect(clientPanelRule).toContain('box-shadow: none;')
+    expect(clientPanelRule).not.toMatch(/border-(?:left|right): 0;/)
+    expect(clientPanelRule).not.toContain('box-shadow: inset')
+    expect(baseCss).toMatch(/\.panel-header \{[^}]*border-bottom: 0;/)
+    expect(baseCss).toMatch(/\.bottom-action \{[^}]*border-top: 1px solid var\(--line-soft\);/)
+    expect(mobileCss).toMatch(/\.client-panel \{[^}]*border: 0;[^}]*box-shadow: none;/)
+  })
+
+  it('removes only the campaign activity-commission claim', () => {
+    window.location.hash = '#/campaigns/detail'
+    render(<App />)
+
+    expect(screen.queryByText('활동 수수료')).toBeNull()
+    expect(screen.queryByText('상품별 최대 8%')).toBeNull()
+    const campaignPeriod = screen.getByText('캠페인 기간').closest('dl')
+    expect(campaignPeriod).toBeTruthy()
+    expect(campaignPeriod?.children).toHaveLength(1)
+  })
+
+  it('retains aggregate, product-level, and settlement commission reporting', () => {
+    window.location.hash = '#/performance'
+    render(<App />)
+    expect(screen.getByText('예상 정산 수수료')).toBeTruthy()
+
+    cleanup()
+    window.location.hash = '#/performance/products'
+    render(<App />)
+    const productTable = screen.getByRole('table', { name: '상품별 성과 지표' })
+    expect(within(productTable).getByRole('cell', { name: '예상 수수료 324,800원' })).toBeTruthy()
+
+    cleanup()
+    window.location.hash = '#/settlement'
+    render(<App />)
+    expect(screen.getByText('8월 예상 정산 금액')).toBeTruthy()
+  })
+})

@@ -64,7 +64,8 @@ describe('reference shell contract', () => {
     expect(compactCss).toMatch(/\.panel-header \{[^}]*grid-template-columns: 34px minmax\(0, 1fr\) 40px;[^}]*padding: 0 16px;/)
     expect(compactCss).toMatch(/\.panel-header h1 \{[^}]*text-align: left;/)
     expect(compactCss).toMatch(/\.panel-header h1:focus \{[^}]*outline: none;/)
-    expect(compactCss).toMatch(/\.client-panel \{[^}]*border-right: 0;[^}]*border-left: 0;[^}]*box-shadow: inset 1px 0 var\(--line\), inset -1px 0 var\(--line\);/)
+    expect(compactCss).toMatch(/\.client-panel \{[^}]*border: 1px solid var\(--line\);[^}]*box-shadow: none;/)
+    expect(compactCss).toMatch(/\.panel-header \{[^}]*border-bottom: 0;/)
     expect(compactCss).toMatch(/\.bottom-action \{[^}]*flex: 0 0 77px;[^}]*padding: 12px 16px;/)
     expect(compactCss).toMatch(/\.primary-action \{[^}]*width: 100%;[^}]*max-width: 520px;/)
     expect(compactCss).toMatch(/\.login-screen \{[^}]*padding: 24px 16px 40px;/)
@@ -74,6 +75,9 @@ describe('reference shell contract', () => {
 
     const tabletRules = compactCss.slice(compactCss.indexOf('@media (max-width: 1099px)'))
     expect(tabletRules).toMatch(/\.client-panel \{ width: 100%; max-width: none; margin: 0; \}/)
+
+    const mobileRules = compactCss.slice(compactCss.indexOf('@media (max-width: 480px)'))
+    expect(mobileRules).toMatch(/\.client-panel \{[^}]*border: 0;[^}]*box-shadow: none;/)
   })
 
   it('keeps the reference tile direction and preserves the full product-grid width', () => {
