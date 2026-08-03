@@ -24,12 +24,12 @@ export default function LoginScreen() {
           <form className="login-form" onSubmit={(event) => event.preventDefault()}>
             <label className="login-field" htmlFor="login-user-id">
               <span className="sr-only">아이디</span>
-              <input autoComplete="username" id="login-user-id" name="userId" placeholder="아이디를 입력해 주세요" />
+              <input autoComplete="username" id="login-user-id" name="userId" placeholder="아이디" />
             </label>
             <label className="login-field login-password-field" htmlFor="login-password">
               <span className="sr-only">비밀번호</span>
               <span className="login-password-input">
-                <input autoComplete="current-password" id="login-password" name="password" placeholder="비밀번호를 입력해 주세요" type={isPasswordVisible ? 'text' : 'password'} />
+                <input autoComplete="current-password" id="login-password" name="password" placeholder="비밀번호" type={isPasswordVisible ? 'text' : 'password'} />
                 <button aria-label={isPasswordVisible ? '비밀번호 숨기기' : '비밀번호 보기'} className="login-password-toggle" onClick={() => setIsPasswordVisible((visible) => !visible)} type="button">
                   <EyeIcon size={20} />
                 </button>
