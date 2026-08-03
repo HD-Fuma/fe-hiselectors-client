@@ -2,12 +2,12 @@ import { SearchIcon } from './Icons'
 import QrMark from './QrMark'
 
 const asideTiles = [
-  { label: '선물하기', image: 'https://image.thehyundai.com/images/aside/img_aside_gift.png?SF=webp&AO=1' },
-  { label: '라이브쇼핑', image: 'https://image.thehyundai.com/images/aside/img_aside_live.png?SF=webp&AO=1' },
+  { label: '더현대 기프트', image: 'https://image.thehyundai.com/images/aside/img_aside_gift.png?SF=webp&AO=1' },
+  { label: '라이브', image: 'https://image.thehyundai.com/images/aside/img_aside_live.png?SF=webp&AO=1' },
   { label: '이벤트', image: 'https://image.thehyundai.com/images/aside/img_aside_event.png?SF=webp&AO=1' },
-  { label: '웨이팅', image: 'https://image.thehyundai.com/images/aside/img_aside_waiting.png?SF=webp&AO=1' },
+  { label: '예약/웨이팅', image: 'https://image.thehyundai.com/images/aside/img_aside_waiting.png?SF=webp&AO=1' },
   { label: '콘텐츠', image: 'https://image.thehyundai.com/images/aside/img_aside_content.png?SF=webp&AO=1' },
-  { label: 'ME스페이스', image: 'https://image.thehyundai.com/images/aside/img_aside_mespace.png?SF=webp&AO=1' },
+  { label: '아이콘샵', image: 'https://image.thehyundai.com/images/aside/img_aside_mespace.png?SF=webp&AO=1' },
 ] as const
 
 export default function HiHiAside() {
@@ -22,7 +22,7 @@ export default function HiHiAside() {
       />
 
       <div className="aside-search" role="search">
-        <span>무엇을 찾고 계세요?</span>
+        <span>검색어를 입력해 보세요.</span>
         <SearchIcon size={22} />
       </div>
 
@@ -37,8 +37,8 @@ export default function HiHiAside() {
 
       <div className="aside-install">
         <div>
-          <strong>HiHi 앱에서 더 편하게</strong>
-          <p>QR 코드를 스캔하고 현대백화점의<br />새로운 일상을 만나보세요.</p>
+          <strong>앱 설치하고</strong>
+          <p>다양한 더현대Hi 만나러 가기!</p>
         </div>
         <QrMark />
       </div>

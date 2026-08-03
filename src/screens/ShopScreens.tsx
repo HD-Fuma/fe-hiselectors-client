@@ -100,12 +100,13 @@ export function PublicShopScreen() {
     <>
       <PanelHeader
         action={<button aria-label="셀렉터스샵 공유" className="icon-button" type="button"><ShareIcon size={22} /></button>}
+        backHref="#/screens"
         title="셀렉터스샵"
       />
       <div className="screen-scroll public-shop-screen">
         <section className="selector-profile">
           <div className="selector-avatar">Hi</div>
-          <div><span>SELECTOR</span><h2>오셀렉터스</h2><p>매일의 취향이 또렷해지는 아이템을 고릅니다.</p></div>
+          <h2>오셀렉터스</h2>
         </section>
 
         <button className="me-space-button" type="button">ME스페이스에서 오셀렉터스 만나기 <ExternalLinkIcon size={17} /></button>
@@ -114,7 +115,7 @@ export function PublicShopScreen() {
           const products = shopProducts.filter((product) => product.category === category)
           return (
             <section className="shop-category" key={category}>
-              <div className="shop-category-heading"><h2>{category}</h2><span>{products.length} ITEMS</span></div>
+              <div className="shop-category-heading"><h2>{category}</h2></div>
               <div className="public-product-grid">
                 {products.map((product) => (
                   <article className="public-product" key={product.name}>

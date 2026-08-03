@@ -22,7 +22,7 @@ const screenExpectations = [
   },
   {
     path: '#/apply/form',
-    heading: '셀렉터스 신청서',
+    heading: '셀렉터스 신청하기',
     content: '카카오 알림톡 수신 동의 (선택)',
   },
   {

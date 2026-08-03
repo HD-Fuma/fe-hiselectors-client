@@ -98,7 +98,7 @@ ol {
 
 .app-shell {
   display: grid;
-  grid-template-columns: 552px 554px;
+  grid-template-columns: 552px 552px;
   gap: 48px;
   justify-content: center;
   align-items: start;
@@ -112,7 +112,7 @@ ol {
   top: 0;
   height: 100dvh;
   min-height: 720px;
-  padding: 36px 0 28px;
+  padding: 0;
   overflow: hidden;
 }
 
@@ -120,16 +120,17 @@ ol {
   width: 180px;
   height: 71px;
   object-fit: contain;
-  margin-bottom: 20px;
+  margin: 139px auto 39px;
 }
 
 .aside-search {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  width: 422px;
   height: 52px;
   padding: 0 18px;
-  margin-bottom: 20px;
+  margin: 0 auto 35px;
   border: 1px solid #d8d8d8;
   color: var(--gray-500);
   font-size: 14px;
@@ -143,12 +144,14 @@ ol {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
+  width: 422px;
+  margin: 0 auto;
 }
 
 .aside-tile {
   position: relative;
-  height: 112px;
-  padding: 18px;
+  height: 80px;
+  padding: 14px;
   overflow: hidden;
   background: var(--surface);
   font-size: 16px;
@@ -159,39 +162,41 @@ ol {
   position: absolute;
   right: -2px;
   bottom: -6px;
-  width: 132px;
-  height: 94px;
+  width: 104px;
+  height: 74px;
   object-fit: contain;
   object-position: right bottom;
 }
 
 .aside-install {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  min-height: 124px;
-  padding: 20px;
-  margin-top: 20px;
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
+  min-height: 0;
+  padding: 0;
+  margin-top: 50px;
+  border: 0;
+  text-align: center;
 }
 
 .aside-install strong {
   display: block;
-  margin-bottom: 7px;
+  margin: 0;
   font-size: 16px;
+  line-height: 22px;
 }
 
 .aside-install p {
   color: var(--gray-700);
-  font-size: 12px;
-  line-height: 1.65;
+  font-size: 14px;
+  line-height: 22px;
 }
 
 .qr-mark {
-  width: 82px;
-  height: 82px;
+  width: 110px;
+  height: 110px;
   padding: 6px;
+  margin-top: 28px;
   border: 1px solid var(--line);
   background: var(--white);
   image-rendering: pixelated;
@@ -200,7 +205,7 @@ ol {
 .client-panel {
   display: flex;
   flex-direction: column;
-  width: 554px;
+  width: 552px;
   height: 100dvh;
   min-height: 640px;
   overflow: hidden;
@@ -222,10 +227,10 @@ ol {
   top: 0;
   display: grid;
   flex: 0 0 52px;
-  grid-template-columns: 40px 1fr 40px;
+  grid-template-columns: 34px minmax(0, 1fr) 40px;
   align-items: center;
   height: 52px;
-  padding: 0 12px;
+  padding: 0 16px;
   border-bottom: 1px solid var(--line-soft);
   background: rgba(255, 255, 255, 0.98);
 }
@@ -235,7 +240,7 @@ ol {
   font-size: 16px;
   font-weight: 700;
   line-height: 22px;
-  text-align: center;
+  text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -243,15 +248,23 @@ ol {
 .panel-header-side {
   display: flex;
   align-items: center;
-  width: 40px;
+  width: 34px;
   height: 40px;
 }
 
 .panel-header-action {
   justify-content: flex-end;
+  width: 40px;
 }
 
-.icon-link,
+.icon-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 40px;
+}
+
 .icon-button {
   display: inline-flex;
   align-items: center;
@@ -281,8 +294,8 @@ ol {
   position: sticky;
   z-index: 9;
   bottom: 0;
-  flex: 0 0 69px;
-  padding: 8px 16px;
+  flex: 0 0 77px;
+  padding: 12px 16px;
   border-top: 1px solid var(--line-soft);
   background: var(--white);
 }
@@ -411,7 +424,7 @@ ol {
 
 /* Login */
 .login-screen {
-  padding: 48px 32px 32px;
+  padding: 48px 16px 32px;
 }
 
 .login-copy {
@@ -487,11 +500,11 @@ ol {
 
 /* Apply intro */
 .apply-intro-screen {
-  padding: 25px 16px 30px;
+  padding: 32px 16px 30px;
 }
 
 .apply-hero h2 {
-  margin-bottom: 17px;
+  margin-bottom: 4px;
   color: var(--black);
   font-size: 24px;
   font-weight: 750;
@@ -508,7 +521,7 @@ ol {
 .apply-flow {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  margin: 31px 0 34px;
+  margin: 18px 0 54px;
   list-style: none;
 }
 
@@ -529,9 +542,8 @@ ol {
   justify-content: center;
   width: 60px;
   height: 60px;
-  border: 1px solid #d8d8d8;
-  border-radius: 50%;
-  background: var(--white);
+  border: 0;
+  background: transparent;
   color: var(--gray-700);
 }
 
@@ -541,7 +553,7 @@ ol {
 }
 
 .apply-flow .is-active .flow-icon {
-  border-color: var(--black);
+  border-radius: 50%;
   background: var(--black);
   color: var(--white);
 }
@@ -578,6 +590,12 @@ ol {
   gap: 8px;
 }
 
+.benefit-section > h2 {
+  margin-bottom: 16px;
+  font-size: 16px;
+  line-height: 1.45;
+}
+
 .benefit-card {
   height: 110px;
   padding: 13px 12px;
@@ -600,7 +618,6 @@ ol {
   color: var(--gray-700);
   font-size: 10px;
   line-height: 1.4;
-  white-space: pre-line;
 }
 
 .detail-link {
@@ -609,22 +626,22 @@ ol {
   justify-content: flex-end;
   gap: 2px;
   width: max-content;
-  margin: 15px 0 0 auto;
+  margin: 20px 0 0 auto;
   border-bottom: 1px solid var(--ink);
   font-size: 12px;
 }
 
 /* Apply form */
 .apply-form-screen {
-  padding: 27px 16px 30px;
+  padding: 12px 16px 30px;
 }
 
 .form-intro {
-  margin-bottom: 26px;
+  margin-bottom: 25px;
 }
 
 .form-intro h2 {
-  margin-bottom: 9px;
+  margin-bottom: 6px;
   font-size: 21px;
   letter-spacing: -0.025em;
 }
@@ -641,7 +658,7 @@ ol {
 
 .select-wrap {
   position: relative;
-  margin-bottom: 8px;
+  margin-bottom: 9px;
 }
 
 .select-wrap select {
@@ -665,9 +682,16 @@ ol {
 
 .privacy-section,
 .terms-section {
-  padding-top: 27px;
-  margin-top: 31px;
-  border-top: 1px solid var(--line);
+  padding-top: 0;
+  border-top: 0;
+}
+
+.privacy-section {
+  margin-top: 55px;
+}
+
+.terms-section {
+  margin-top: 50px;
 }
 
 .privacy-section h2,
@@ -676,17 +700,17 @@ ol {
   font-size: 16px;
 }
 
-.privacy-section ol {
-  padding-left: 19px;
+.privacy-lines {
   color: var(--gray-700);
   font-size: 12px;
-  line-height: 1.8;
+  line-height: 1.85;
 }
 
-.privacy-section p {
+.privacy-note {
   margin-top: 9px;
   color: var(--gray-500);
   font-size: 11px;
+  line-height: 1.6;
 }
 
 .all-terms-row,
@@ -730,9 +754,15 @@ input:checked + .product-check {
   color: var(--white);
 }
 
+input:focus-visible + .custom-check,
+input:focus-visible + .product-check {
+  outline: 2px solid #2268e8;
+  outline-offset: 2px;
+}
+
 .term-row {
   justify-content: space-between;
-  border-bottom: 1px solid var(--line-soft);
+  border-bottom: 0;
 }
 
 .term-row label {
@@ -1243,18 +1273,20 @@ input:checked + .product-check {
 
 .selector-profile {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 14px;
-  padding: 27px 0 22px;
+  gap: 10px;
+  padding: 16px 0 32px;
+  text-align: center;
 }
 
 .selector-avatar {
   display: flex;
   align-items: center;
   justify-content: center;
-  flex: 0 0 58px;
-  width: 58px;
-  height: 58px;
+  flex: 0 0 74px;
+  width: 74px;
+  height: 74px;
   border-radius: 50%;
   background: var(--black);
   color: var(--white);
@@ -1263,30 +1295,10 @@ input:checked + .product-check {
   letter-spacing: -0.07em;
 }
 
-.selector-profile > div:last-child {
-  min-width: 0;
-}
-
-.selector-profile span {
-  display: block;
-  margin-bottom: 2px;
-  color: var(--gray-500);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-}
-
 .selector-profile h2 {
-  margin-bottom: 3px;
+  margin: 0;
   font-size: 18px;
-}
-
-.selector-profile p {
-  overflow: hidden;
-  color: var(--gray-700);
-  font-size: 11px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 26px;
 }
 
 .me-space-button {
@@ -1307,28 +1319,21 @@ input:checked + .product-check {
 }
 
 .shop-category-heading {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--ink);
+  display: block;
+  padding: 0;
+  border-bottom: 0;
 }
 
 .shop-category-heading h2 {
   font-size: 20px;
-}
-
-.shop-category-heading span {
-  color: var(--gray-500);
-  font-size: 9px;
-  letter-spacing: 0.1em;
+  line-height: 29px;
 }
 
 .public-product-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 25px 8px;
-  padding-top: 14px;
+  padding-top: 25px;
 }
 
 .public-product {
@@ -1877,8 +1882,8 @@ input:checked + .product-check {
 
   .client-panel {
     width: 100%;
-    max-width: 552px;
-    margin: 0 auto;
+    max-width: none;
+    margin: 0;
   }
 }
 
@@ -1889,26 +1894,20 @@ input:checked + .product-check {
   }
 
   .login-screen {
-    padding-right: 20px;
-    padding-left: 20px;
+    padding-right: 16px;
+    padding-left: 16px;
   }
 
   .apply-flow {
     margin-top: 28px;
   }
 
-  .flow-icon {
-    width: 52px;
-    height: 52px;
-  }
-
   .flow-arrow {
-    top: 19px;
+    top: 23px;
     right: -6px;
   }
 
   .benefit-card {
-    height: 118px;
     padding-right: 8px;
     padding-left: 8px;
   }
