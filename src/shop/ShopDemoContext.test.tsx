@@ -1,4 +1,14 @@
-import { describe, expect, it } from 'vitest'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { afterEach, describe, expect, it } from 'vitest'
+
+import {
+  createInitialShopDemoState,
+  ShopDemoProvider,
+  shopDemoReducer,
+  useShopDemo,
+  type ShopDemoAction,
+  type ShopDemoState,
+} from './ShopDemoContext'
 
 import {
   initialShopGroups,
@@ -6,6 +16,10 @@ import {
   selectorProfile,
   shopCampaigns,
 } from './shopData'
+
+afterEach(() => {
+  cleanup()
+})
 
 describe('shop fixture contract', () => {
   it('locks the exact selector profile', () => {
@@ -256,5 +270,376 @@ describe('shop fixture contract', () => {
         productIds: ['knit-blue', 'jewelry-hlink'],
       },
     ])
+  })
+})
+
+describe('shop reducer', () => {
+  it('creates isolated initial state without mutating the readonly fixtures', () => {
+    const fixtureSnapshot = initialShopGroups.map((group) => ({
+      ...group,
+      productIds: [...group.productIds],
+    }))
+
+    const first = createInitialShopDemoState()
+    const second = createInitialShopDemoState()
+
+    expect(first).toMatchObject({
+      status: null,
+      quickAddDraft: null,
+      nextGroupSerial: 14,
+    })
+    expect(first.groups).toHaveLength(13)
+    expect(first.groups).not.toBe(second.groups)
+    expect(first.groups.every((group, index) => group !== second.groups[index])).toBe(true)
+    expect(first.groups.every((group, index) => (
+      group.productIds !== second.groups[index].productIds
+    ))).toBe(true)
+    expect(first.groups[0]).not.toBe(initialShopGroups[0])
+    expect(first.groups[0].productIds).not.toBe(initialShopGroups[0].productIds)
+
+    first.groups[0].productIds.push('knit-blue')
+
+    expect(second.groups[0].productIds).toEqual(['earring-essence', 'earring-souvenir'])
+    expect(initialShopGroups).toEqual(fixtureSnapshot)
+  })
+
+  it('trims renamed groups and replaces update input fields', () => {
+    const initial = createInitialShopDemoState()
+    const renamed = shopDemoReducer(initial, {
+      type: 'renameGroup',
+      groupId: '1',
+      name: '  데일리 귀걸이  ',
+    })
+
+    expect(renamed.groups[0]).toEqual({
+      ...initial.groups[0],
+      name: '데일리 귀걸이',
+    })
+
+    const updated = shopDemoReducer(renamed, {
+      type: 'updateGroupProducts',
+      groupId: '10',
+      input: {
+        name: '  새 스타일  ',
+        campaignId: 'season-pick',
+        productIds: ['knit-blue', 'knit-blue', 'knit-midnight', 'knit-blue'],
+      },
+    })
+
+    expect(updated.groups.find(({ id }) => id === '10')).toEqual({
+      id: '10',
+      name: '새 스타일',
+      createdAt: '2026.08.04',
+      campaignId: 'season-pick',
+      productIds: ['knit-blue', 'knit-midnight'],
+    })
+  })
+
+  it('returns the identical state when a target group is missing', () => {
+    const state = createInitialShopDemoState()
+    const actions: ShopDemoAction[] = [
+      { type: 'renameGroup', groupId: 'missing', name: '없는 그룹' },
+      {
+        type: 'updateGroupProducts',
+        groupId: 'missing',
+        input: { name: '없는 그룹', campaignId: null, productIds: [] },
+      },
+      { type: 'addProductsToGroup', groupId: 'missing', productIds: ['knit-blue'] },
+      { type: 'deleteGroup', groupId: 'missing' },
+    ]
+
+    for (const action of actions) {
+      expect(shopDemoReducer(state, action)).toBe(state)
+    }
+  })
+
+  it('creates sequential demo groups with trimmed names and deduplicated membership', () => {
+    const initial = createInitialShopDemoState()
+    const first = shopDemoReducer(initial, {
+      type: 'createGroup',
+      input: {
+        name: '  첫 데모 그룹  ',
+        campaignId: 'season-pick',
+        productIds: ['knit-ivory', 'knit-blue', 'knit-ivory'],
+      },
+    })
+    const second = shopDemoReducer(first, {
+      type: 'createGroup',
+      input: {
+        name: '  두 번째 데모 그룹  ',
+        campaignId: null,
+        productIds: ['earring-essence', 'earring-essence'],
+      },
+    })
+
+    expect(first.groups[first.groups.length - 1]).toEqual({
+      id: 'demo-14',
+      name: '첫 데모 그룹',
+      createdAt: '2026.08.04',
+      campaignId: 'season-pick',
+      productIds: ['knit-ivory', 'knit-blue'],
+    })
+    expect(first.nextGroupSerial).toBe(15)
+    expect(second.groups[second.groups.length - 1]).toEqual({
+      id: 'demo-15',
+      name: '두 번째 데모 그룹',
+      createdAt: '2026.08.04',
+      campaignId: null,
+      productIds: ['earring-essence'],
+    })
+    expect(second.nextGroupSerial).toBe(16)
+  })
+
+  it('adds products while preserving first-occurrence order', () => {
+    const state = shopDemoReducer(createInitialShopDemoState(), {
+      type: 'addProductsToGroup',
+      groupId: '10',
+      productIds: ['knit-blue', 'knit-ivory', 'knit-midnight', 'knit-blue'],
+    })
+
+    expect(state.groups.find(({ id }) => id === '10')?.productIds).toEqual([
+      'knit-ivory',
+      'earring-essence',
+      'knit-blue',
+      'knit-midnight',
+    ])
+  })
+
+  it('deletes an existing group', () => {
+    const initial = createInitialShopDemoState()
+    const state = shopDemoReducer(initial, { type: 'deleteGroup', groupId: '7' })
+
+    expect(state).not.toBe(initial)
+    expect(state.groups).toHaveLength(12)
+    expect(state.groups.some(({ id }) => id === '7')).toBe(false)
+  })
+
+  it('clones quick-add membership before setting and clears the draft', () => {
+    const draft = {
+      campaignId: 'season-pick',
+      productIds: ['knit-ivory'],
+    }
+    const withDraft = shopDemoReducer(createInitialShopDemoState(), {
+      type: 'setQuickAddDraft',
+      draft,
+    })
+
+    expect(withDraft.quickAddDraft).toEqual(draft)
+    expect(withDraft.quickAddDraft).not.toBe(draft)
+    expect(withDraft.quickAddDraft?.productIds).not.toBe(draft.productIds)
+
+    draft.productIds.push('knit-blue')
+
+    expect(withDraft.quickAddDraft?.productIds).toEqual(['knit-ivory'])
+    expect(shopDemoReducer(withDraft, { type: 'clearQuickAddDraft' }).quickAddDraft).toBeNull()
+  })
+
+  it('sets and clears status', () => {
+    const withStatus = shopDemoReducer(createInitialShopDemoState(), {
+      type: 'setStatus',
+      status: '상품을 그룹에 담았어요.',
+    })
+
+    expect(withStatus.status).toBe('상품을 그룹에 담았어요.')
+    expect(shopDemoReducer(withStatus, { type: 'setStatus', status: null }).status).toBeNull()
+  })
+})
+
+type ProbeSnapshot = {
+  state: ShopDemoState
+  profileName: string
+  productCount: number
+  campaignCount: number
+  group10: ShopDemoState['groups'][number] | null
+  resolvedProductIds: string[]
+}
+
+function StateProbe() {
+  const shop = useShopDemo()
+  const snapshot: ProbeSnapshot = {
+    state: shop.state,
+    profileName: shop.profile.name,
+    productCount: shop.products.length,
+    campaignCount: shop.campaigns.length,
+    group10: shop.getGroup('10') ?? null,
+    resolvedProductIds: shop
+      .getProducts(['knit-midnight', 'missing', 'knit-ivory'])
+      .map(({ id }) => id),
+  }
+
+  return (
+    <>
+      <output data-testid="shop-state">{JSON.stringify(snapshot)}</output>
+      <button type="button" onClick={() => shop.renameGroup('1', '  프로바이더 이름  ')}>
+        rename
+      </button>
+      <button
+        type="button"
+        onClick={() => shop.updateGroupProducts('2', {
+          name: '  프로바이더 수정  ',
+          campaignId: 'fragrance-note',
+          productIds: ['cologne-pear', 'cologne-pear'],
+        })}
+      >
+        update
+      </button>
+      <button
+        type="button"
+        onClick={() => shop.createGroup({
+          name: '  프로바이더 생성  ',
+          campaignId: null,
+          productIds: ['knit-blue', 'knit-blue'],
+        })}
+      >
+        create
+      </button>
+      <button
+        type="button"
+        onClick={() => shop.addProductsToGroup('10', [
+          'knit-blue',
+          'knit-ivory',
+          'knit-midnight',
+        ])}
+      >
+        add products
+      </button>
+      <button type="button" onClick={() => shop.deleteGroup('13')}>
+        delete
+      </button>
+      <button
+        type="button"
+        onClick={() => shop.setQuickAddDraft({
+          campaignId: 'season-pick',
+          productIds: ['knit-ivory'],
+        })}
+      >
+        set draft
+      </button>
+      <button type="button" onClick={shop.clearQuickAddDraft}>
+        clear draft
+      </button>
+      <button type="button" onClick={() => shop.setStatus('저장했어요.')}>
+        set status
+      </button>
+      <button type="button" onClick={() => shop.setStatus(null)}>
+        clear status
+      </button>
+    </>
+  )
+}
+
+function readProbe(): ProbeSnapshot {
+  return JSON.parse(screen.getByTestId('shop-state').textContent ?? '') as ProbeSnapshot
+}
+
+describe('shop provider', () => {
+  it('exposes live getters and all eight public actions', () => {
+    render(
+      <ShopDemoProvider>
+        <StateProbe />
+      </ShopDemoProvider>,
+    )
+
+    expect(readProbe()).toMatchObject({
+      state: {
+        groups: expect.arrayContaining([expect.objectContaining({ id: '10' })]),
+        status: null,
+        quickAddDraft: null,
+        nextGroupSerial: 14,
+      },
+      profileName: 'byunjjii',
+      productCount: 11,
+      campaignCount: 3,
+      resolvedProductIds: ['knit-midnight', 'knit-ivory'],
+    })
+    expect(readProbe().state.groups).toHaveLength(13)
+
+    fireEvent.click(screen.getByRole('button', { name: 'rename' }))
+    expect(readProbe().state.groups.find(({ id }) => id === '1')?.name).toBe('프로바이더 이름')
+
+    fireEvent.click(screen.getByRole('button', { name: 'update' }))
+    expect(readProbe().state.groups.find(({ id }) => id === '2')).toMatchObject({
+      name: '프로바이더 수정',
+      campaignId: 'fragrance-note',
+      productIds: ['cologne-pear'],
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'create' }))
+    expect(readProbe().state.groups.find(({ id }) => id === 'demo-14')).toMatchObject({
+      name: '프로바이더 생성',
+      productIds: ['knit-blue'],
+    })
+    expect(readProbe().state.nextGroupSerial).toBe(15)
+
+    fireEvent.click(screen.getByRole('button', { name: 'add products' }))
+    expect(readProbe().group10?.productIds).toEqual([
+      'knit-ivory',
+      'earring-essence',
+      'knit-blue',
+      'knit-midnight',
+    ])
+
+    fireEvent.click(screen.getByRole('button', { name: 'delete' }))
+    expect(readProbe().state.groups.some(({ id }) => id === '13')).toBe(false)
+
+    fireEvent.click(screen.getByRole('button', { name: 'set draft' }))
+    expect(readProbe().state.quickAddDraft).toEqual({
+      campaignId: 'season-pick',
+      productIds: ['knit-ivory'],
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'clear draft' }))
+    expect(readProbe().state.quickAddDraft).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'set status' }))
+    expect(readProbe().state.status).toBe('저장했어요.')
+    fireEvent.click(screen.getByRole('button', { name: 'clear status' }))
+    expect(readProbe().state.status).toBeNull()
+  })
+
+  it('resets reducer and transient state on a fresh mount', () => {
+    const firstMount = render(
+      <ShopDemoProvider>
+        <StateProbe />
+      </ShopDemoProvider>,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'create' }))
+    fireEvent.click(screen.getByRole('button', { name: 'set draft' }))
+    fireEvent.click(screen.getByRole('button', { name: 'set status' }))
+    expect(readProbe().state).toMatchObject({
+      status: '저장했어요.',
+      quickAddDraft: {
+        campaignId: 'season-pick',
+        productIds: ['knit-ivory'],
+      },
+      nextGroupSerial: 15,
+    })
+    expect(readProbe().state.groups).toHaveLength(14)
+
+    firstMount.unmount()
+    render(
+      <ShopDemoProvider>
+        <StateProbe />
+      </ShopDemoProvider>,
+    )
+
+    expect(readProbe().state).toMatchObject({
+      status: null,
+      quickAddDraft: null,
+      nextGroupSerial: 14,
+    })
+    expect(readProbe().state.groups).toHaveLength(13)
+    expect(readProbe().state.groups.some(({ id }) => id === 'demo-14')).toBe(false)
+  })
+
+  it('throws a clear error when the hook is used outside the provider', () => {
+    function OutsideProviderProbe() {
+      useShopDemo()
+      return null
+    }
+
+    expect(() => render(<OutsideProviderProbe />)).toThrowError(
+      'useShopDemo must be used within a ShopDemoProvider',
+    )
   })
 })
