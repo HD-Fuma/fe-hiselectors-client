@@ -223,6 +223,7 @@ ol {
 .client-panel {
   display: flex;
   flex-direction: column;
+  box-sizing: content-box;
   width: 552px;
   height: 100dvh;
   min-height: 640px;
@@ -2087,6 +2088,10 @@ input:focus-visible + .product-check {
   .client-panel {
     width: 100%;
   }
+
+  .client-panel {
+    box-sizing: border-box;
+  }
 }
 
 @media (max-width: 1099px) {
@@ -2099,6 +2104,7 @@ input:focus-visible + .product-check {
   }
 
   .client-panel {
+    box-sizing: border-box;
     width: 100%;
     max-width: none;
     margin: 0;

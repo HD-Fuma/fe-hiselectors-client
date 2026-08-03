@@ -74,14 +74,33 @@ describe('shared panel and campaign fidelity', () => {
     const baseCss = compactCss.slice(0, compactCss.indexOf('@media'))
     const mobileCss = compactCss.slice(compactCss.indexOf('@media (max-width: 480px)'))
     const clientPanelRule = baseCss.match(/\.client-panel \{([^}]*)\}/)?.[1] ?? ''
+    const bottomActionRule = baseCss.match(/\.bottom-action \{([^}]*)\}/)?.[1] ?? ''
 
     expect(clientPanelRule).toContain('border: 1px solid var(--line);')
     expect(clientPanelRule).toContain('box-shadow: none;')
+    expect(clientPanelRule).toContain('box-sizing: content-box;')
     expect(clientPanelRule).not.toMatch(/border-(?:left|right): 0;/)
     expect(clientPanelRule).not.toContain('box-shadow: inset')
     expect(baseCss).toMatch(/\.panel-header \{[^}]*border-bottom: 0;/)
     expect(baseCss).toMatch(/\.bottom-action \{[^}]*border-top: 1px solid var\(--line-soft\);/)
     expect(mobileCss).toMatch(/\.client-panel \{[^}]*border: 0;[^}]*box-shadow: none;/)
+
+    const desktopPanelInnerWidth = Number(clientPanelRule.match(/width: (\d+)px;/)?.[1])
+    const actionHorizontalInset = Number(bottomActionRule.match(/padding: \d+px (\d+)px;/)?.[1])
+    expect(desktopPanelInnerWidth).toBe(552)
+    expect(actionHorizontalInset).toBe(16)
+    expect(desktopPanelInnerWidth - (actionHorizontalInset * 2)).toBe(520)
+  })
+
+  it('uses border-box sizing for responsive panel widths', () => {
+    const narrowDesktopStart = compactCss.indexOf('@media (min-width: 1100px) and (max-width: 1151px)')
+    const tabletStart = compactCss.indexOf('@media (max-width: 1099px)')
+    const mobileStart = compactCss.indexOf('@media (max-width: 480px)')
+    const narrowDesktopCss = compactCss.slice(narrowDesktopStart, tabletStart)
+    const tabletCss = compactCss.slice(tabletStart, mobileStart)
+
+    expect(narrowDesktopCss).toMatch(/\.client-panel \{[^}]*box-sizing: border-box;/)
+    expect(tabletCss).toMatch(/\.client-panel \{[^}]*box-sizing: border-box;/)
   })
 
   it('removes only the campaign activity-commission claim', () => {
@@ -90,15 +109,25 @@ describe('shared panel and campaign fidelity', () => {
 
     expect(screen.queryByText('활동 수수료')).toBeNull()
     expect(screen.queryByText('상품별 최대 8%')).toBeNull()
-    const campaignPeriod = screen.getByText('캠페인 기간').closest('dl')
-    expect(campaignPeriod).toBeTruthy()
-    expect(campaignPeriod?.children).toHaveLength(1)
+    const campaignPeriod = screen.getByText('캠페인 기간').closest('dl') as HTMLElement
+    expect(within(campaignPeriod).getByText('캠페인 기간')).toBeTruthy()
+    expect(within(campaignPeriod).getByText('2026.08.01 - 2026.08.31')).toBeTruthy()
+
+    const participatingBrands = screen.getByLabelText('참여 브랜드')
+    expect(within(participatingBrands).getByText('TIME')).toBeTruthy()
+
+    const campaignProductsHeading = screen.getByRole('heading', { level: 2, name: '캠페인 상품' })
+    const campaignProducts = campaignProductsHeading.closest('section') as HTMLElement
+    expect(within(campaignProducts).getByText('[더현대Hi 단독] Cale ribbed half sleeve KN (Ivory)')).toBeTruthy()
   })
 
   it('retains aggregate, product-level, and settlement commission reporting', () => {
     window.location.hash = '#/performance'
     render(<App />)
-    expect(screen.getByText('예상 정산 수수료')).toBeTruthy()
+    const aggregateCommission = screen.getByText('예상 정산 수수료').closest('.metric-card') as HTMLElement
+    expect(within(aggregateCommission).getByText('예상 정산 수수료')).toBeTruthy()
+    expect(within(aggregateCommission).getByText('1,284,600')).toBeTruthy()
+    expect(within(aggregateCommission).getByText('원')).toBeTruthy()
 
     cleanup()
     window.location.hash = '#/performance/products'
@@ -109,6 +138,9 @@ describe('shared panel and campaign fidelity', () => {
     cleanup()
     window.location.hash = '#/settlement'
     render(<App />)
-    expect(screen.getByText('8월 예상 정산 금액')).toBeTruthy()
+    const settlementSummary = screen.getByText('8월 예상 정산 금액').closest('.settlement-summary') as HTMLElement
+    expect(within(settlementSummary).getByText('8월 예상 정산 금액')).toBeTruthy()
+    expect(within(settlementSummary).getByText('1,284,600')).toBeTruthy()
+    expect(within(settlementSummary).getByText('원')).toBeTruthy()
   })
 })

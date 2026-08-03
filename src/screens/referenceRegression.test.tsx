@@ -74,7 +74,7 @@ describe('reference shell contract', () => {
     expect(resolvedDesktopActionWidth).toBe(520)
 
     const tabletRules = compactCss.slice(compactCss.indexOf('@media (max-width: 1099px)'))
-    expect(tabletRules).toMatch(/\.client-panel \{ width: 100%; max-width: none; margin: 0; \}/)
+    expect(tabletRules).toMatch(/\.client-panel \{ box-sizing: border-box; width: 100%; max-width: none; margin: 0; \}/)
 
     const mobileRules = compactCss.slice(compactCss.indexOf('@media (max-width: 480px)'))
     expect(mobileRules).toMatch(/\.client-panel \{[^}]*border: 0;[^}]*box-shadow: none;/)
