@@ -1,5 +1,10 @@
+import { useRef, useState } from 'react'
+
 import { ArrowRightIcon } from '../components/Icons'
 import PanelHeader from '../components/PanelHeader'
+import CampaignQuickAddSheet from '../shop/CampaignQuickAddSheet'
+import { useShopDemo } from '../shop/ShopDemoContext'
+import ShopStatus from '../shop/ShopStatus'
 import { shopProducts } from './productData'
 
 const campaigns = [
@@ -65,7 +70,11 @@ export function CampaignListScreen() {
 }
 
 export function CampaignDetailScreen() {
-  const products = shopProducts.slice(0, 4)
+  const shop = useShopDemo()
+  const [isQuickAddOpen, setIsQuickAddOpen] = useState(false)
+  const quickAddTriggerRef = useRef<HTMLButtonElement>(null)
+  const campaign = shop.campaigns.find(({ id }) => id === 'season-pick')
+  const products = shop.getProducts(campaign?.productIds ?? [])
 
   return (
     <>
@@ -89,6 +98,15 @@ export function CampaignDetailScreen() {
           </div>
         </section>
 
+        <button
+          className="campaign-quick-add-trigger"
+          onClick={() => setIsQuickAddOpen(true)}
+          ref={quickAddTriggerRef}
+          type="button"
+        >
+          상품 그룹에 담기
+        </button>
+
         <section className="campaign-product-section">
           <div className="section-heading-row compact-heading">
             <h2>캠페인 상품</h2>
@@ -100,12 +118,31 @@ export function CampaignDetailScreen() {
                 <img alt={product.name} src={product.image} />
                 <span>{product.brand}</span>
                 <strong>{product.name}</strong>
-                <b>{product.price}</b>
+                <b>{product.salePrice}</b>
               </article>
             ))}
           </div>
         </section>
       </div>
+      <ShopStatus status={shop.state.status} />
+      {isQuickAddOpen ? (
+        <CampaignQuickAddSheet
+          groups={shop.state.groups}
+          invokerRef={quickAddTriggerRef}
+          onAddToGroup={(groupId, productIds) => {
+            shop.addProductsToGroup(groupId, productIds)
+            shop.setStatus('상품을 그룹에 담았어요.')
+            setIsQuickAddOpen(false)
+          }}
+          onClose={() => setIsQuickAddOpen(false)}
+          onCreateGroup={(productIds) => {
+            shop.setQuickAddDraft({ campaignId: 'season-pick', productIds })
+            setIsQuickAddOpen(false)
+            window.location.hash = '#/shop/groups/new/season-pick'
+          }}
+          products={products}
+        />
+      ) : null}
     </>
   )
 }

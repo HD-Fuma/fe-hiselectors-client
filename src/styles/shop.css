@@ -521,6 +521,248 @@
   line-height: 18px;
 }
 
+/* Campaign quick add */
+.campaign-quick-add-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 52px;
+  margin-top: 24px;
+  border: 1px solid var(--black);
+  background: var(--black);
+  color: var(--white);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.campaign-quick-add-trigger:focus-visible,
+.campaign-quick-add-sheet button:focus-visible,
+.campaign-quick-add-product input:focus-visible + .campaign-quick-add-check {
+  outline: 2px solid #2268e8;
+  outline-offset: 2px;
+}
+
+.campaign-quick-add-backdrop {
+  position: fixed;
+  z-index: 70;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.48);
+}
+
+.campaign-quick-add-sheet {
+  width: 100%;
+  max-width: 520px;
+  max-height: calc(100dvh - 32px);
+  padding: 20px 16px 24px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--white);
+}
+
+.campaign-quick-add-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.campaign-quick-add-heading h2 {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 24px;
+}
+
+.campaign-quick-add-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  font-size: 26px;
+  line-height: 1;
+}
+
+.campaign-quick-add-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.campaign-quick-add-summary > strong,
+.campaign-quick-add-groups > strong {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 20px;
+}
+
+.campaign-quick-add-summary > span {
+  padding: 4px 8px;
+  background: var(--black);
+  color: var(--white);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  line-height: 14px;
+}
+
+.campaign-quick-add-products {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+
+.campaign-quick-add-product {
+  position: relative;
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  gap: 9px;
+  align-items: center;
+  min-width: 0;
+  padding: 6px;
+  border: 1px solid var(--line-soft);
+  cursor: pointer;
+}
+
+.campaign-quick-add-product > input {
+  position: absolute;
+  z-index: 2;
+  top: 10px;
+  left: 10px;
+  width: 22px;
+  height: 22px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.campaign-quick-add-check {
+  position: absolute;
+  z-index: 1;
+  top: 10px;
+  left: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--gray-300);
+  background: rgba(255, 255, 255, 0.94);
+  color: transparent;
+}
+
+.campaign-quick-add-product input:checked + .campaign-quick-add-check {
+  border-color: var(--black);
+  background: var(--black);
+  color: var(--white);
+}
+
+.campaign-quick-add-product input:disabled + .campaign-quick-add-check {
+  border-color: var(--gray-700);
+  background: var(--gray-700);
+  cursor: not-allowed;
+}
+
+.campaign-quick-add-product:has(input:disabled) {
+  cursor: not-allowed;
+}
+
+.campaign-quick-add-product img {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  background: var(--surface);
+}
+
+.campaign-quick-add-product-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.campaign-quick-add-product-copy small {
+  overflow: hidden;
+  margin-bottom: 3px;
+  color: var(--gray-700);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.campaign-quick-add-product-copy strong {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 16px;
+  word-break: break-all;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.campaign-quick-add-groups {
+  padding-top: 20px;
+  margin-top: 20px;
+  border-top: 1px solid var(--line);
+}
+
+.campaign-quick-add-new {
+  width: 100%;
+  height: 46px;
+  margin-top: 12px;
+  border: 1px solid var(--black);
+  background: var(--black);
+  color: var(--white);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.campaign-quick-add-group-list {
+  margin-top: 12px;
+  border-top: 1px solid var(--ink);
+}
+
+.campaign-quick-add-group {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  min-height: 46px;
+  padding: 10px 4px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+
+.campaign-quick-add-group:hover {
+  background: var(--surface);
+}
+
+.campaign-quick-add-group > strong {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 19px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.campaign-quick-add-group > span {
+  color: var(--gray-500);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  line-height: 16px;
+}
+
 /* Public share sheet */
 .share-shop-backdrop {
   position: fixed;
@@ -818,6 +1060,16 @@
 
   .share-shop-sheet {
     max-width: none;
+  }
+
+  .campaign-quick-add-backdrop {
+    padding: 0;
+  }
+
+  .campaign-quick-add-sheet {
+    max-width: none;
+    max-height: 100dvh;
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
   }
 
   .group-dialog {

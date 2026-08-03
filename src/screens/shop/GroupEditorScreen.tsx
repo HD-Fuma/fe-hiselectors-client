@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import BottomAction from '../../components/BottomAction'
 import PanelHeader from '../../components/PanelHeader'
@@ -51,6 +51,26 @@ function GroupEditorForm({
   mode: GroupEditorMode
 }) {
   const shop = useShopDemo()
+  const { clearQuickAddDraft } = shop
+  const modeKind = mode.kind
+  const campaignCreateId = mode.kind === 'campaign-create'
+    ? mode.initialCampaignId
+    : ''
+  const [quickAddDraft] = useState(() => {
+    const draft = shop.state.quickAddDraft
+
+    if (
+      mode.kind !== 'campaign-create'
+      || draft?.campaignId !== mode.initialCampaignId
+    ) {
+      return null
+    }
+
+    return {
+      campaignId: draft.campaignId,
+      productIds: [...draft.productIds],
+    }
+  })
   const initialCampaignId = mode.kind === 'edit'
     ? group?.campaignId ?? ''
     : mode.kind === 'campaign-create'
@@ -59,7 +79,11 @@ function GroupEditorForm({
   const [name, setName] = useState(group?.name ?? '')
   const [campaignId, setCampaignId] = useState(initialCampaignId)
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>(
-    group ? [...group.productIds] : [],
+    group
+      ? [...group.productIds]
+      : quickAddDraft
+        ? [...quickAddDraft.productIds]
+        : [],
   )
   const [touched, setTouched] = useState(false)
   const editorTitle = mode.kind === 'edit' ? '상품 그룹 편집' : '상품 그룹 만들기'
@@ -78,6 +102,13 @@ function GroupEditorForm({
   const productError = touched && !nameError && selectedProductIds.length === 0
     ? '상품을 1개 이상 선택해 주세요.'
     : null
+
+  useEffect(() => {
+    if (modeKind === 'campaign-create') {
+      clearQuickAddDraft()
+    }
+  }, [campaignCreateId, clearQuickAddDraft, modeKind])
+
   const handleSave = () => {
     if (!canSave) {
       return
