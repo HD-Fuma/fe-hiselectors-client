@@ -494,7 +494,6 @@ ol {
 
 .stack-form input:focus,
 .application-form input:focus,
-.application-form select:focus,
 .editor-section > input:focus {
   border-color: var(--black);
 }
@@ -678,16 +677,75 @@ ol {
   margin-bottom: 9px;
 }
 
-.select-wrap select {
+.sns-trigger,
+.oauth-connect-button {
   width: 100%;
   height: 52px;
   padding: 0 43px 0 15px;
-  appearance: none;
   border: 1px solid #d2d2d2;
   border-radius: 0;
   background: var(--white);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+}
+
+.sns-trigger {
   color: var(--gray-500);
-  outline: none;
+}
+
+.sns-trigger[aria-expanded='true'],
+.sns-trigger:focus-visible,
+.oauth-connect-button:focus-visible,
+.sns-option:focus-visible {
+  outline: 2px solid #2268e8;
+  outline-offset: 2px;
+}
+
+.sns-options {
+  position: absolute;
+  z-index: 2;
+  top: calc(100% - 1px);
+  right: 0;
+  left: 0;
+  overflow: hidden;
+  border: 1px solid var(--black);
+  background: var(--white);
+}
+
+.sns-option {
+  display: block;
+  width: 100%;
+  height: 44px;
+  padding: 0 15px;
+  border: 0;
+  border-bottom: 1px solid #e3e3e3;
+  border-radius: 0;
+  background: var(--white);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+}
+
+.sns-option:last-child {
+  border-bottom: 0;
+}
+
+.sns-option[aria-selected='true'],
+.sns-option:hover {
+  background: #f3f3f3;
+}
+
+.oauth-connect-button {
+  padding: 0 15px;
+  text-align: center;
+}
+
+.oauth-connect-button:disabled {
+  border-color: #d2d2d2;
+  background: #f1f1f1;
+  color: var(--gray-500);
+  cursor: not-allowed;
 }
 
 .select-wrap svg {

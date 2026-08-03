@@ -1,3 +1,5 @@
+import { useEffect, useRef, useState } from 'react'
+
 import BottomAction from '../components/BottomAction'
 import { ArrowRightIcon, CartIcon, CheckIcon, ChevronDownIcon, CoinIcon, GiftIcon, LinkIcon, PersonIcon } from '../components/Icons'
 import PanelHeader from '../components/PanelHeader'
@@ -56,8 +58,14 @@ export function ApplyIntroScreen() {
 
 const privacyItems = [
   '① 수집 목적: 셀렉터스 접수 처리',
-  '② 수집 항목 : SNS URL 주소',
+  '② 수집 항목 : SNS 계정 연결 정보',
   '③ 보유 및 이용기간: 셀렉터스 신청 철회 시 또는 서비스 종료 시까지',
+] as const
+
+const snsChannels = [
+  { label: '인스타그램', oauthLabel: 'Instagram' },
+  { label: '페이스북', oauthLabel: 'Facebook' },
+  { label: '유튜브', oauthLabel: 'YouTube' },
 ] as const
 
 const terms = [
@@ -67,28 +75,111 @@ const terms = [
 ] as const
 
 export function ApplyFormScreen() {
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
+  const [isOptionsOpen, setIsOptionsOpen] = useState(false)
+  const [activeIndex, setActiveIndex] = useState(0)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const optionRefs = useRef<Array<HTMLButtonElement | null>>([])
+
+  useEffect(() => {
+    if (isOptionsOpen) {
+      optionRefs.current[activeIndex]?.focus()
+    }
+  }, [activeIndex, isOptionsOpen])
+
+  const openOptions = (index: number) => {
+    setActiveIndex(index)
+    setIsOptionsOpen(true)
+  }
+
+  const closeOptions = () => {
+    setIsOptionsOpen(false)
+    triggerRef.current?.focus()
+  }
+
+  const selectChannel = (index: number) => {
+    setSelectedIndex(index)
+    closeOptions()
+  }
+
+  const handleTriggerKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (event.key === 'ArrowDown') {
+      event.preventDefault()
+      openOptions(0)
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault()
+      openOptions(snsChannels.length - 1)
+    } else if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      openOptions(0)
+    }
+  }
+
+  const handleOptionKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
+    if (event.key === 'ArrowDown') {
+      event.preventDefault()
+      setActiveIndex((index + 1) % snsChannels.length)
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault()
+      setActiveIndex((index - 1 + snsChannels.length) % snsChannels.length)
+    } else if (event.key === 'Enter') {
+      event.preventDefault()
+      selectChannel(index)
+    } else if (event.key === 'Escape') {
+      event.preventDefault()
+      closeOptions()
+    }
+  }
+
+  const selectedChannel = selectedIndex === null ? null : snsChannels[selectedIndex]
+
   return (
     <div className="panel-page">
       <PanelHeader backHref="#/apply" title="셀렉터스 신청하기" />
       <div className="screen-scroll apply-form-screen">
         <section className="form-intro">
           <h2>나의 대표 SNS</h2>
-          <p>본인 소유의 공개된 대표 SNS를 입력해주세요.</p>
+          <p>본인 소유의 공개된 대표 SNS를 연결해주세요.</p>
         </section>
 
         <form className="application-form" onSubmit={(event) => event.preventDefault()}>
-          <label className="sr-only" htmlFor="channel-type">대표 SNS</label>
           <div className="select-wrap">
-            <select defaultValue="" id="channel-type" name="channelType">
-              <option disabled value="">대표 SNS 선택</option>
-              <option value="instagram">인스타그램</option>
-              <option value="youtube">유튜브</option>
-              <option value="blog">블로그</option>
-            </select>
+            <button
+              aria-controls="representative-sns-options"
+              aria-expanded={isOptionsOpen}
+              aria-haspopup="listbox"
+              className="sns-trigger"
+              onClick={() => (isOptionsOpen ? closeOptions() : openOptions(0))}
+              onKeyDown={handleTriggerKeyDown}
+              ref={triggerRef}
+              type="button"
+            >
+              {selectedChannel?.label ?? '대표 SNS 선택'}
+            </button>
             <ChevronDownIcon size={18} />
+            {isOptionsOpen ? (
+              <div aria-label="대표 SNS" className="sns-options" id="representative-sns-options" role="listbox">
+                {snsChannels.map((channel, index) => (
+                  <button
+                    aria-selected={selectedIndex === index}
+                    className="sns-option"
+                    key={channel.label}
+                    onClick={() => selectChannel(index)}
+                    onKeyDown={(event) => handleOptionKeyDown(event, index)}
+                    ref={(element) => { optionRefs.current[index] = element }}
+                    role="option"
+                    tabIndex={index === activeIndex ? 0 : -1}
+                    type="button"
+                  >
+                    {channel.label}
+                  </button>
+                ))}
+              </div>
+            ) : null}
           </div>
-          <label className="sr-only" htmlFor="channel-url">URL 주소</label>
-          <input id="channel-url" name="channelUrl" placeholder="URL 주소 입력" type="url" />
+          <button className="oauth-connect-button" disabled={!selectedChannel} type="button">
+            {selectedChannel ? `${selectedChannel.oauthLabel} 계정 연결하기` : 'SNS 계정 연결하기'}
+          </button>
         </form>
 
         <section className="privacy-section">
