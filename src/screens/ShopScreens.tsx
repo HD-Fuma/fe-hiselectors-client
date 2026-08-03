@@ -1,16 +1,16 @@
 import BottomAction from '../components/BottomAction'
-import { CopyIcon, ExternalLinkIcon, ShareIcon } from '../components/Icons'
+import { CopyIcon } from '../components/Icons'
 import PanelHeader from '../components/PanelHeader'
 import { useShopDemo } from '../shop/ShopDemoContext'
-import { shopProducts } from './productData'
 import {
   GroupCampaignCreateScreen,
   GroupCreateScreen,
   GroupEditScreen,
   MissingShopGroup,
 } from './shop/GroupEditorScreen'
+import PublicShopScreen from './shop/PublicShopScreen'
 
-export { GroupCampaignCreateScreen, GroupCreateScreen, GroupEditScreen }
+export { GroupCampaignCreateScreen, GroupCreateScreen, GroupEditScreen, PublicShopScreen }
 
 export function ShopGroupsScreen() {
   const { getProducts, state } = useShopDemo()
@@ -82,53 +82,6 @@ export function OwnerShopGroupScreen() {
             ))}
           </div>
         </section>
-      </div>
-    </>
-  )
-}
-
-export function PublicShopScreen() {
-  const categories = ['패션', '뷰티', '주얼리'] as const
-
-  return (
-    <>
-      <PanelHeader
-        action={<button aria-label="셀렉터스샵 공유" className="icon-button" type="button"><ShareIcon size={22} /></button>}
-        backHref="#/screens"
-        title="셀렉터스샵"
-      />
-      <div className="screen-scroll public-shop-screen">
-        <section className="selector-profile">
-          <div className="selector-avatar">Hi</div>
-          <h2>오셀렉터스</h2>
-        </section>
-
-        <button className="me-space-button" type="button">ME스페이스에서 오셀렉터스 만나기 <ExternalLinkIcon size={17} /></button>
-
-        {categories.map((category) => {
-          const products = shopProducts.filter((product) => product.category === category)
-          return (
-            <section className="shop-category" key={category}>
-              <div className="shop-category-heading"><h2>{category}</h2></div>
-              <div className="public-product-grid">
-                {products.map((product) => (
-                  <article className="public-product" key={product.name}>
-                    <img alt={product.name} src={product.image} />
-                    <span>{product.brand}</span>
-                    <strong>{product.name}</strong>
-                    <b>{product.price}</b>
-                  </article>
-                ))}
-              </div>
-            </section>
-          )
-        })}
-
-        <footer className="shop-footer">
-          <strong>SELECTORS SHOP</strong>
-          <p>본 페이지의 상품 정보와 가격은 판매처 사정에 따라 변경될 수 있습니다. 주문 및 배송은 현대백화점 공식 온라인몰에서 진행됩니다.</p>
-          <span>© HYUNDAI DEPARTMENT STORE. ALL RIGHTS RESERVED.</span>
-        </footer>
       </div>
     </>
   )

@@ -46,7 +46,7 @@ const screenExpectations = [
     path: '#/shop/RC000003200T',
     id: 'public-shop',
     heading: '셀렉터스샵',
-    content: '오셀렉터스',
+    content: 'byunjjii',
   },
   {
     path: '#/shop/RC000003200T/1',

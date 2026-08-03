@@ -8,18 +8,34 @@ import App from '../App'
 const workspaceRoot = (globalThis as typeof globalThis & {
   process: { cwd(): string }
 }).process.cwd()
-const compactCss = readFileSync(`${workspaceRoot}/src/styles/global.css`, 'utf8').replace(/\s+/g, ' ')
+const compactGlobalCss = readFileSync(
+  `${workspaceRoot}/src/styles/global.css`,
+  'utf8',
+).replace(/\s+/g, ' ')
+const compactShopCss = readFileSync(
+  `${workspaceRoot}/src/styles/shop.css`,
+  'utf8',
+).replace(/\s+/g, ' ')
 
-const expectedProducts = [
-  ['알투더블유', '[더현대Hi 단독] Cale ribbed half sleeve KN (Ivory)', '151,200원'],
-  ['알투더블유', '[더현대Hi 단독] Cale ribbed half sleeve KN (Soft blue)', '151,200원'],
-  ['알투더블유', '[더현대Hi 단독] Cale ribbed half sleeve KN (Midnight blue)', '151,200원'],
-  ['조 말론 런던', '[단독] 블랙베리 앤 베이 코롱 100ml (+바디 워시 30ml 증정)', '232,750원'],
-  ['조 말론 런던', '잉글리쉬 페어 앤 프리지아 코롱 30ml (+코롱 1.5ml 1종 +바디 사쉐 1종 증정)', '104,500원'],
-  ['조 말론 런던', '프랑지파니 플라워 코롱 30ml', '108,300원'],
-  ['이에르로르', '샴페인 풀문 (Y) 빅 보울 귀걸이 HL2E53215YBXXX', '59,500원'],
-  ['이에르로르', '에센스 실버(W) 모이사나이트 플라워 스테이션 팔찌 HL4B61404W9175', '119,000원'],
-  ['이에르로르', '[이에르로르] [Premium Plating] H링크 AB(W) 듀오 라인 파베 뱅글 HL3B63304WB', '93,500원'],
+const expectedGroups = [
+  [
+    '귀걸이',
+    [
+      '에센스 실버(W) 모이사나이트 쁘띠 원터치 귀걸이 HL4E54406W9XXX',
+      '[이에르로르] 수브니 플로우 실버(W) 원터치 귀걸이 S HL6E64607W9XXX',
+    ],
+  ],
+  [
+    '여름의 결',
+    [
+      '[더현대Hi 단독] Cale ribbed half sleeve KN (Ivory)',
+      '[더현대Hi 단독] Cale ribbed half sleeve KN (Soft blue)',
+    ],
+  ],
+  ['블루 니트', ['[더현대Hi 단독] Cale ribbed half sleeve KN (Midnight blue)']],
+  ['블랙베리 향', ['[단독] 블랙베리 앤 베이 코롱 100ml (+바디 워시 30ml 증정)']],
+  ['프리지아', ['잉글리쉬 페어 앤 프리지아 코롱 30ml (+코롱 1.5ml 1종 +바디 사쉐 1종 증정)']],
+  ['프랑지파니', ['프랑지파니 플라워 코롱 30ml']],
 ] as const
 
 afterEach(() => {
@@ -44,36 +60,60 @@ describe('HiHi aside and public shop reference contract', () => {
   })
 
   it('locks the supplied 963px aside geometry', () => {
-    expect(compactCss).toMatch(/\.hihi-aside \{[^}]*padding: 0;/)
-    expect(compactCss).toMatch(/\.hihi-logo \{[^}]*width: 180px;[^}]*height: 71px;[^}]*margin: 139px auto 39px;/)
-    expect(compactCss).toMatch(/\.aside-search \{[^}]*width: 422px;[^}]*height: 52px;[^}]*margin: 0 auto 35px;/)
-    expect(compactCss).toMatch(/\.aside-tile-grid \{[^}]*width: 422px;[^}]*margin: 0 auto;/)
-    expect(compactCss).toMatch(/\.aside-tile \{[^}]*height: 80px;/)
-    expect(compactCss).toMatch(/\.qr-mark \{[^}]*width: 110px;[^}]*height: 110px;/)
+    expect(compactGlobalCss).toMatch(/\.hihi-aside \{[^}]*padding: 0;/)
+    expect(compactGlobalCss).toMatch(/\.hihi-logo \{[^}]*width: 180px;[^}]*height: 71px;[^}]*margin: 139px auto 39px;/)
+    expect(compactGlobalCss).toMatch(/\.aside-search \{[^}]*width: 422px;[^}]*height: 52px;[^}]*margin: 0 auto 35px;/)
+    expect(compactGlobalCss).toMatch(/\.aside-tile-grid \{[^}]*width: 422px;[^}]*margin: 0 auto;/)
+    expect(compactGlobalCss).toMatch(/\.aside-tile \{[^}]*height: 80px;/)
+    expect(compactGlobalCss).toMatch(/\.qr-mark \{[^}]*width: 110px;[^}]*height: 110px;/)
   })
 
-  it('matches the vertical live-shop profile without invented profile copy', () => {
+  it('matches the badge-only byunjjii profile without the old category identity', () => {
     window.location.hash = '#/shop/RC000003200T'
     render(<App />)
 
-    expect(screen.getByText('오셀렉터스')).toBeTruthy()
-    expect(screen.queryByText('SELECTOR')).toBeNull()
-    expect(screen.queryByText('매일의 취향이 또렷해지는 아이템을 고릅니다.')).toBeNull()
-    expect(screen.queryByText(/ITEMS$/)).toBeNull()
-    expect(compactCss).toMatch(/\.selector-profile \{[^}]*flex-direction: column;[^}]*text-align: center;/)
-    expect(compactCss).toMatch(/\.selector-avatar \{[^}]*width: 74px;[^}]*height: 74px;/)
+    const badge = screen.getByAltText('인플루언서 뱃지')
+    expect(badge.getAttribute('width')).toBe('32')
+    expect(badge.getAttribute('height')).toBe('32')
+    expect(screen.getByText('byunjjii')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'byunjjii의 ME스페이스' })).toBeTruthy()
+    expect(screen.queryByText('오셀렉터스')).toBeNull()
+    ;['패션', '뷰티', '주얼리'].forEach((category) => {
+      expect(screen.queryByRole('heading', { name: category })).toBeNull()
+    })
   })
 
-  it('renders all nine exact live-reference product fixtures in order', () => {
+  it('renders the first six provider-backed product groups in reference order', () => {
     window.location.hash = '#/shop/RC000003200T'
     const { container } = render(<App />)
 
-    const cards = [...container.querySelectorAll<HTMLElement>('.public-product')]
-    expect(cards).toHaveLength(expectedProducts.length)
-    expect(cards.map((card) => [
-      card.querySelector('span')?.textContent,
-      card.querySelector('strong')?.textContent,
-      card.querySelector('b')?.textContent,
-    ])).toEqual(expectedProducts)
+    const groups = [...container.querySelectorAll<HTMLElement>('[data-shop-group-id]')]
+    expect(groups).toHaveLength(expectedGroups.length)
+    expect(groups.map((group) => [
+      within(group).getByRole('heading', { level: 2 }).textContent,
+      [...group.querySelectorAll<HTMLElement>('.shop-product-name')]
+        .map((productName) => productName.textContent),
+    ])).toEqual(expectedGroups)
+  })
+
+  it('locks the reference shop geometry', () => {
+    expect(compactGlobalCss).toMatch(/\.panel-header \{[^}]*flex: 0 0 52px;[^}]*height: 52px;[^}]*padding: 0 16px;/)
+    expect(compactShopCss).toMatch(/\.public-shop-screen \{[^}]*padding: 0 16px;/)
+    expect(compactShopCss).toMatch(/\.selector-badge \{[^}]*width: 32px;[^}]*height: 32px;/)
+    expect(compactShopCss).toMatch(/\.selector-profile h2 \{[^}]*font-size: 24px;[^}]*font-weight: 700;[^}]*line-height: 30px;/)
+    expect(compactShopCss).toMatch(/\.me-space-button \{[^}]*width: 100%;[^}]*max-width: 520px;[^}]*height: 44px;/)
+    expect(compactShopCss).toMatch(/\.shop-product-grid \{[^}]*grid-template-columns: 168px 168px;[^}]*column-gap: 16px;/)
+    expect(compactShopCss).toMatch(/\.shop-product img \{[^}]*width: 168px;[^}]*height: 168px;[^}]*aspect-ratio: 1;/)
+    expect(compactShopCss).toMatch(/\.shop-group-heading \{[^}]*font-size: 18px;[^}]*font-weight: 700;[^}]*line-height: 24px;/)
+    expect(compactShopCss).toMatch(/\.shop-product-pricing del \{[^}]*color: var\(--gray-500\);[^}]*font-size: 12px;/)
+    expect(compactShopCss).toMatch(/\.shop-product-pricing > span \{[^}]*color: #[0-9a-f]{6};[^}]*font-weight: 700;/)
+    expect(compactShopCss).toMatch(/\.shop-product-pricing > strong \{[^}]*font-size: 16px;[^}]*font-weight: 700;/)
+    expect(compactShopCss).toMatch(/\.shop-disclosure \{[^}]*font-size: 13px;[^}]*line-height: 18px;/)
+
+    const mobileRules = compactShopCss.slice(compactShopCss.indexOf('@media (max-width: 480px)'))
+    expect(mobileRules).toMatch(/\.shop-product-grid \{[^}]*grid-template-columns: 168px 168px;[^}]*column-gap: 16px;/)
+
+    expect(552 - (16 * 2)).toBe(520)
+    expect((168 * 2) + 16).toBeLessThanOrEqual(390 - (16 * 2))
   })
 })

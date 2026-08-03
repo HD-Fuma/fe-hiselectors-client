@@ -5,6 +5,7 @@ import { selectScreenByHash } from './screenRegistry'
 import { getScreenComponent } from './screens'
 import { ShopDemoProvider } from './shop/ShopDemoContext'
 import './styles/global.css'
+import './styles/shop.css'
 
 type AppProps = {
   shopProbe?: ReactNode

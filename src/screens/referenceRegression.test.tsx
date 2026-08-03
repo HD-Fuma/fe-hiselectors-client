@@ -11,6 +11,8 @@ const workspaceRoot = (globalThis as typeof globalThis & {
 }).process.cwd()
 const globalCss = readFileSync(`${workspaceRoot}/src/styles/global.css`, 'utf8')
 const compactCss = globalCss.replace(/\s+/g, ' ')
+const shopCss = readFileSync(`${workspaceRoot}/src/styles/shop.css`, 'utf8')
+const compactShopCss = shopCss.replace(/\s+/g, ' ')
 
 afterEach(() => {
   cleanup()
@@ -50,7 +52,7 @@ describe('reference shell contract', () => {
     const productCheck = editor.container.querySelector<HTMLInputElement>('.picker-row input')
     expect(productCheck?.nextElementSibling?.classList.contains('product-check')).toBe(true)
     expect(compactCss).toContain('input:focus-visible + .custom-check')
-    expect(compactCss).toContain('input:focus-visible + .product-check')
+    expect(compactShopCss).toContain('input:focus-visible + .product-check')
   })
 
   it('suppresses pointer focus rings on the SNS picker while preserving keyboard focus', () => {
