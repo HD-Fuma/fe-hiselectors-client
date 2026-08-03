@@ -12,6 +12,7 @@ body,
 
 html {
   background: var(--white);
+  -webkit-font-smoothing: antialiased;
 }
 
 body {
@@ -20,7 +21,9 @@ body {
   background: var(--white);
   color: var(--ink);
   font-size: 14px;
-  line-height: 1.45;
+  font-weight: 400;
+  line-height: 1.4;
+  letter-spacing: -0.25px;
   word-break: keep-all;
   overflow-x: hidden;
 }
@@ -163,8 +166,8 @@ ol {
   padding: 14px;
   overflow: hidden;
   background: var(--surface);
-  font-size: 16px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 400;
 }
 
 .aside-tile img {
@@ -253,9 +256,9 @@ ol {
 
 .panel-header h1 {
   overflow: hidden;
-  font-size: 16px;
-  font-weight: 700;
-  line-height: 22px;
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 22.5px;
   text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -641,7 +644,7 @@ ol {
   margin-bottom: 4px;
   color: var(--black);
   font-size: 24px;
-  font-weight: 750;
+  font-weight: 700;
   line-height: 1.29;
   letter-spacing: -0.035em;
 }
@@ -683,7 +686,7 @@ ol {
 
 .apply-flow .is-active {
   color: var(--black);
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .apply-flow .is-active .flow-icon {
@@ -1495,7 +1498,7 @@ input:focus-visible + .product-check {
   background: var(--black);
   color: var(--white);
   font-size: 19px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.07em;
 }
 

@@ -1,9 +1,15 @@
+@font-face {
+  font-family: pretendard;
+  src: url('../assets/fonts/PretendardVariable.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 45 920;
+  font-display: swap;
+}
+
 :root {
   color: #222222;
   background: #ffffff;
-  font-family: Pretendard, "Pretendard Variable", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Segoe UI", sans-serif;
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
+  font-family: pretendard, "pretendard Fallback", "Microsoft YaHei", "PingFang SC", sans-serif;
   --black: #000000;
   --ink: #222222;
   --gray-700: #575757;
