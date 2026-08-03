@@ -1,7 +1,14 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
+// @ts-expect-error The app intentionally has no Node type dependency; Vitest runs this file in Node.
+import { readFileSync } from 'node:fs'
 
 import App from '../App'
+
+const workspaceRoot = (globalThis as typeof globalThis & {
+  process: { cwd(): string }
+}).process.cwd()
+const compactCss = readFileSync(`${workspaceRoot}/src/styles/global.css`, 'utf8').replace(/\s+/g, ' ')
 
 afterEach(() => {
   cleanup()
@@ -18,6 +25,8 @@ describe('The Hyundai login reference contract', () => {
 
     const userId = screen.getByLabelText('아이디')
     const password = screen.getByLabelText('비밀번호')
+    expect(userId.closest('label')?.querySelector('.sr-only')?.textContent).toBe('아이디')
+    expect(password.closest('label')?.querySelector('.sr-only')?.textContent).toBe('비밀번호')
     expect(userId.getAttribute('placeholder')).toBe('아이디를 입력해 주세요')
     expect(password.getAttribute('placeholder')).toBe('비밀번호를 입력해 주세요')
     expect(password.getAttribute('type')).toBe('password')
@@ -49,9 +58,15 @@ describe('The Hyundai login reference contract', () => {
       'QR 코드 로그인',
       'H.Point APP 로그인',
     ]
-    const methods = within(screen.getByRole('group', { name: '간편 로그인' })).getAllByRole('button')
+    const alternativeGroup = screen.getByRole('group', { name: '간편 로그인' })
+    const methods = within(alternativeGroup).getAllByRole('button')
     expect(methods.map((method) => method.textContent)).toEqual(expectedMethods)
     expect(methods).toHaveLength(6)
+    const providerMarks = alternativeGroup.querySelectorAll('.login-provider-mark')
+    expect(providerMarks).toHaveLength(6)
+    expect([...providerMarks].every((mark) => mark.getAttribute('aria-hidden') === 'true')).toBe(true)
+
+    expect(screen.queryByText('|', { exact: true })).toBeNull()
 
     expect(screen.getByRole('heading', { name: 'BIZ회원 로그인' })).toBeTruthy()
     expect(screen.getByText('BIZ회원으로 가입하시는 경우 BIZ회원 로그인 화면에서 로그인 해주세요.')).toBeTruthy()
@@ -67,5 +82,15 @@ describe('The Hyundai login reference contract', () => {
     const hashBeforeAction = window.location.hash
     uniqueActions.forEach((action) => fireEvent.click(action))
     expect(window.location.hash).toBe(hashBeforeAction)
+  })
+
+  it('locks the compact reference form geometry', () => {
+    expect(compactCss).toMatch(/\.login-form \{[^}]*gap: 8px;/)
+    expect(compactCss).toMatch(/\.login-field > \.sr-only \{[^}]*position: absolute;/)
+    expect(compactCss).toMatch(/\.login-field input \{[^}]*border: 1px solid #d2d2d2;/)
+    expect(compactCss).toMatch(/\.login-simple-section \{[^}]*grid-template-columns: minmax\(0, 1fr\);[^}]*gap: 8px;/)
+    expect(compactCss).toMatch(/\.login-simple-section button \{[^}]*height: 44px;/)
+    expect(compactCss).toMatch(/\.login-recent-badge \{[^}]*position: absolute;[^}]*right: 0;[^}]*bottom: -10px;[^}]*background: #008f4c;/)
+    expect(compactCss).toMatch(/\.login-link-row \{[^}]*justify-content: space-between;/)
   })
 })

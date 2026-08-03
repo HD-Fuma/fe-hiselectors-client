@@ -3,6 +3,15 @@ import { useState } from 'react'
 import { EyeIcon } from '../components/Icons'
 import PanelHeader from '../components/PanelHeader'
 
+const simpleLoginMethods = [
+  ['휴대폰 인증 로그인', 'phone'],
+  ['네이버 로그인', 'naver'],
+  ['카카오 로그인', 'kakao'],
+  ['토스 로그인', 'toss'],
+  ['QR 코드 로그인', 'qr'],
+  ['H.Point APP 로그인', 'hpoint'],
+] as const
+
 export default function LoginScreen() {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false)
 
@@ -14,11 +23,11 @@ export default function LoginScreen() {
           <h2 id="member-login-heading">H.Point 통합회원 로그인</h2>
           <form className="login-form" onSubmit={(event) => event.preventDefault()}>
             <label className="login-field" htmlFor="login-user-id">
-              <span>아이디</span>
+              <span className="sr-only">아이디</span>
               <input autoComplete="username" id="login-user-id" name="userId" placeholder="아이디를 입력해 주세요" />
             </label>
             <label className="login-field login-password-field" htmlFor="login-password">
-              <span>비밀번호</span>
+              <span className="sr-only">비밀번호</span>
               <span className="login-password-input">
                 <input autoComplete="current-password" id="login-password" name="password" placeholder="비밀번호를 입력해 주세요" type={isPasswordVisible ? 'text' : 'password'} />
                 <button aria-label={isPasswordVisible ? '비밀번호 숨기기' : '비밀번호 보기'} className="login-password-toggle" onClick={() => setIsPasswordVisible((visible) => !visible)} type="button">
@@ -31,20 +40,19 @@ export default function LoginScreen() {
               <label><input name="autoLogin" type="checkbox" />자동 로그인</label>
             </div>
             <div className="login-submit-wrap">
-              <span className="login-recent-badge">최근에 로그인 했어요.</span>
               <button className="primary-action login-button" type="submit">로그인</button>
+              <span className="login-recent-badge">최근에 로그인 했어요.</span>
             </div>
           </form>
           <div className="login-link-row">
             <button type="button">통합회원 가입하기</button>
-            <span aria-hidden="true">|</span>
             <button type="button">아이디/비밀번호 찾기</button>
           </div>
         </section>
 
         <section className="login-simple-section" aria-label="간편 로그인" role="group">
-          {['휴대폰 인증 로그인', '네이버 로그인', '카카오 로그인', '토스 로그인', 'QR 코드 로그인', 'H.Point APP 로그인'].map((method) => (
-            <button key={method} type="button">{method}</button>
+          {simpleLoginMethods.map(([method, provider]) => (
+            <button key={method} type="button"><span aria-hidden="true" className={`login-provider-mark login-provider-${provider}`} />{method}</button>
           ))}
         </section>
 
