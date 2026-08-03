@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-import { EyeIcon } from '../components/Icons'
+import { EyeIcon, LoginProviderIcon } from '../components/Icons'
 import PanelHeader from '../components/PanelHeader'
 
 const simpleLoginMethods = [
@@ -26,15 +26,15 @@ export default function LoginScreen() {
               <span className="sr-only">아이디</span>
               <input autoComplete="username" id="login-user-id" name="userId" placeholder="아이디" />
             </label>
-            <label className="login-field login-password-field" htmlFor="login-password">
-              <span className="sr-only">비밀번호</span>
+            <div className="login-field login-password-field">
+              <label className="sr-only" htmlFor="login-password">비밀번호</label>
               <span className="login-password-input">
                 <input autoComplete="current-password" id="login-password" name="password" placeholder="비밀번호" type={isPasswordVisible ? 'text' : 'password'} />
                 <button aria-label={isPasswordVisible ? '비밀번호 숨기기' : '비밀번호 보기'} className="login-password-toggle" onClick={() => setIsPasswordVisible((visible) => !visible)} type="button">
                   <EyeIcon size={20} />
                 </button>
               </span>
-            </label>
+            </div>
             <div className="login-options">
               <label><input name="rememberId" type="checkbox" />아이디 저장</label>
               <label><input name="autoLogin" type="checkbox" />자동 로그인</label>
@@ -52,7 +52,7 @@ export default function LoginScreen() {
 
         <section className="login-simple-section" aria-label="간편 로그인" role="group">
           {simpleLoginMethods.map(([method, provider]) => (
-            <button key={method} type="button"><span aria-hidden="true" className={`login-provider-mark login-provider-${provider}`} />{method}</button>
+            <button key={method} type="button"><LoginProviderIcon className="login-provider-mark" provider={provider} size={18} />{method}</button>
           ))}
         </section>
 

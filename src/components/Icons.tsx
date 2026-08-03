@@ -78,6 +78,64 @@ export function EyeIcon(props: IconProps) {
   )
 }
 
+export type LoginProvider = 'phone' | 'naver' | 'kakao' | 'toss' | 'qr' | 'hpoint'
+
+type LoginProviderIconProps = IconProps & {
+  provider: LoginProvider
+}
+
+export function LoginProviderIcon({ provider, ...props }: LoginProviderIconProps) {
+  if (provider === 'phone') {
+    return (
+      <SvgIcon {...props}>
+        <rect height="18" rx="2" stroke="currentColor" strokeWidth="1.8" width="11" x="6.5" y="3" />
+        <path d="M10 18h4" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+      </SvgIcon>
+    )
+  }
+
+  if (provider === 'naver') {
+    return (
+      <SvgIcon {...props}>
+        <path d="M5 4h4.4l5.2 7.3V4H19v16h-4.4l-5.2-7.3V20H5V4Z" fill="currentColor" />
+      </SvgIcon>
+    )
+  }
+
+  if (provider === 'kakao') {
+    return (
+      <SvgIcon {...props}>
+        <path d="M12 4c-5 0-9 3-9 6.8 0 2.4 1.6 4.5 4.2 5.7L6.3 20l4-2.5c.6.1 1.1.1 1.7.1 5 0 9-3 9-6.8S17 4 12 4Z" fill="currentColor" />
+      </SvgIcon>
+    )
+  }
+
+  if (provider === 'toss') {
+    return (
+      <SvgIcon {...props}>
+        <ellipse cx="12.5" cy="11.5" fill="currentColor" rx="7.3" ry="5.4" transform="rotate(-22 12.5 11.5)" />
+        <circle cx="6" cy="5.5" fill="currentColor" r="2" />
+      </SvgIcon>
+    )
+  }
+
+  if (provider === 'qr') {
+    return (
+      <SvgIcon {...props}>
+        <path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4z" stroke="currentColor" strokeWidth="2" />
+        <path d="M14 14h2v2h-2zM18 14h2v6h-2zM14 18h2v2h-2z" fill="currentColor" />
+      </SvgIcon>
+    )
+  }
+
+  return (
+    <SvgIcon {...props}>
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M8 7v10M16 7v10M8 12h8" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
+    </SvgIcon>
+  )
+}
+
 export function ShareIcon(props: IconProps) {
   return (
     <SvgIcon {...props}>

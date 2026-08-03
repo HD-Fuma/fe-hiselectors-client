@@ -469,7 +469,12 @@ ol {
   border: 1px solid #d2d2d2;
   border-radius: 0;
   background: var(--white);
-  outline: none;
+}
+
+.login-field input:focus-visible {
+  border-color: #2268e8;
+  outline: 2px solid #2268e8;
+  outline-offset: -2px;
 }
 
 .login-field input::placeholder {
@@ -577,50 +582,18 @@ ol {
 }
 
 .login-provider-mark {
-  position: static;
-  flex: 0 0 auto;
-  width: 16px;
-  height: 16px;
-  background: var(--black);
-}
-
-.login-provider-phone {
-  width: 11px;
-  height: 16px;
-  border-radius: 2px;
-}
-
-.login-provider-naver {
-  width: 15px;
-  height: 15px;
-  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 0 24%, 26% 24%, 74% 76%, 74% 24%, 100% 24%, 100% 100%, 74% 100%, 26% 48%, 26% 100%, 0 100%);
-}
-
-.login-provider-kakao {
-  border-radius: 50%;
-}
-
-.login-provider-toss {
-  width: 13px;
-  height: 13px;
-  transform: rotate(45deg);
-}
-
-.login-provider-qr {
-  border: 3px solid var(--black);
-  background: linear-gradient(90deg, transparent 35%, var(--black) 35% 65%, transparent 65%);
-}
-
-.login-provider-hpoint {
-  width: 15px;
-  height: 15px;
-  clip-path: polygon(0 0, 35% 0, 35% 33%, 65% 33%, 65% 0, 100% 0, 100% 100%, 65% 100%, 65% 65%, 35% 65%, 35% 100%, 0 100%);
+  flex: 0 0 18px;
+  color: var(--black);
 }
 
 .login-info-section {
   margin-top: 28px;
   padding-top: 20px;
   border-top: 1px solid var(--line);
+}
+
+.login-info-section + .login-info-section {
+  margin-top: 40px;
 }
 
 .login-info-section h2 {
