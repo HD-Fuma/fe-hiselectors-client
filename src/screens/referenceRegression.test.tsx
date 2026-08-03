@@ -103,6 +103,7 @@ describe('reference shell contract', () => {
     render(<App />)
 
     const qr = screen.getByRole('img', { name: 'HiHi 앱 설치 QR 코드' })
+    expect(compactCss).toMatch(/\.qr-mark \{[^}]*width: 110px;[^}]*height: 110px;[^}]*padding: 0;[^}]*border: 0;/)
     expect(qr.getAttribute('viewBox')).toBe('0 0 29 29')
     expect([...qr.querySelectorAll('[data-qr-role="finder"]')].map((finder) => (
       finder.getAttribute('transform')
