@@ -2,24 +2,26 @@ import { describe, expect, it } from 'vitest'
 
 import { screenRegistry, selectScreenByHash } from './screenRegistry'
 
-const expectedScreenIds = [
-  'catalog',
-  'login',
-  'apply-intro',
-  'apply-form',
-  'campaign-list',
-  'campaign-detail',
-  'shop-groups',
-  'group-editor-product-picker',
-  'public-shop',
-  'performance-summary',
-  'product-performance',
-  'settlement',
+const expectedScreens = [
+  { id: 'catalog', path: '#/screens' },
+  { id: 'login', path: '#/login' },
+  { id: 'apply-intro', path: '#/apply' },
+  { id: 'apply-form', path: '#/apply/form' },
+  { id: 'campaign-list', path: '#/campaigns' },
+  { id: 'campaign-detail', path: '#/campaigns/detail' },
+  { id: 'shop-groups', path: '#/shop/groups' },
+  { id: 'group-editor-product-picker', path: '#/shop/groups/edit' },
+  { id: 'public-shop', path: '#/shop/RC000004900T' },
+  { id: 'performance-summary', path: '#/performance' },
+  { id: 'product-performance', path: '#/performance/products' },
+  { id: 'settlement', path: '#/settlement' },
 ] as const
 
 describe('screenRegistry', () => {
   it('registers every required screen at a unique hash path', () => {
-    expect(screenRegistry.map((screen) => screen.id)).toEqual(expectedScreenIds)
+    expect(
+      screenRegistry.map(({ id, path }) => ({ id, path })),
+    ).toEqual(expectedScreens)
 
     const paths = screenRegistry.map((screen) => screen.path)
 
@@ -27,8 +29,11 @@ describe('screenRegistry', () => {
     expect(new Set(paths).size).toBe(paths.length)
   })
 
-  it('selects a registered screen by hash and falls back to the catalog', () => {
-    expect(selectScreenByHash('#/campaigns/detail').id).toBe('campaign-detail')
+  it.each(screenRegistry)('selects $id for $path', ({ id, path }) => {
+    expect(selectScreenByHash(path).id).toBe(id)
+  })
+
+  it('falls back to the catalog for an unknown hash', () => {
     expect(selectScreenByHash('#/not-a-screen').id).toBe('catalog')
   })
 })

@@ -1,7 +1,7 @@
 export type HashPath = `#/${string}`
 
 export const screenRegistry = [
-  { id: 'catalog', path: '#/catalog', title: 'Catalog' },
+  { id: 'catalog', path: '#/screens', title: 'Catalog' },
   { id: 'login', path: '#/login', title: 'Login' },
   { id: 'apply-intro', path: '#/apply', title: 'Apply' },
   { id: 'apply-form', path: '#/apply/form', title: 'Application form' },
@@ -17,7 +17,11 @@ export const screenRegistry = [
     path: '#/shop/groups/edit',
     title: 'Group editor and product picker',
   },
-  { id: 'public-shop', path: '#/shop', title: 'Public shop' },
+  {
+    id: 'public-shop',
+    path: '#/shop/RC000004900T',
+    title: 'Public shop',
+  },
   {
     id: 'performance-summary',
     path: '#/performance',
