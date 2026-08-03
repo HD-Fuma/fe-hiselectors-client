@@ -694,7 +694,14 @@ ol {
   color: var(--gray-500);
 }
 
-.sns-trigger[aria-expanded='true'],
+.sns-trigger.is-selected {
+  color: var(--ink);
+}
+
+.sns-trigger[aria-expanded='true'] {
+  border-color: var(--black);
+}
+
 .sns-trigger:focus-visible,
 .oauth-connect-button:focus-visible,
 .sns-option:focus-visible {

@@ -79,6 +79,7 @@ export function ApplyFormScreen() {
   const [isOptionsOpen, setIsOptionsOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(0)
   const triggerRef = useRef<HTMLButtonElement>(null)
+  const pickerRef = useRef<HTMLDivElement>(null)
   const optionRefs = useRef<Array<HTMLButtonElement | null>>([])
 
   useEffect(() => {
@@ -87,13 +88,34 @@ export function ApplyFormScreen() {
     }
   }, [activeIndex, isOptionsOpen])
 
+  useEffect(() => {
+    if (!isOptionsOpen) return
+
+    const dismissWhenOutside = (event: Event) => {
+      if (event.target instanceof Node && !pickerRef.current?.contains(event.target)) {
+        setIsOptionsOpen(false)
+      }
+    }
+
+    document.addEventListener('focusin', dismissWhenOutside)
+    document.addEventListener('pointerdown', dismissWhenOutside)
+    return () => {
+      document.removeEventListener('focusin', dismissWhenOutside)
+      document.removeEventListener('pointerdown', dismissWhenOutside)
+    }
+  }, [isOptionsOpen])
+
   const openOptions = (index: number) => {
     setActiveIndex(index)
     setIsOptionsOpen(true)
   }
 
-  const closeOptions = () => {
+  const dismissOptions = () => {
     setIsOptionsOpen(false)
+  }
+
+  const closeOptions = () => {
+    dismissOptions()
     triggerRef.current?.focus()
   }
 
@@ -111,7 +133,7 @@ export function ApplyFormScreen() {
       openOptions(snsChannels.length - 1)
     } else if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault()
-      openOptions(0)
+      openOptions(selectedIndex ?? 0)
     }
   }
 
@@ -143,13 +165,13 @@ export function ApplyFormScreen() {
         </section>
 
         <form className="application-form" onSubmit={(event) => event.preventDefault()}>
-          <div className="select-wrap">
+          <div className="select-wrap" ref={pickerRef}>
             <button
               aria-controls="representative-sns-options"
               aria-expanded={isOptionsOpen}
               aria-haspopup="listbox"
-              className="sns-trigger"
-              onClick={() => (isOptionsOpen ? closeOptions() : openOptions(0))}
+              className={`sns-trigger${selectedChannel ? ' is-selected' : ''}`}
+              onClick={() => (isOptionsOpen ? dismissOptions() : openOptions(selectedIndex ?? 0))}
               onKeyDown={handleTriggerKeyDown}
               ref={triggerRef}
               type="button"

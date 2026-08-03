@@ -95,6 +95,8 @@ describe('apply reference contract', () => {
     expect(screen.getByRole('button', { name: 'Facebook 계정 연결하기' })).toHaveProperty('disabled', false)
 
     fireEvent.click(trigger)
+    expect(document.activeElement).toBe(screen.getByRole('option', { name: '페이스북' }))
+    expect(screen.getByRole('option', { name: '페이스북' }).getAttribute('aria-selected')).toBe('true')
     fireEvent.click(screen.getByRole('option', { name: '유튜브' }))
     expect(screen.getByRole('button', { name: 'YouTube 계정 연결하기' })).toHaveProperty('disabled', false)
     expect(screen.queryByPlaceholderText(/URL|handle|account/i)).toBeNull()
@@ -107,6 +109,27 @@ describe('apply reference contract', () => {
       '③ 보유 및 이용기간: 셀렉터스 신청 철회 시 또는 서비스 종료 시까지',
       '필수적 개인정보 수집/이용을 거부하실 권리가 있으나, 거부 시 셀렉터스 신청이 불가합니다.',
     ].forEach((copy) => expect(screen.getByText(copy)).toBeTruthy())
+  })
+
+  it('dismisses the representative SNS listbox when focus or a pointer leaves the picker', () => {
+    window.location.hash = '#/apply/form'
+    render(<App />)
+
+    const trigger = screen.getByRole('button', { name: '대표 SNS 선택' })
+    const outsideTarget = screen.getAllByRole('checkbox')[0]
+
+    fireEvent.click(trigger)
+    expect(screen.getByRole('listbox', { name: '대표 SNS' })).toBeTruthy()
+    outsideTarget.focus()
+    fireEvent.focusIn(outsideTarget)
+    expect(screen.queryByRole('listbox', { name: '대표 SNS' })).toBeNull()
+    expect(document.activeElement).toBe(outsideTarget)
+
+    fireEvent.click(trigger)
+    expect(screen.getByRole('listbox', { name: '대표 SNS' })).toBeTruthy()
+    fireEvent.pointerDown(document.body)
+    expect(screen.queryByRole('listbox', { name: '대표 SNS' })).toBeNull()
+    expect(document.activeElement).not.toBe(trigger)
   })
 
   it('shows only the three supplied agreement rows and disabled CTA', () => {
