@@ -1,0 +1,17 @@
+:root {
+  color: #222222;
+  background: #ffffff;
+  font-family: Pretendard, "Pretendard Variable", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Segoe UI", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  --black: #000000;
+  --ink: #222222;
+  --gray-700: #575757;
+  --gray-500: #8c8c8c;
+  --gray-400: #a2a2a2;
+  --gray-300: #c8c8c8;
+  --line: #e5e5e5;
+  --line-soft: #efefef;
+  --surface: #f7f7f7;
+  --white: #ffffff;
+}

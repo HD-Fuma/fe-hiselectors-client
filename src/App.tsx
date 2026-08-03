@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 
+import AppShell from './components/AppShell'
 import { selectScreenByHash } from './screenRegistry'
+import { getScreenComponent } from './screens'
+import './styles/global.css'
 
 export default function App() {
   const [screen, setScreen] = useState(() =>
@@ -17,9 +20,11 @@ export default function App() {
     return () => window.removeEventListener('hashchange', handleHashChange)
   }, [])
 
+  const Screen = getScreenComponent(screen.id)
+
   return (
-    <main data-screen-id={screen.id}>
-      <h1>{screen.title}</h1>
-    </main>
+    <AppShell screenId={screen.id}>
+      <Screen />
+    </AppShell>
   )
 }
