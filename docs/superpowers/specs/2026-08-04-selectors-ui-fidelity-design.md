@@ -59,7 +59,7 @@ Route: `#/shop/RC000003200T`
 The screen matches the public reference:
 
 - 52px header with back and share actions
-- profile avatar and verification badge
+- exact 32px influencer-badge graphic used by the live page as its profile visual; the reference exposes no separate portrait avatar
 - selector name `byunjjii`
 - full-width `byunjjii의 ME스페이스` button
 - product groups presented as titled sections
