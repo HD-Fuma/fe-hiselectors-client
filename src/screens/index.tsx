@@ -5,7 +5,14 @@ import CatalogScreen from './CatalogScreen'
 import LoginScreen from './LoginScreen'
 import { PerformanceSummaryScreen, ProductPerformanceScreen } from './PerformanceScreens'
 import SettlementScreen from './SettlementScreen'
-import { GroupEditorScreen, PublicShopScreen, ShopGroupsScreen } from './ShopScreens'
+import {
+  GroupCampaignCreateScreen,
+  GroupCreateScreen,
+  GroupEditScreen,
+  OwnerShopGroupScreen,
+  PublicShopScreen,
+  ShopGroupsScreen,
+} from './ShopScreens'
 
 const screens: Record<ScreenId, () => React.JSX.Element> = {
   catalog: CatalogScreen,
@@ -14,9 +21,12 @@ const screens: Record<ScreenId, () => React.JSX.Element> = {
   'apply-form': ApplyFormScreen,
   'campaign-list': CampaignListScreen,
   'campaign-detail': CampaignDetailScreen,
-  'shop-groups': ShopGroupsScreen,
-  'group-editor-product-picker': GroupEditorScreen,
   'public-shop': PublicShopScreen,
+  'owner-shop-group': OwnerShopGroupScreen,
+  'shop-groups': ShopGroupsScreen,
+  'group-create': GroupCreateScreen,
+  'group-edit': GroupEditScreen,
+  'group-campaign-create': GroupCampaignCreateScreen,
   'performance-summary': PerformanceSummaryScreen,
   'product-performance': ProductPerformanceScreen,
   settlement: SettlementScreen,

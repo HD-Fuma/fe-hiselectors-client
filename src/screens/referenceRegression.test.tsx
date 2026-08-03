@@ -32,7 +32,7 @@ describe('reference shell contract', () => {
     expect(screen.getByRole('banner')).toBeTruthy()
 
     cleanup()
-    window.location.hash = '#/shop/RC000004900T'
+    window.location.hash = '#/shop/RC000003200T'
     render(<App />)
     expect(screen.getByRole('link', { name: '뒤로 가기' })).toBeTruthy()
   })
@@ -45,7 +45,7 @@ describe('reference shell contract', () => {
     expect(customCheck?.nextElementSibling?.classList.contains('custom-check')).toBe(true)
 
     cleanup()
-    window.location.hash = '#/shop/groups/edit'
+    window.location.hash = '#/shop/groups/new'
     const editor = render(<App />)
     const productCheck = editor.container.querySelector<HTMLInputElement>('.picker-row input')
     expect(productCheck?.nextElementSibling?.classList.contains('product-check')).toBe(true)

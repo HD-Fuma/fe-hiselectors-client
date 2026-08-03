@@ -29,7 +29,7 @@ afterEach(() => {
 
 describe('HiHi aside and public shop reference contract', () => {
   it('uses the exact HiHi aside labels and installation copy', () => {
-    window.location.hash = '#/shop/RC000004900T'
+    window.location.hash = '#/shop/RC000003200T'
     render(<App />)
 
     const aside = screen.getByRole('complementary', { name: 'HiHi 바로가기' })
@@ -53,7 +53,7 @@ describe('HiHi aside and public shop reference contract', () => {
   })
 
   it('matches the vertical live-shop profile without invented profile copy', () => {
-    window.location.hash = '#/shop/RC000004900T'
+    window.location.hash = '#/shop/RC000003200T'
     render(<App />)
 
     expect(screen.getByText('오셀렉터스')).toBeTruthy()
@@ -65,7 +65,7 @@ describe('HiHi aside and public shop reference contract', () => {
   })
 
   it('renders all nine exact live-reference product fixtures in order', () => {
-    window.location.hash = '#/shop/RC000004900T'
+    window.location.hash = '#/shop/RC000003200T'
     const { container } = render(<App />)
 
     const cards = [...container.querySelectorAll<HTMLElement>('.public-product')]

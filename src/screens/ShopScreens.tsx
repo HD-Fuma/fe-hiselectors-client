@@ -1,95 +1,89 @@
 import BottomAction from '../components/BottomAction'
-import { CheckIcon, ChevronDownIcon, CopyIcon, ExternalLinkIcon, ShareIcon } from '../components/Icons'
+import { CopyIcon, ExternalLinkIcon, ShareIcon } from '../components/Icons'
 import PanelHeader from '../components/PanelHeader'
+import { useShopDemo } from '../shop/ShopDemoContext'
 import { shopProducts } from './productData'
+import {
+  GroupCampaignCreateScreen,
+  GroupCreateScreen,
+  GroupEditScreen,
+  MissingShopGroup,
+} from './shop/GroupEditorScreen'
 
-const groups = [
-  { name: '지금 입기 좋은 여름의 결', count: 6, date: '2026.08.03', images: shopProducts.slice(0, 3) },
-  { name: '은은하게 오래 남는 향', count: 3, date: '2026.08.01', images: shopProducts.slice(3, 6) },
-  { name: '매일을 빛내는 작은 주얼리', count: 3, date: '2026.07.28', images: shopProducts.slice(6, 9) },
-] as const
+export { GroupCampaignCreateScreen, GroupCreateScreen, GroupEditScreen }
 
 export function ShopGroupsScreen() {
+  const { getProducts, state } = useShopDemo()
+
   return (
     <div className="panel-page">
       <PanelHeader backHref="#/screens" title="상품 그룹" />
       <div className="screen-scroll shop-groups-screen">
         <section className="shop-link-card">
           <span>내 셀렉터스샵</span>
-          <strong>thehyundai.com/shop/RC000004900T</strong>
+          <strong>thehyundai.com/shop/RC000003200T</strong>
           <button aria-label="셀렉터스샵 링크 복사" type="button"><CopyIcon size={19} /> 링크 복사</button>
         </section>
 
         <div className="group-list-heading">
           <div><h2>상품 그룹</h2><p>생성 순서대로 셀렉터스샵에 노출됩니다.</p></div>
-          <span>{groups.length}개</span>
+          <span>{state.groups.length}개</span>
         </div>
 
         <div className="group-list">
-          {groups.map((group, index) => (
-            <article className="group-card" key={group.name}>
+          {state.groups.map((group, index) => (
+            <article className="group-card" key={group.id}>
               <div className="group-thumbnails">
-                {group.images.map((product) => <img alt="" key={product.image} src={product.image} />)}
+                {getProducts(group.productIds).slice(0, 3).map((product) => (
+                  <img alt="" key={product.image} src={product.image} />
+                ))}
               </div>
               <div className="group-card-body">
                 <span>GROUP {String(index + 1).padStart(2, '0')}</span>
-                <strong>{group.name}</strong>
-                <p>상품 {group.count}개 · {group.date} 생성</p>
+                <strong>
+                  {group.id === '1'
+                    ? <a href="#/shop/RC000003200T/1">{group.name}</a>
+                    : group.name}
+                </strong>
+                <p>상품 {group.productIds.length}개 · {group.createdAt} 생성</p>
               </div>
               <button aria-label={`${group.name} 메뉴`} type="button">•••</button>
             </article>
           ))}
         </div>
       </div>
-      <BottomAction href="#/shop/groups/edit" label="상품 그룹 만들기" />
+      <BottomAction href="#/shop/groups/new" label="상품 그룹 만들기" />
     </div>
   )
 }
 
-export function GroupEditorScreen() {
-  const pickerProducts = shopProducts.slice(0, 5)
+export function OwnerShopGroupScreen() {
+  const { getGroup, getProducts } = useShopDemo()
+  const group = getGroup('1')
+
+  if (!group) {
+    return <MissingShopGroup title="셀렉터스샵" />
+  }
 
   return (
-    <div className="panel-page">
-      <PanelHeader backHref="#/shop/groups" title="상품 그룹 만들기" />
-      <div className="screen-scroll group-editor-screen">
-        <section className="editor-section">
-          <label className="field-label" htmlFor="group-name">상품 그룹 이름</label>
-          <input defaultValue="지금 입기 좋은 여름의 결" id="group-name" maxLength={30} />
-          <span className="character-count">15 / 30</span>
-        </section>
-
-        <section className="editor-section campaign-select-section">
-          <h2>캠페인 선택</h2>
-          <button className="campaign-select-button" type="button">
-            <span><small>선택한 캠페인</small><strong>여름의 결을 고르는 시즌 픽</strong></span>
-            <ChevronDownIcon size={19} />
-          </button>
-        </section>
-
-        <section className="editor-section product-picker-section">
-          <div className="picker-heading">
-            <div><h2>캠페인 상품 선택</h2><p>셀렉터스샵에 소개할 상품을 선택해 주세요.</p></div>
-            <span>3개 선택</span>
-          </div>
-          <div className="picker-list">
-            {pickerProducts.map((product, index) => (
-              <label className="picker-row" key={product.name}>
-                <input defaultChecked={index < 3} type="checkbox" />
-                <span className="product-check"><CheckIcon size={17} /></span>
+    <>
+      <PanelHeader backHref="#/shop/RC000003200T" title="셀렉터스샵" />
+      <div className="screen-scroll owner-shop-group-screen">
+        <section className="shop-category">
+          <div className="shop-category-heading"><h2>{group.name}</h2></div>
+          <div className="public-product-grid">
+            {getProducts(group.productIds).map((product) => (
+              <article className="public-product" key={product.id}>
                 <img alt={product.name} src={product.image} />
-                <span className="picker-product-copy">
-                  <small>{product.brand}</small>
-                  <strong>{product.name}</strong>
-                  <span>{product.price}</span>
-                </span>
-              </label>
+                <span>{product.brand}</span>
+                <strong>{product.name}</strong>
+                <b>{product.salePrice}</b>
+              </article>
             ))}
           </div>
         </section>
       </div>
-      <BottomAction label="상품 그룹 저장하기" />
-    </div>
+    </>
   )
 }
 

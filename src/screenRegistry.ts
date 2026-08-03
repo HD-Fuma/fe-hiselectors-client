@@ -11,16 +11,31 @@ export const screenRegistry = [
     path: '#/campaigns/detail',
     title: '시즌 픽 캠페인',
   },
+  {
+    id: 'public-shop',
+    path: '#/shop/RC000003200T',
+    title: '셀렉터스샵',
+  },
+  {
+    id: 'owner-shop-group',
+    path: '#/shop/RC000003200T/1',
+    title: '셀렉터스샵',
+  },
   { id: 'shop-groups', path: '#/shop/groups', title: '상품 그룹' },
   {
-    id: 'group-editor-product-picker',
-    path: '#/shop/groups/edit',
+    id: 'group-create',
+    path: '#/shop/groups/new',
     title: '상품 그룹 만들기',
   },
   {
-    id: 'public-shop',
-    path: '#/shop/RC000004900T',
-    title: '셀렉터스샵',
+    id: 'group-edit',
+    path: '#/shop/groups/1/edit',
+    title: '상품 그룹 편집',
+  },
+  {
+    id: 'group-campaign-create',
+    path: '#/shop/groups/new/season-pick',
+    title: '상품 그룹 만들기',
   },
   {
     id: 'performance-summary',
