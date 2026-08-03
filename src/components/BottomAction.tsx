@@ -1,4 +1,4 @@
-import type { MouseEventHandler } from 'react'
+import type { JSX, MouseEventHandler } from 'react'
 
 type BottomActionButtonProps = {
   disabled?: boolean
@@ -7,50 +7,51 @@ type BottomActionButtonProps = {
   onClick?: MouseEventHandler<HTMLButtonElement>
 }
 
-type BottomActionLinkProps = {
-  disabled?: false
+type BottomActionTarget<Disabled extends boolean> = boolean extends Disabled
+  ? HTMLAnchorElement | HTMLButtonElement
+  : Disabled extends true
+    ? HTMLButtonElement
+    : HTMLAnchorElement
+
+type BottomActionHrefProps<Disabled extends boolean> = {
+  disabled?: Disabled
   href: string
   label: string
-  onClick?: MouseEventHandler<HTMLAnchorElement>
+  onClick?: MouseEventHandler<BottomActionTarget<Disabled>>
 }
 
-type DisabledBottomActionLinkProps = {
-  disabled: true
-  href: string
+type BottomActionImplementationProps = {
+  disabled?: boolean
+  href?: string
   label: string
-  onClick?: MouseEventHandler<HTMLButtonElement>
+  onClick?: MouseEventHandler<HTMLAnchorElement | HTMLButtonElement>
 }
 
-type BottomActionProps =
-  | BottomActionButtonProps
-  | BottomActionLinkProps
-  | DisabledBottomActionLinkProps
-
-function isActiveLink(props: BottomActionProps): props is BottomActionLinkProps {
-  return typeof props.href === 'string' && !props.disabled
-}
-
-export default function BottomAction(props: BottomActionProps) {
-  if (isActiveLink(props)) {
-    return (
-      <div className="bottom-action">
-        <a className="primary-action" href={props.href} onClick={props.onClick}>
-          {props.label}
-        </a>
-      </div>
-    )
-  }
-
+function BottomAction<Disabled extends boolean = false>(
+  props: BottomActionButtonProps | BottomActionHrefProps<Disabled>,
+): JSX.Element
+function BottomAction({
+  disabled = false,
+  href,
+  label,
+  onClick,
+}: BottomActionImplementationProps) {
   return (
     <div className="bottom-action">
-      <button
-        className="primary-action"
-        disabled={props.disabled ?? false}
-        onClick={props.onClick}
-        type="button"
-      >
-        {props.label}
-      </button>
+      {href && !disabled ? (
+        <a className="primary-action" href={href} onClick={onClick}>{label}</a>
+      ) : (
+        <button
+          className="primary-action"
+          disabled={disabled}
+          onClick={onClick}
+          type="button"
+        >
+          {label}
+        </button>
+      )}
     </div>
   )
 }
+
+export default BottomAction

@@ -119,7 +119,9 @@ function GroupEditorForm({
         <section className="editor-section">
           <label className="field-label" htmlFor="group-name">상품 그룹 이름</label>
           <input
-            aria-describedby={nameError ? 'group-name-error' : undefined}
+            aria-describedby={nameError
+              ? 'group-name-count group-name-error'
+              : 'group-name-count'}
             aria-invalid={nameError ? true : undefined}
             id="group-name"
             maxLength={30}
@@ -129,7 +131,7 @@ function GroupEditorForm({
             }}
             value={name}
           />
-          <span className="character-count">{name.length} / 30</span>
+          <span className="character-count" id="group-name-count">{name.length} / 30</span>
           {nameError ? (
             <p className="editor-alert" id="group-name-error" role="alert">{nameError}</p>
           ) : null}

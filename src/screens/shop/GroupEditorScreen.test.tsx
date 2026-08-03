@@ -1,7 +1,8 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import App from '../../App'
+import BottomAction from '../../components/BottomAction'
 import GroupProductPicker from '../../shop/GroupProductPicker'
 import { useShopDemo } from '../../shop/ShopDemoContext'
 
@@ -47,12 +48,52 @@ function GroupSaveProbe() {
   )
 }
 
+function RuntimeDisabledAction({
+  disabled,
+  onActivate,
+}: {
+  disabled: boolean
+  onActivate: (tagName: string) => void
+}) {
+  return (
+    <BottomAction
+      disabled={disabled}
+      href="#/shop/groups"
+      label="동적 액션"
+      onClick={(event) => {
+        event.preventDefault()
+        onActivate(event.currentTarget.tagName)
+      }}
+    />
+  )
+}
+
 afterEach(() => {
   cleanup()
   window.location.hash = ''
 })
 
 describe('group editor', () => {
+  it('supports runtime disabled href actions', () => {
+    const onActivate = vi.fn()
+    const { rerender } = render(
+      <RuntimeDisabledAction disabled={false} onActivate={onActivate} />,
+    )
+
+    const link = screen.getByRole('link', { name: '동적 액션' })
+    expect(link.getAttribute('href')).toBe('#/shop/groups')
+    fireEvent.click(link)
+    expect(onActivate).toHaveBeenLastCalledWith('A')
+
+    rerender(<RuntimeDisabledAction disabled onActivate={onActivate} />)
+
+    const button = screen.getByRole('button', { name: '동적 액션' }) as HTMLButtonElement
+    expect(button.disabled).toBe(true)
+    fireEvent.click(button)
+    expect(onActivate).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('link', { name: '동적 액션' })).toBeNull()
+  })
+
   it('initializes all editor modes', () => {
     const cases = [
       {
@@ -171,15 +212,22 @@ describe('group editor', () => {
     const save = screen.getByRole('button', { name: '상품 그룹 저장하기' }) as HTMLButtonElement
     const initialState = screen.getByRole('status', { name: '테스트 그룹 상태' }).textContent
     expect(input.maxLength).toBe(30)
+    const initialCount = screen.getByText('0 / 30')
+    expect(initialCount.id).toBe('group-name-count')
+    expect(input.getAttribute('aria-describedby')).toBe('group-name-count')
 
     fireEvent.change(input, { target: { value: '   ' } })
 
-    expect(screen.getByRole('alert').textContent).toBe('상품 그룹 이름을 입력해 주세요.')
+    const nameAlert = screen.getByRole('alert')
+    expect(nameAlert.textContent).toBe('상품 그룹 이름을 입력해 주세요.')
+    expect(nameAlert.id).toBe('group-name-error')
+    expect(input.getAttribute('aria-describedby')).toBe('group-name-count group-name-error')
     expect(save.disabled).toBe(true)
 
     fireEvent.change(input, { target: { value: '새 그룹' } })
 
     expect(screen.getByRole('alert').textContent).toBe('상품을 1개 이상 선택해 주세요.')
+    expect(input.getAttribute('aria-describedby')).toBe('group-name-count')
     fireEvent.click(save)
     expect(window.location.hash).toBe('#/shop/groups/new')
     expect(screen.getByRole('status', { name: '테스트 그룹 상태' }).textContent).toBe(
