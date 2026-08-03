@@ -125,4 +125,35 @@ describe('HiHi aside and public shop reference contract', () => {
     expect((168 * 3) + (8 * 2)).toBe(520)
     expect((390 - (16 * 2) - (8 * 2)) / 3).toBe(114)
   })
+
+  it('clamps shop product names to the live two-line geometry', () => {
+    expect(compactShopCss).toMatch(
+      /\.shop-product-name \{[^}]*display: -webkit-box;[^}]*overflow: hidden;[^}]*font-size: 13px;[^}]*line-height: 18px;[^}]*-webkit-box-orient: vertical;[^}]*-webkit-line-clamp: 2;/,
+    )
+  })
+
+  it('uses the live ME-space button border without changing its geometry', () => {
+    expect(compactShopCss).toMatch(
+      /\.me-space-button \{[^}]*gap: 4px;[^}]*width: 100%;[^}]*max-width: 520px;[^}]*height: 44px;[^}]*border: 1px solid #e1e1e1;[^}]*font-size: 14px;[^}]*font-weight: 700;[^}]*line-height: 14px;/,
+    )
+  })
+
+  it('uses the live upload-style share icon at the accessible 22px header placement', () => {
+    window.location.hash = '#/shop/RC000003200T'
+    render(<App />)
+
+    const shareButton = screen.getByRole('button', { name: '셀렉터스샵 공유' })
+    const shareIcon = shareButton.querySelector('svg')
+
+    expect(shareIcon?.getAttribute('aria-hidden')).toBe('true')
+    expect(shareIcon?.getAttribute('width')).toBe('22')
+    expect(shareIcon?.getAttribute('height')).toBe('22')
+    expect(shareIcon?.querySelectorAll('circle')).toHaveLength(0)
+    expect([...shareIcon?.querySelectorAll('path') ?? []].map((path) => (
+      path.getAttribute('d')
+    ))).toEqual([
+      'M12 16V3m-5 5 5-5 5 5',
+      'M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7',
+    ])
+  })
 })

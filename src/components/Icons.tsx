@@ -139,10 +139,8 @@ export function LoginProviderIcon({ provider, ...props }: LoginProviderIconProps
 export function ShareIcon(props: IconProps) {
   return (
     <SvgIcon {...props}>
-      <circle cx="18" cy="5" fill="currentColor" r="2" />
-      <circle cx="6" cy="12" fill="currentColor" r="2" />
-      <circle cx="18" cy="19" fill="currentColor" r="2" />
-      <path d="m8 11 8-5M8 13l8 5" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M12 16V3m-5 5 5-5 5 5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" />
+      <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" />
     </SvgIcon>
   )
 }
