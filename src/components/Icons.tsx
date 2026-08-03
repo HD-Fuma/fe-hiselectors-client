@@ -69,6 +69,15 @@ export function SearchIcon(props: IconProps) {
   )
 }
 
+export function EyeIcon(props: IconProps) {
+  return (
+    <SvgIcon {...props}>
+      <path d="M3.5 12s3-5 8.5-5 8.5 5 8.5 5-3 5-8.5 5-8.5-5-8.5-5Z" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.5" />
+      <circle cx="12" cy="12" r="2.5" stroke="currentColor" strokeWidth="1.5" />
+    </SvgIcon>
+  )
+}
+
 export function ShareIcon(props: IconProps) {
   return (
     <SvgIcon {...props}>

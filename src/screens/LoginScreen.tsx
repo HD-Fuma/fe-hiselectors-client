@@ -1,29 +1,64 @@
+import { useState } from 'react'
+
+import { EyeIcon } from '../components/Icons'
 import PanelHeader from '../components/PanelHeader'
 
 export default function LoginScreen() {
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false)
+
   return (
     <>
       <PanelHeader backHref="#/screens" title="로그인" />
       <div className="screen-scroll login-screen">
-        <div className="login-copy">
-          <span className="brand-wordmark">SELECTORS</span>
-          <h2>나만의 셀렉션을<br />수익으로 연결해 보세요.</h2>
-          <p>아이디와 비밀번호를 입력해 주세요.</p>
-        </div>
+        <section className="login-member-section" aria-labelledby="member-login-heading">
+          <h2 id="member-login-heading">H.Point 통합회원 로그인</h2>
+          <form className="login-form" onSubmit={(event) => event.preventDefault()}>
+            <label className="login-field" htmlFor="login-user-id">
+              <span>아이디</span>
+              <input autoComplete="username" id="login-user-id" name="userId" placeholder="아이디를 입력해 주세요" />
+            </label>
+            <label className="login-field login-password-field" htmlFor="login-password">
+              <span>비밀번호</span>
+              <span className="login-password-input">
+                <input autoComplete="current-password" id="login-password" name="password" placeholder="비밀번호를 입력해 주세요" type={isPasswordVisible ? 'text' : 'password'} />
+                <button aria-label={isPasswordVisible ? '비밀번호 숨기기' : '비밀번호 보기'} className="login-password-toggle" onClick={() => setIsPasswordVisible((visible) => !visible)} type="button">
+                  <EyeIcon size={20} />
+                </button>
+              </span>
+            </label>
+            <div className="login-options">
+              <label><input name="rememberId" type="checkbox" />아이디 저장</label>
+              <label><input name="autoLogin" type="checkbox" />자동 로그인</label>
+            </div>
+            <div className="login-submit-wrap">
+              <span className="login-recent-badge">최근에 로그인 했어요.</span>
+              <button className="primary-action login-button" type="submit">로그인</button>
+            </div>
+          </form>
+          <div className="login-link-row">
+            <button type="button">통합회원 가입하기</button>
+            <span aria-hidden="true">|</span>
+            <button type="button">아이디/비밀번호 찾기</button>
+          </div>
+        </section>
 
-        <form className="stack-form" onSubmit={(event) => event.preventDefault()}>
-          <label>
-            <span>아이디</span>
-            <input autoComplete="username" name="userId" placeholder="아이디를 입력해 주세요" />
-          </label>
-          <label>
-            <span>비밀번호</span>
-            <input autoComplete="current-password" name="password" placeholder="비밀번호를 입력해 주세요" type="password" />
-          </label>
-          <button className="primary-action login-button" type="submit">로그인</button>
-        </form>
+        <section className="login-simple-section" aria-label="간편 로그인" role="group">
+          {['휴대폰 인증 로그인', '네이버 로그인', '카카오 로그인', '토스 로그인', 'QR 코드 로그인', 'H.Point APP 로그인'].map((method) => (
+            <button key={method} type="button">{method}</button>
+          ))}
+        </section>
 
-        <p className="login-help">셀렉터스 활동을 위해 발급받은 계정으로 로그인해 주세요.</p>
+        <section className="login-info-section" aria-labelledby="biz-login-heading">
+          <h2 id="biz-login-heading">BIZ회원 로그인</h2>
+          <p>BIZ회원으로 가입하시는 경우 BIZ회원 로그인 화면에서 로그인 해주세요.</p>
+          <button type="button">BIZ회원 로그인 페이지로</button>
+        </section>
+
+        <section className="login-info-section" aria-labelledby="member-conversion-heading">
+          <h2 id="member-conversion-heading">통합회원 전환</h2>
+          <p>기존 더현대닷컴 회원이라면 H.Point 통합회원으로 전환해 주세요.</p>
+          <button type="button">통합회원 전환하기</button>
+        </section>
       </div>
     </>
   )

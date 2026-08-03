@@ -13,7 +13,7 @@ const screenExpectations = [
   {
     path: '#/login',
     heading: '로그인',
-    content: '아이디와 비밀번호를 입력해 주세요.',
+    content: 'H.Point 통합회원 로그인',
   },
   {
     path: '#/apply',

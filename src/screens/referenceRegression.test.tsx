@@ -62,7 +62,7 @@ describe('reference shell contract', () => {
     expect(compactCss).toMatch(/\.client-panel \{[^}]*border-right: 0;[^}]*border-left: 0;[^}]*box-shadow: inset 1px 0 var\(--line\), inset -1px 0 var\(--line\);/)
     expect(compactCss).toMatch(/\.bottom-action \{[^}]*flex: 0 0 77px;[^}]*padding: 12px 16px;/)
     expect(compactCss).toMatch(/\.primary-action \{[^}]*width: 100%;[^}]*max-width: 520px;/)
-    expect(compactCss).toMatch(/\.login-screen \{[^}]*padding: 48px 16px 32px;/)
+    expect(compactCss).toMatch(/\.login-screen \{[^}]*padding: 24px 16px 40px;/)
 
     const resolvedDesktopActionWidth = 552 - (16 * 2)
     expect(resolvedDesktopActionWidth).toBe(520)
