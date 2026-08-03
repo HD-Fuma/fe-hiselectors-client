@@ -112,7 +112,7 @@ The existing `#/shop/groups` route remains an owner management overview backed b
 
 Changing the campaign filter only changes the available products; already selected products remain selected and are clearly represented in the count. An empty filter result renders `이 캠페인에서 선택할 수 있는 상품이 없습니다.` rather than a blank area.
 
-The name uses the same trimmed 1–30 character rule as rename. At least one product is required. Save remains disabled until both rules pass. Edit mode prepopulates the current group name, campaign context, and product membership. Create mode starts with an empty name and no products unless quick-add draft state supplies product IDs. Saving edit mode updates the in-memory group and routes to `#/shop/RC000003200T/1`. Saving create mode appends the group and routes to `#/shop/RC000003200T`, where `상품 그룹을 만들었어요.` is shown. Back returns to the owner group for edit mode, the public shop for shop-launched create mode, and campaign detail for campaign-launched create mode.
+The name uses the same trimmed 1–30 character rule as rename. At least one product is required. Save remains disabled until both rules pass. Edit mode prepopulates the current group name, campaign context, and product membership. Create mode starts with an empty name and no products unless quick-add draft state supplies product IDs. Saving edit mode updates the in-memory group and routes to `#/shop/RC000003200T/1`. Saving create mode appends the group and routes to `#/shop/RC000003200T`, where `상품 그룹을 만들었어요.` is shown. Back returns to the owner group for edit mode, `#/shop/groups` for owner-overview-launched create mode, and campaign detail for campaign-launched create mode.
 
 If a requested group no longer exists, both its owner view and edit route render the shared shop header, `상품 그룹을 찾을 수 없습니다.`, and `셀렉터스샵으로 돌아가기`, which routes to the public shop. They never reuse stale fixture content or throw.
 
@@ -139,7 +139,7 @@ To keep the shop work understandable and testable, the current monolithic shop s
 - `ShareShopSheet`: shared public-shop and product-group share presentation
 - `RenameGroupDialog`: validation and rename state
 - `GroupEditorScreen`: shared create/edit editor and campaign filtering
-- `PublicShopScreen` and `OwnerShopGroupScreen`: route-level composition only
+- `PublicShopScreen`, `OwnerShopGroupScreen`, and `ShopGroupsScreen`: route-level composition only; the last retains the owner overview and its create entry point
 - `ShopDemoProvider`: the sole in-memory state owner and mutation interface
 
 Shared shell and typography remain in the existing global token/style layer. Campaign quick-add stays with campaign screens but consumes the same shop group data shape.
