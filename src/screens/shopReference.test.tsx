@@ -68,13 +68,15 @@ describe('HiHi aside and public shop reference contract', () => {
     expect(compactGlobalCss).toMatch(/\.qr-mark \{[^}]*width: 110px;[^}]*height: 110px;/)
   })
 
-  it('matches the badge-only byunjjii profile without the old category identity', () => {
+  it('matches the avatar, badge, and byunjjii profile without the old category identity', () => {
     window.location.hash = '#/shop/RC000003200T'
-    render(<App />)
+    const { container } = render(<App />)
 
     const badge = screen.getByAltText('인플루언서 뱃지')
     expect(badge.getAttribute('width')).toBe('32')
     expect(badge.getAttribute('height')).toBe('32')
+    expect(container.querySelector('.selector-avatar-placeholder')).toBeTruthy()
+    expect(container.querySelector('.selector-profile-thumb')?.contains(badge)).toBe(true)
     expect(screen.getByText('byunjjii')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'byunjjii의 ME스페이스' })).toBeTruthy()
     expect(screen.queryByText('오셀렉터스')).toBeNull()
@@ -99,12 +101,16 @@ describe('HiHi aside and public shop reference contract', () => {
   it('locks the reference shop geometry', () => {
     expect(compactGlobalCss).toMatch(/\.panel-header \{[^}]*flex: 0 0 52px;[^}]*height: 52px;[^}]*padding: 0 16px;/)
     expect(compactShopCss).toMatch(/\.public-shop-screen \{[^}]*padding: 0 16px;/)
+    expect(compactShopCss).toMatch(/\.selector-profile \{[^}]*align-items: flex-start;[^}]*gap: 16px;[^}]*padding: 16px 0 24px;/)
+    expect(compactShopCss).toMatch(/\.selector-profile-thumb \{[^}]*position: relative;[^}]*width: 74px;[^}]*height: 79px;/)
+    expect(compactShopCss).toMatch(/\.selector-avatar-placeholder \{[^}]*width: 74px;[^}]*height: 74px;[^}]*border-radius: 999px;[^}]*no_avatar\.png/)
     expect(compactShopCss).toMatch(/\.selector-badge \{[^}]*width: 32px;[^}]*height: 32px;/)
     expect(compactShopCss).toMatch(/\.selector-profile h2 \{[^}]*font-size: 24px;[^}]*font-weight: 700;[^}]*line-height: 30px;/)
-    expect(compactShopCss).toMatch(/\.me-space-button \{[^}]*width: 100%;[^}]*max-width: 520px;[^}]*height: 44px;/)
+    expect(compactShopCss).toMatch(/\.me-space-button \{[^}]*gap: 4px;[^}]*width: 100%;[^}]*max-width: 520px;[^}]*height: 44px;[^}]*font-size: 14px;[^}]*line-height: 14px;/)
     expect(compactShopCss).toMatch(/\.shop-product-grid \{[^}]*grid-template-columns: 168px 168px;[^}]*column-gap: 16px;/)
     expect(compactShopCss).toMatch(/\.shop-product img \{[^}]*width: 168px;[^}]*height: 168px;[^}]*aspect-ratio: 1;/)
     expect(compactShopCss).toMatch(/\.shop-group-heading \{[^}]*font-size: 18px;[^}]*font-weight: 700;[^}]*line-height: 24px;/)
+    expect(compactShopCss).toMatch(/\.shop-group-heading-row \{[^}]*margin-bottom: 24px;/)
     expect(compactShopCss).toMatch(/\.shop-product-pricing del \{[^}]*color: var\(--gray-500\);[^}]*font-size: 12px;/)
     expect(compactShopCss).toMatch(/\.shop-product-pricing > span \{[^}]*color: #[0-9a-f]{6};[^}]*font-weight: 700;/)
     expect(compactShopCss).toMatch(/\.shop-product-pricing > strong \{[^}]*font-size: 16px;[^}]*font-weight: 700;/)

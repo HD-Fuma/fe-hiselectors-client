@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 
-import { ExternalLinkIcon, ShareIcon } from '../../components/Icons'
+import { ArrowRightIcon, ShareIcon } from '../../components/Icons'
 import PanelHeader from '../../components/PanelHeader'
 import ShareShopSheet from '../../shop/ShareShopSheet'
 import ShopGroupSection from '../../shop/ShopGroupSection'
@@ -36,19 +36,22 @@ export default function PublicShopScreen() {
       />
       <div className="screen-scroll public-shop-screen">
         <section aria-labelledby="selector-handle" className="selector-profile">
-          <img
-            alt={profile.badgeAlt}
-            className="selector-badge"
-            height="32"
-            src={profile.badgeImage}
-            width="32"
-          />
+          <div className="selector-profile-thumb">
+            <span aria-hidden="true" className="selector-avatar-placeholder" />
+            <img
+              alt={profile.badgeAlt}
+              className="selector-badge"
+              height="32"
+              src={profile.badgeImage}
+              width="32"
+            />
+          </div>
           <h2 id="selector-handle">{profile.name}</h2>
         </section>
 
         <button className="me-space-button" type="button">
           {profile.meSpaceLabel}
-          <ExternalLinkIcon size={17} />
+          <ArrowRightIcon size={14} />
         </button>
 
         <div className="shop-group-list">
