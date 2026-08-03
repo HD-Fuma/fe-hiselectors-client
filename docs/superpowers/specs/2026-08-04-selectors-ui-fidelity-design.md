@@ -31,7 +31,7 @@ The sticky bottom action may retain its top separator because it is a distinct a
 
 ## Typography System
 
-The project will self-host a licensed Pretendard Variable WOFF2 asset instead of relying on a locally installed font or hotlinking TheHyundai assets. One `@font-face` family named `pretendard` will cover the variable weight range used by the reference.
+The project will self-host a licensed Pretendard Variable WOFF2 asset instead of relying on a locally installed font or hotlinking TheHyundai assets. The font is stored at `src/assets/fonts/PretendardVariable.woff2`, while its Open Font License text is copied from `public/fonts/OFL.txt` into the production build. One `@font-face` family named `pretendard` declares `font-style: normal`, `font-weight: 45 920`, and `font-display: swap`.
 
 Global typography baseline:
 
@@ -66,7 +66,7 @@ The screen matches the public reference:
 - two-column reference-style product cards with brand, name, original price, discount, and sale price
 - bottom disclosure that purchase revenue may partly be provided to the selector
 
-At most six product groups render initially. `더보기` appends the next six groups below the existing content. The button disappears when every group is visible. Loading more does not reorder or collapse prior groups.
+The demo fixture contains 13 product groups so the delivered UI exercises both a full and a partial expansion. At most six product groups render initially. Each `더보기` click appends the next six groups below the existing content: 6, then 12, then 13. The button disappears when every group is visible. Loading more does not reorder or collapse prior groups.
 
 ### Owner group view
 
@@ -82,13 +82,23 @@ The screen matches the `/1` reference:
 
 The menu closes on outside pointer interaction or Escape and returns focus appropriately for keyboard use.
 
+`그룹 공유` opens a bottom sheet containing the group URL and a `링크 복사` action. Because this is a UI-only demo, pressing it only shows the local status `링크를 복사했어요.` and does not invoke a share or clipboard API.
+
+`그룹 삭제` opens a confirmation dialog naming the group. Cancel closes the dialog. Confirm removes the group from in-memory demo state, routes to the public shop, and shows `상품 그룹을 삭제했어요.` No backend request is made.
+
 ### Group rename
 
-Choosing `그룹명 수정` opens a compact, reference-styled dialog with the current name, a 30-character limit, character count, cancel action, and save action. Empty or whitespace-only names cannot be saved. Saving updates the visible demo state for the current browser session only.
+Choosing `그룹명 수정` opens a compact, reference-styled dialog with the current name, a 30-character limit, character count, cancel action, and save action. Names are trimmed before validation, must contain 1–30 characters, and show an inline error when invalid. Saving updates the visible in-memory demo state and closes the dialog.
 
 ### Group items and creation
 
-`항목 변경` and `상품 그룹 만들기` use one shared full-screen editor with two modes: edit and create. It contains:
+`항목 변경` and `상품 그룹 만들기` use one shared full-screen editor with two modes: edit and create. The exact hash routes are:
+
+- `#/shop/groups/new`: empty create mode launched from the shop
+- `#/shop/groups/1/edit`: edit group `1`, prepopulated from demo state
+- `#/shop/groups/new/season-pick`: create mode launched from campaign detail with `season-pick` selected and the quick-add product IDs carried in in-memory draft state
+
+The existing `#/shop/groups/edit` route redirects to `#/shop/groups/new` for backward compatibility with the screen catalog. The shared editor contains:
 
 - group-name field
 - campaign filter with an `전체 캠페인` option and individual campaign choices
@@ -96,11 +106,21 @@ Choosing `그룹명 수정` opens a compact, reference-styled dialog with the cu
 - selected-product count
 - save action
 
-Changing the campaign filter only changes the available products; already selected products remain selected and are clearly represented in the count. Demo saves are local UI state and cause no network request.
+Changing the campaign filter only changes the available products; already selected products remain selected and are clearly represented in the count. An empty filter result renders `이 캠페인에서 선택할 수 있는 상품이 없습니다.` rather than a blank area.
+
+The name uses the same trimmed 1–30 character rule as rename. At least one product is required. Save remains disabled until both rules pass. Edit mode prepopulates the current group name, campaign context, and product membership. Create mode starts with an empty name and no products unless quick-add draft state supplies product IDs. Saving edit mode updates the in-memory group and routes to `#/shop/RC000003200T/1`. Saving create mode appends the group and routes to `#/shop/RC000003200T`, where `상품 그룹을 만들었어요.` is shown. Back returns to the owner group for edit mode, the public shop for shop-launched create mode, and campaign detail for campaign-launched create mode.
 
 ### Campaign quick-add
 
-Campaign detail includes `상품 그룹에 담기`. It opens a compact sheet that lets the selector choose an existing group or start `새 상품 그룹 만들기`. Existing-group selection shows a local success state. New-group selection routes to the shared editor with the current campaign preselected. This is a secondary shortcut; the shop remains the primary management surface.
+Campaign detail includes `상품 그룹에 담기`. It opens a compact sheet containing the four visible campaign products with checkboxes, all selected initially, followed by the existing groups and `새 상품 그룹 만들기`. At least one product must remain selected.
+
+Choosing an existing group adds the selected product IDs to that group in memory, deduplicates products already present, closes the sheet, and shows `상품을 그룹에 담았어요.` Choosing `새 상품 그룹 만들기` stores the selected product IDs as an in-memory draft and routes to `#/shop/groups/new/season-pick`, where the current campaign is preselected. This is a secondary shortcut; the shop remains the primary management surface.
+
+## Demo State Ownership and Lifetime
+
+One `ShopDemoProvider` wraps the routed application and owns a reducer-backed `ShopDemoState`. It initializes the selector profile, campaigns, 13 groups, group membership, transient status message, and optional quick-add draft. Its public actions are `renameGroup`, `updateGroupProducts`, `createGroup`, `addProductsToGroup`, `deleteGroup`, `setQuickAddDraft`, `clearQuickAddDraft`, and `setStatus`.
+
+All shop and campaign route components consume this interface instead of owning duplicate data. State survives hash-route navigation within the current SPA instance. A full browser reload restores the original fixtures; no local storage, session storage, cookie, URL serialization, or backend persistence is used. Tests mount a fresh provider per case.
 
 ## Component Boundaries
 
@@ -113,6 +133,7 @@ To keep the shop work understandable and testable, the current monolithic shop s
 - `RenameGroupDialog`: validation and rename state
 - `GroupEditorScreen`: shared create/edit editor and campaign filtering
 - `PublicShopScreen` and `OwnerShopGroupScreen`: route-level composition only
+- `ShopDemoProvider`: the sole in-memory state owner and mutation interface
 
 Shared shell and typography remain in the existing global token/style layer. Campaign quick-add stays with campaign screens but consumes the same shop group data shape.
 
@@ -122,6 +143,7 @@ Shared shell and typography remain in the existing global token/style layer. Cam
 - The three-dot control exposes expanded state and menu ownership.
 - Menu items support keyboard navigation, Escape dismissal, and focus restoration.
 - Dialog and sheet titles are programmatically associated with their containers.
+- Dialogs and sheets contain keyboard focus while open, close on Escape where cancellation is safe, and restore focus to the invoking control.
 - Rename validation is visible and announced without relying on color alone.
 - `더보기` preserves scroll position and appends content in document order.
 - All UI remains usable at 390x844 without horizontal overflow.
@@ -134,8 +156,10 @@ Implementation follows red-green-refactor cycles.
 2. Add a failing campaign contract proving campaign-specific commission copy is absent while performance/settlement commission reporting remains.
 3. Add failing shop route and reference-content tests for both public and `/1` screens.
 4. Add failing interaction tests for six-at-a-time loading, the owner menu, rename validation/save, campaign filtering, create/edit modes, and campaign quick-add.
-5. Run the full unit suite, TypeScript/Vite production build, and `git diff --check`.
-6. Perform desktop and 390px browser QA against the supplied/live references, including computed typography and horizontal overflow checks.
+5. Add provider reducer tests proving route-to-route state continuity and full-remount reset semantics.
+6. Run the full unit suite, TypeScript/Vite production build, and `git diff --check`.
+7. Perform Chromium/in-app-browser QA at 1894x907 and 390x844 against the supplied/live references. Key panel/header/product geometry must be within 2 CSS pixels of measured reference values, computed typography must match the specified tokens exactly, and both document and panel horizontal overflow must be zero.
+8. Wait for `document.fonts.ready`, assert `document.fonts.check('400 14px pretendard')`, verify the built page requests its own hashed WOFF2 asset, and confirm the build output contains both the font and license.
 
 ## Out of Scope
 
