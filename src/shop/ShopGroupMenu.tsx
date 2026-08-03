@@ -44,6 +44,22 @@ export default function ShopGroupMenu({
   }
 
   const handleMenuKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Tab') {
+      setOpen(false)
+      return
+    }
+
+    const activeItem = document.activeElement
+    if (
+      event.key === ' '
+      && activeItem instanceof HTMLAnchorElement
+      && menuRef.current?.contains(activeItem)
+    ) {
+      event.preventDefault()
+      activeItem.click()
+      return
+    }
+
     const items = [...(menuRef.current?.querySelectorAll<HTMLElement>(menuItemSelector) ?? [])]
     const currentIndex = items.indexOf(document.activeElement as HTMLElement)
     let nextIndex: number | null = null

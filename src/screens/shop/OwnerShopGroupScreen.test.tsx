@@ -1,11 +1,21 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+// @ts-expect-error The app intentionally has no Node type dependency; Vitest runs this file in Node.
+import { readFileSync } from 'node:fs'
 
 import App from '../../App'
+import { useShopDemo } from '../../shop/ShopDemoContext'
 
 const ownerHash = '#/shop/RC000003200T/1'
 const disclosure = '셀렉터스샵에서 상품을 구매하는 경우, 상품 구매로 발생한 수익의 일부가 셀렉터스에게 제공됩니다.'
 const groupShareUrl = 'https://hi.thehyundai.com/sellectors/manage/shop/RC000003200T/1'
+const workspaceRoot = (globalThis as typeof globalThis & {
+  process: { cwd(): string }
+}).process.cwd()
+const compactShopCss = readFileSync(
+  `${workspaceRoot}/src/styles/shop.css`,
+  'utf8',
+).replace(/\s+/g, ' ')
 const overviewGroups = [
   ['귀걸이', 2],
   ['여름의 결', 2],
@@ -25,6 +35,16 @@ const overviewGroups = [
 let clipboardDescriptor: PropertyDescriptor | undefined
 let shareDescriptor: PropertyDescriptor | undefined
 let navigatorMocksInstalled = false
+
+function SetShopStatusControl() {
+  const { setStatus } = useShopDemo()
+
+  return (
+    <button onClick={() => setStatus('상품을 그룹에 담았어요.')} type="button">
+      테스트 상태 설정
+    </button>
+  )
+}
 
 afterEach(() => {
   cleanup()
@@ -133,6 +153,42 @@ describe('owner selectors shop group', () => {
     expect(document.activeElement).toBe(trigger)
   })
 
+  it('closes the menu on Tab without trapping focus', () => {
+    window.location.hash = ownerHash
+    render(<App />)
+
+    const trigger = screen.getByRole('button', { name: '옵션 열기' })
+    fireEvent.click(trigger)
+    const firstItem = screen.getAllByRole('menuitem')[0]
+
+    expect(fireEvent.keyDown(firstItem, { key: 'Tab' })).toBe(true)
+    expect(screen.queryByRole('menu')).toBeNull()
+    expect(trigger.getAttribute('aria-expanded')).toBe('false')
+
+    fireEvent.click(trigger)
+    const reopenedFirstItem = screen.getAllByRole('menuitem')[0]
+
+    expect(fireEvent.keyDown(reopenedFirstItem, { key: 'Tab', shiftKey: true })).toBe(true)
+    expect(screen.queryByRole('menu')).toBeNull()
+    expect(trigger.getAttribute('aria-expanded')).toBe('false')
+  })
+
+  it('activates the edit anchor with Space', async () => {
+    window.location.hash = ownerHash
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: '옵션 열기' }))
+    const editItem = screen.getByRole('menuitem', { name: '항목 변경' }) as HTMLAnchorElement
+    const clickSpy = vi.spyOn(editItem, 'click')
+    editItem.focus()
+
+    expect(fireEvent.keyDown(editItem, { key: ' ' })).toBe(false)
+    expect(clickSpy).toHaveBeenCalledTimes(1)
+    expect(editItem.getAttribute('href')).toBe('#/shop/groups/1/edit')
+    expect(screen.queryByRole('menu')).toBeNull()
+    await waitFor(() => expect(window.location.hash).toBe('#/shop/groups/1/edit'))
+  })
+
   it('shares from both owner entry points', () => {
     const writeText = vi.fn()
     const nativeShare = vi.fn()
@@ -187,6 +243,32 @@ describe('owner selectors shop group', () => {
     expect(writeText).not.toHaveBeenCalled()
     expect(nativeShare).not.toHaveBeenCalled()
     expect(fetchSpy).not.toHaveBeenCalled()
+  })
+
+  it('keeps the share overlay above a retained shop status', () => {
+    window.location.hash = ownerHash
+    const { container } = render(<App shopProbe={<SetShopStatusControl />} />)
+
+    fireEvent.click(screen.getByRole('button', { name: '테스트 상태 설정' }))
+    const status = screen.getByRole('status')
+    expect(status.textContent).toBe('상품을 그룹에 담았어요.')
+
+    fireEvent.click(screen.getByRole('button', { name: '상품 그룹 공유' }))
+
+    expect(screen.getByRole('dialog', { name: '상품 그룹 공유' })).toBeTruthy()
+    expect(status.isConnected).toBe(true)
+    const backdrop = container.querySelector<HTMLElement>('.share-shop-backdrop')
+    expect(backdrop).toBeTruthy()
+    if (!backdrop) {
+      throw new Error('Expected the share backdrop')
+    }
+
+    const statusLayer = Number(compactShopCss.match(/\.shop-status \{[^}]*z-index: (\d+);/)?.[1])
+    const shareLayer = Number(compactShopCss.match(/\.share-shop-backdrop \{[^}]*z-index: (\d+);/)?.[1])
+    const dialogLayer = Number(compactShopCss.match(/\.group-dialog-backdrop \{[^}]*z-index: (\d+);/)?.[1])
+    expect(statusLayer).toBe(40)
+    expect(shareLayer).toBeGreaterThan(statusLayer)
+    expect(dialogLayer).toBeGreaterThan(statusLayer)
   })
 
   it('renames with accessible validation', () => {
