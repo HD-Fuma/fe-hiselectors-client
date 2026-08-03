@@ -850,16 +850,11 @@ ol {
   height: 44px;
   padding: 0 15px;
   border: 0;
-  border-bottom: 1px solid #e3e3e3;
   border-radius: 0;
   background: var(--white);
   color: var(--ink);
   font: inherit;
   text-align: left;
-}
-
-.sns-option:last-child {
-  border-bottom: 0;
 }
 
 .sns-option[aria-selected='true'],

@@ -60,6 +60,12 @@ describe('reference shell contract', () => {
     expect(compactCss).toMatch(/\.sns-trigger:focus-visible, \.sns-option:focus-visible \{[^}]*outline: 2px solid var\(--black\);[^}]*outline-offset: 2px;/)
   })
 
+  it('keeps the SNS menu as one uninterrupted reference list', () => {
+    expect(compactCss).toMatch(/\.sns-options \{[^}]*border: 1px solid var\(--black\);/)
+    expect(compactCss).toMatch(/\.sns-option \{[^}]*border: 0;/)
+    expect(compactCss).not.toMatch(/\.sns-option \{[^}]*border-bottom:/)
+  })
+
   it('locks the reference panel, header, login, and action geometry', () => {
     expect(compactCss).toMatch(/\.app-shell \{[^}]*grid-template-columns: 552px 552px;/)
     expect(compactCss).toMatch(/\.client-panel \{[^}]*width: 552px;/)
