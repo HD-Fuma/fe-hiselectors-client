@@ -1,0 +1,54 @@
+import BottomAction from '../../components/BottomAction'
+import { CopyIcon } from '../../components/Icons'
+import PanelHeader from '../../components/PanelHeader'
+import { useShopDemo } from '../../shop/ShopDemoContext'
+
+export default function ShopGroupsScreen() {
+  const { getProducts, state } = useShopDemo()
+
+  return (
+    <div className="panel-page">
+      <PanelHeader backHref="#/screens" title="상품 그룹" />
+      <div className="screen-scroll shop-groups-screen">
+        <section className="shop-link-card">
+          <span>내 셀렉터스샵</span>
+          <strong>thehyundai.com/shop/RC000003200T</strong>
+          <button aria-label="셀렉터스샵 링크 복사" type="button">
+            <CopyIcon size={19} /> 링크 복사
+          </button>
+        </section>
+
+        <div className="group-list-heading">
+          <div>
+            <h2>상품 그룹</h2>
+            <p>생성 순서대로 셀렉터스샵에 노출됩니다.</p>
+          </div>
+          <span>{state.groups.length}개</span>
+        </div>
+
+        <div className="group-list">
+          {state.groups.map((group, index) => (
+            <article className="group-card" key={group.id}>
+              <div className="group-thumbnails">
+                {getProducts(group.productIds).slice(0, 3).map((product) => (
+                  <img alt="" key={product.image} src={product.image} />
+                ))}
+              </div>
+              <div className="group-card-body">
+                <span>GROUP {String(index + 1).padStart(2, '0')}</span>
+                <strong>
+                  {group.id === '1'
+                    ? <a href="#/shop/RC000003200T/1">{group.name}</a>
+                    : group.name}
+                </strong>
+                <p>상품 {group.productIds.length}개 · {group.createdAt} 생성</p>
+              </div>
+              <button aria-label={`${group.name} 메뉴`} type="button">•••</button>
+            </article>
+          ))}
+        </div>
+      </div>
+      <BottomAction href="#/shop/groups/new" label="상품 그룹 만들기" />
+    </div>
+  )
+}
