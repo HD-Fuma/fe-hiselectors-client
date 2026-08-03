@@ -36,11 +36,17 @@ describe('reference typography and packaged font', () => {
   it('packages a real WOFF2 and the complete OFL text', () => {
     const fontPath = `${workspaceRoot}/src/assets/fonts/PretendardVariable.woff2`
     const licensePath = `${workspaceRoot}/public/fonts/OFL.txt`
+    const canonicalLicensePath = `${workspaceRoot}/node_modules/pretendard/dist/LICENSE.txt`
     expect(existsSync(fontPath)).toBe(true)
     expect(existsSync(licensePath)).toBe(true)
+    expect(existsSync(canonicalLicensePath)).toBe(true)
     const signature = Array.from((readFileSync(fontPath) as Uint8Array).subarray(0, 4))
       .map((byte) => String.fromCharCode(byte)).join('')
+    const packagedLicense = readFileSync(licensePath) as Uint8Array
+    const canonicalLicense = readFileSync(canonicalLicensePath) as Uint8Array
     expect(signature).toBe('wOF2')
+    expect(packagedLicense.byteLength).toBe(canonicalLicense.byteLength)
+    expect(packagedLicense.every((byte, index) => byte === canonicalLicense[index])).toBe(true)
     expect(readFileSync(licensePath, 'utf8')).toContain('SIL OPEN FONT LICENSE Version 1.1')
   })
 
