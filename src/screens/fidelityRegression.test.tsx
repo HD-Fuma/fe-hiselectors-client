@@ -36,15 +36,21 @@ describe('reference typography and packaged font', () => {
   it('packages a real WOFF2 and the complete OFL text', () => {
     const fontPath = `${workspaceRoot}/src/assets/fonts/PretendardVariable.woff2`
     const licensePath = `${workspaceRoot}/public/fonts/OFL.txt`
+    const canonicalFontPath = `${workspaceRoot}/node_modules/pretendard/dist/web/variable/woff2/PretendardVariable.woff2`
     const canonicalLicensePath = `${workspaceRoot}/node_modules/pretendard/dist/LICENSE.txt`
     expect(existsSync(fontPath)).toBe(true)
     expect(existsSync(licensePath)).toBe(true)
+    expect(existsSync(canonicalFontPath)).toBe(true)
     expect(existsSync(canonicalLicensePath)).toBe(true)
-    const signature = Array.from((readFileSync(fontPath) as Uint8Array).subarray(0, 4))
+    const packagedFont = readFileSync(fontPath) as Uint8Array
+    const canonicalFont = readFileSync(canonicalFontPath) as Uint8Array
+    const signature = Array.from(packagedFont.subarray(0, 4))
       .map((byte) => String.fromCharCode(byte)).join('')
     const packagedLicense = readFileSync(licensePath) as Uint8Array
     const canonicalLicense = readFileSync(canonicalLicensePath) as Uint8Array
     expect(signature).toBe('wOF2')
+    expect(packagedFont.byteLength).toBe(canonicalFont.byteLength)
+    expect(packagedFont.every((byte, index) => byte === canonicalFont[index])).toBe(true)
     expect(packagedLicense.byteLength).toBe(canonicalLicense.byteLength)
     expect(packagedLicense.every((byte, index) => byte === canonicalLicense[index])).toBe(true)
     expect(readFileSync(licensePath, 'utf8')).toContain('SIL OPEN FONT LICENSE Version 1.1')
