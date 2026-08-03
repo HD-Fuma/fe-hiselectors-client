@@ -447,9 +447,8 @@ ol {
   padding: 24px 16px 40px;
 }
 
-.login-member-section > h2,
-.login-info-section h2 {
-  font-size: 20px;
+.login-member-section > h2 {
+  font-size: 18px;
   line-height: 1.35;
   letter-spacing: -0.03em;
 }
@@ -601,6 +600,8 @@ ol {
 
 .login-info-section h2 {
   font-size: 17px;
+  line-height: 1.35;
+  letter-spacing: -0.03em;
 }
 
 .login-info-section p {
@@ -777,7 +778,7 @@ ol {
 
 .form-intro h2 {
   margin-bottom: 6px;
-  font-size: 21px;
+  font-size: 18px;
   letter-spacing: -0.025em;
 }
 
@@ -902,7 +903,7 @@ ol {
 .privacy-section h2,
 .terms-section h2 {
   margin-bottom: 15px;
-  font-size: 16px;
+  font-size: 18px;
 }
 
 .privacy-lines {

@@ -82,6 +82,29 @@ describe('reference shell contract', () => {
     expect(mobileRules).toMatch(/\.client-panel \{[^}]*border: 0;[^}]*box-shadow: none;/)
   })
 
+  it('aligns the login and application section headings without changing the panel header token', () => {
+    expect(compactCss).toMatch(/\.login-member-section > h2 \{[^}]*font-size: 18px;/)
+    expect(compactCss).toMatch(/\.form-intro h2 \{[^}]*font-size: 18px;/)
+    expect(compactCss).toMatch(/\.privacy-section h2, \.terms-section h2 \{[^}]*font-size: 18px;/)
+    expect(compactCss).toMatch(/\.panel-header h1 \{[^}]*font-size: 18px;[^}]*font-weight: 500;[^}]*line-height: 22\.5px;/)
+    expect(compactCss).toMatch(/\.login-info-section h2 \{[^}]*font-size: 17px;[^}]*line-height: 1\.35;[^}]*letter-spacing: -0\.03em;/)
+  })
+
+  it('renders a dense fixed QR mark with standard locator and timing structures', () => {
+    window.location.hash = '#/login'
+    render(<App />)
+
+    const qr = screen.getByRole('img', { name: 'HiHi 앱 설치 QR 코드' })
+    expect(qr.getAttribute('viewBox')).toBe('0 0 29 29')
+    expect([...qr.querySelectorAll('[data-qr-role="finder"]')].map((finder) => (
+      finder.getAttribute('transform')
+    ))).toEqual(['translate(0 0)', 'translate(22 0)', 'translate(0 22)'])
+    expect(qr.querySelectorAll('[data-qr-role="timing"] rect')).toHaveLength(14)
+    expect(qr.querySelector('[data-qr-role="alignment"]')).toBeTruthy()
+    expect(qr.querySelectorAll('[data-qr-role="data"] rect').length).toBeGreaterThanOrEqual(180)
+    expect(qr.querySelector('image')).toBeNull()
+  })
+
   it('keeps the reference tile direction and preserves the full product-grid width', () => {
     expect(compactCss).toMatch(/\.aside-tile \{[^}]*align-items: center;[^}]*justify-content: flex-end;/)
     expect(compactCss).toMatch(/\.aside-tile img \{[^}]*left: 0;/)
