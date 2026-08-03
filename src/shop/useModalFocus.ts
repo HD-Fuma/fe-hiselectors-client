@@ -1,4 +1,4 @@
-import { useEffect, type RefObject } from 'react'
+import { useEffect, useRef, type RefObject } from 'react'
 
 type UseModalFocusOptions = {
   containerRef: RefObject<HTMLElement | null>
@@ -18,7 +18,9 @@ const focusableSelector = [
 function getFocusableControls(container: HTMLElement): HTMLElement[] {
   return [...container.querySelectorAll<HTMLElement>(focusableSelector)]
     .filter((control) => (
-      !control.hasAttribute('hidden')
+      control.tabIndex >= 0
+      && !control.matches(':disabled')
+      && !control.hasAttribute('hidden')
       && control.getAttribute('aria-disabled') !== 'true'
     ))
 }
@@ -28,8 +30,12 @@ export default function useModalFocus({
   invokerRef,
   onClose,
 }: UseModalFocusOptions) {
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
+
   useEffect(() => {
     const container = containerRef.current
+    const openingInvoker = invokerRef.current
 
     if (!container) {
       return undefined
@@ -40,8 +46,7 @@ export default function useModalFocus({
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault()
-        onClose()
-        invokerRef.current?.focus()
+        onCloseRef.current()
         return
       }
 
@@ -71,7 +76,7 @@ export default function useModalFocus({
 
     return () => {
       container.removeEventListener('keydown', handleKeyDown)
-      invokerRef.current?.focus()
+      openingInvoker?.focus()
     }
-  }, [containerRef, invokerRef, onClose])
+  }, [containerRef, invokerRef])
 }
