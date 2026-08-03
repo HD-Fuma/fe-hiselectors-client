@@ -102,10 +102,10 @@ export function ProductPerformanceScreen() {
             {productRows.map((row) => (
               <div className="performance-table-row" key={row.product.name} role="row">
                 <div className="table-product" role="cell"><img alt={row.product.name} src={row.product.image} /><span><small>{row.product.brand}</small><strong>{row.product.name}</strong></span></div>
-                <span role="cell">{row.clicks}</span>
-                <span role="cell">{row.conversions}</span>
-                <span role="cell">{row.rate}</span>
-                <strong role="cell">{row.commission}</strong>
+                <span aria-label={`클릭 ${row.clicks}`} role="cell">{row.clicks}</span>
+                <span aria-label={`전환 ${row.conversions}`} role="cell">{row.conversions}</span>
+                <span aria-label={`전환율 ${row.rate}`} role="cell">{row.rate}</span>
+                <strong aria-label={`예상 수수료 ${row.commission}`} role="cell">{row.commission}</strong>
               </div>
             ))}
           </div>

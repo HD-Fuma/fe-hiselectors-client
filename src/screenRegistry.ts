@@ -1,38 +1,38 @@
 export type HashPath = `#/${string}`
 
 export const screenRegistry = [
-  { id: 'catalog', path: '#/screens', title: 'Catalog' },
-  { id: 'login', path: '#/login', title: 'Login' },
-  { id: 'apply-intro', path: '#/apply', title: 'Apply' },
-  { id: 'apply-form', path: '#/apply/form', title: 'Application form' },
-  { id: 'campaign-list', path: '#/campaigns', title: 'Campaigns' },
+  { id: 'catalog', path: '#/screens', title: '셀렉터스 클라이언트 화면' },
+  { id: 'login', path: '#/login', title: '로그인' },
+  { id: 'apply-intro', path: '#/apply', title: '셀렉터스 신청하기' },
+  { id: 'apply-form', path: '#/apply/form', title: '셀렉터스 신청하기' },
+  { id: 'campaign-list', path: '#/campaigns', title: '캠페인' },
   {
     id: 'campaign-detail',
     path: '#/campaigns/detail',
-    title: 'Campaign detail',
+    title: '시즌 픽 캠페인',
   },
-  { id: 'shop-groups', path: '#/shop/groups', title: 'Shop groups' },
+  { id: 'shop-groups', path: '#/shop/groups', title: '상품 그룹' },
   {
     id: 'group-editor-product-picker',
     path: '#/shop/groups/edit',
-    title: 'Group editor and product picker',
+    title: '상품 그룹 만들기',
   },
   {
     id: 'public-shop',
     path: '#/shop/RC000004900T',
-    title: 'Public shop',
+    title: '셀렉터스샵',
   },
   {
     id: 'performance-summary',
     path: '#/performance',
-    title: 'Performance summary',
+    title: '성과 요약',
   },
   {
     id: 'product-performance',
     path: '#/performance/products',
-    title: 'Product performance',
+    title: '상품별 성과',
   },
-  { id: 'settlement', path: '#/settlement', title: 'Settlement' },
+  { id: 'settlement', path: '#/settlement', title: '정산 내역' },
 ] as const satisfies readonly {
   id: string
   path: HashPath

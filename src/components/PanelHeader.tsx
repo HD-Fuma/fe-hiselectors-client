@@ -18,7 +18,7 @@ export default function PanelHeader({ action, backHref, title }: PanelHeaderProp
           </a>
         ) : null}
       </div>
-      <h1>{title}</h1>
+      <h1 tabIndex={-1}>{title}</h1>
       <div className="panel-header-side panel-header-action">{action}</div>
     </header>
   )

@@ -58,10 +58,23 @@ describe('reference shell contract', () => {
     expect(compactCss).toMatch(/\.client-panel \{[^}]*width: 552px;/)
     expect(compactCss).toMatch(/\.panel-header \{[^}]*grid-template-columns: 34px minmax\(0, 1fr\) 40px;[^}]*padding: 0 16px;/)
     expect(compactCss).toMatch(/\.panel-header h1 \{[^}]*text-align: left;/)
+    expect(compactCss).toMatch(/\.panel-header h1:focus \{[^}]*outline: none;/)
+    expect(compactCss).toMatch(/\.client-panel \{[^}]*border-right: 0;[^}]*border-left: 0;[^}]*box-shadow: inset 1px 0 var\(--line\), inset -1px 0 var\(--line\);/)
     expect(compactCss).toMatch(/\.bottom-action \{[^}]*flex: 0 0 77px;[^}]*padding: 12px 16px;/)
+    expect(compactCss).toMatch(/\.primary-action \{[^}]*width: 100%;[^}]*max-width: 520px;/)
     expect(compactCss).toMatch(/\.login-screen \{[^}]*padding: 48px 16px 32px;/)
+
+    const resolvedDesktopActionWidth = 552 - (16 * 2)
+    expect(resolvedDesktopActionWidth).toBe(520)
 
     const tabletRules = compactCss.slice(compactCss.indexOf('@media (max-width: 1099px)'))
     expect(tabletRules).toMatch(/\.client-panel \{ width: 100%; max-width: none; margin: 0; \}/)
+  })
+
+  it('keeps the reference tile direction and preserves the full product-grid width', () => {
+    expect(compactCss).toMatch(/\.aside-tile \{[^}]*align-items: center;[^}]*justify-content: flex-end;/)
+    expect(compactCss).toMatch(/\.aside-tile img \{[^}]*left: 0;/)
+    expect(compactCss).toMatch(/\.screen-scroll \{[^}]*scrollbar-width: none;/)
+    expect(compactCss).toMatch(/\.screen-scroll::-webkit-scrollbar \{[^}]*display: none;/)
   })
 })

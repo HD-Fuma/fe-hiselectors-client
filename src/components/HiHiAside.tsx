@@ -21,7 +21,7 @@ export default function HiHiAside() {
         width="180"
       />
 
-      <div className="aside-search" role="search">
+      <div className="aside-search">
         <span>검색어를 입력해 보세요.</span>
         <SearchIcon size={22} />
       </div>
