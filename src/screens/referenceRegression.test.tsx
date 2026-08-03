@@ -92,6 +92,8 @@ describe('reference shell contract', () => {
     expect(compactCss).toMatch(/\.login-member-section > h2 \{[^}]*font-size: 18px;/)
     expect(compactCss).toMatch(/\.form-intro h2 \{[^}]*font-size: 18px;/)
     expect(compactCss).toMatch(/\.privacy-section h2, \.terms-section h2 \{[^}]*font-size: 18px;/)
+    expect(compactCss).toMatch(/\.privacy-section \{[^}]*margin-top: 65px;/)
+    expect(compactCss).toMatch(/\.terms-section \{[^}]*margin-top: 65px;/)
     expect(compactCss).toMatch(/\.panel-header h1 \{[^}]*font-size: 18px;[^}]*font-weight: 500;[^}]*line-height: 22\.5px;/)
     expect(compactCss).toMatch(/\.login-info-section h2 \{[^}]*font-size: 17px;[^}]*line-height: 1\.35;[^}]*letter-spacing: -0\.03em;/)
   })

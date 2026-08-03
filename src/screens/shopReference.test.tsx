@@ -130,6 +130,7 @@ describe('HiHi aside and public shop reference contract', () => {
     expect(compactShopCss).toMatch(
       /\.shop-product-name \{[^}]*display: -webkit-box;[^}]*overflow: hidden;[^}]*font-size: 13px;[^}]*line-height: 18px;[^}]*-webkit-box-orient: vertical;[^}]*-webkit-line-clamp: 2;/,
     )
+    expect(compactShopCss).not.toMatch(/\.shop-product-pricing \{[^}]*margin-top: auto;/)
   })
 
   it('uses the live ME-space button border without changing its geometry', () => {
