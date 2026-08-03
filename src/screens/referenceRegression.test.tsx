@@ -61,7 +61,7 @@ describe('reference shell contract', () => {
   })
 
   it('keeps the SNS menu as one uninterrupted reference list', () => {
-    expect(compactCss).toMatch(/\.sns-options \{[^}]*border: 1px solid var\(--black\);/)
+    expect(compactCss).toMatch(/\.sns-options \{[^}]*padding-bottom: 20px;[^}]*border: 1px solid var\(--black\);/)
     expect(compactCss).toMatch(/\.sns-option \{[^}]*border: 0;/)
     expect(compactCss).not.toMatch(/\.sns-option \{[^}]*border-bottom:/)
   })

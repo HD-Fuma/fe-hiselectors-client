@@ -840,6 +840,7 @@ ol {
   right: 0;
   left: 0;
   overflow: hidden;
+  padding-bottom: 20px;
   border: 1px solid var(--black);
   background: var(--white);
 }
