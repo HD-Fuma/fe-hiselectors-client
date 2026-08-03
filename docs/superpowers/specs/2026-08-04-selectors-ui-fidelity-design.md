@@ -66,6 +66,8 @@ The screen matches the public reference:
 - two-column reference-style product cards with brand, name, original price, discount, and sale price
 - bottom disclosure that purchase revenue may partly be provided to the selector
 
+The header share action opens the same UI-only share sheet pattern used by groups, but with the public shop URL and the title `셀렉터스샵 공유`. Its `링크 복사` action shows `링크를 복사했어요.` without invoking a clipboard or share API.
+
 The demo fixture contains 13 product groups so the delivered UI exercises both a full and a partial expansion. At most six product groups render initially. Each `더보기` click appends the next six groups below the existing content: 6, then 12, then 13. The button disappears when every group is visible. Loading more does not reorder or collapse prior groups.
 
 ### Owner group view
@@ -81,6 +83,8 @@ The screen matches the `/1` reference:
 - anchored menu containing `그룹 공유`, `그룹명 수정`, `항목 변경`, and `그룹 삭제`
 
 The menu closes on outside pointer interaction or Escape and returns focus appropriately for keyboard use.
+
+The owner group header share action and the menu's `그룹 공유` item both open one shared `상품 그룹 공유` sheet containing the group URL. This prevents the two share entry points from drifting into different behaviors.
 
 `그룹 공유` opens a bottom sheet containing the group URL and a `링크 복사` action. Because this is a UI-only demo, pressing it only shows the local status `링크를 복사했어요.` and does not invoke a share or clipboard API.
 
@@ -98,7 +102,7 @@ Choosing `그룹명 수정` opens a compact, reference-styled dialog with the cu
 - `#/shop/groups/1/edit`: edit group `1`, prepopulated from demo state
 - `#/shop/groups/new/season-pick`: create mode launched from campaign detail with `season-pick` selected and the quick-add product IDs carried in in-memory draft state
 
-The existing `#/shop/groups/edit` route redirects to `#/shop/groups/new` for backward compatibility with the screen catalog. The shared editor contains:
+The existing `#/shop/groups` route remains an owner management overview backed by the same `ShopDemoProvider`. It lists the current group summaries, links group `1` to the reference-style owner route, and owns the sticky `상품 그룹 만들기` control that launches `#/shop/groups/new`. The screen catalog continues to link to this overview. The old `#/shop/groups/edit` route redirects to `#/shop/groups/new` for backward compatibility. The shared editor contains:
 
 - group-name field
 - campaign filter with an `전체 캠페인` option and individual campaign choices
@@ -110,11 +114,13 @@ Changing the campaign filter only changes the available products; already select
 
 The name uses the same trimmed 1–30 character rule as rename. At least one product is required. Save remains disabled until both rules pass. Edit mode prepopulates the current group name, campaign context, and product membership. Create mode starts with an empty name and no products unless quick-add draft state supplies product IDs. Saving edit mode updates the in-memory group and routes to `#/shop/RC000003200T/1`. Saving create mode appends the group and routes to `#/shop/RC000003200T`, where `상품 그룹을 만들었어요.` is shown. Back returns to the owner group for edit mode, the public shop for shop-launched create mode, and campaign detail for campaign-launched create mode.
 
+If a requested group no longer exists, both its owner view and edit route render the shared shop header, `상품 그룹을 찾을 수 없습니다.`, and `셀렉터스샵으로 돌아가기`, which routes to the public shop. They never reuse stale fixture content or throw.
+
 ### Campaign quick-add
 
 Campaign detail includes `상품 그룹에 담기`. It opens a compact sheet containing the four visible campaign products with checkboxes, all selected initially, followed by the existing groups and `새 상품 그룹 만들기`. At least one product must remain selected.
 
-Choosing an existing group adds the selected product IDs to that group in memory, deduplicates products already present, closes the sheet, and shows `상품을 그룹에 담았어요.` Choosing `새 상품 그룹 만들기` stores the selected product IDs as an in-memory draft and routes to `#/shop/groups/new/season-pick`, where the current campaign is preselected. This is a secondary shortcut; the shop remains the primary management surface.
+Choosing an existing group adds the selected product IDs to that group in memory, deduplicates products already present, closes the sheet, and shows `상품을 그룹에 담았어요.` Choosing `새 상품 그룹 만들기` stores the selected product IDs as an in-memory draft and routes to `#/shop/groups/new/season-pick`, where the current campaign is preselected. The editor copies the draft into local form state on first mount and immediately clears it from the provider. Back/cancel and save also call `clearQuickAddDraft` defensively, so revisiting the route cannot replay old selections. This is a secondary shortcut; the shop remains the primary management surface.
 
 ## Demo State Ownership and Lifetime
 
@@ -130,6 +136,7 @@ To keep the shop work understandable and testable, the current monolithic shop s
 - `ShopProductGrid`: reference-style two-column products
 - `ShopGroupSection`: group heading, owner action slot, and products
 - `ShopGroupMenu`: accessible three-dot menu
+- `ShareShopSheet`: shared public-shop and product-group share presentation
 - `RenameGroupDialog`: validation and rename state
 - `GroupEditorScreen`: shared create/edit editor and campaign filtering
 - `PublicShopScreen` and `OwnerShopGroupScreen`: route-level composition only
@@ -155,7 +162,7 @@ Implementation follows red-green-refactor cycles.
 1. Add failing shell and typography contracts for the single outer frame, absent header divider, local variable font, baseline spacing, and supported weight tokens.
 2. Add a failing campaign contract proving campaign-specific commission copy is absent while performance/settlement commission reporting remains.
 3. Add failing shop route and reference-content tests for both public and `/1` screens.
-4. Add failing interaction tests for six-at-a-time loading, the owner menu, rename validation/save, campaign filtering, create/edit modes, and campaign quick-add.
+4. Add failing interaction tests for six-at-a-time loading, the owner menu, header/menu sharing, rename validation/save, deletion and missing-group routes, the legacy owner overview, campaign filtering, create/edit modes, quick-add, and draft clearing.
 5. Add provider reducer tests proving route-to-route state continuity and full-remount reset semantics.
 6. Run the full unit suite, TypeScript/Vite production build, and `git diff --check`.
 7. Perform Chromium/in-app-browser QA at 1894x907 and 390x844 against the supplied/live references. Key panel/header/product geometry must be within 2 CSS pixels of measured reference values, computed typography must match the specified tokens exactly, and both document and panel horizontal overflow must be zero.
