@@ -843,14 +843,18 @@ ol {
   color: var(--ink);
 }
 
+.sns-trigger,
+.sns-option {
+  outline: none;
+}
+
 .sns-trigger[aria-expanded='true'] {
   border-color: var(--black);
 }
 
 .sns-trigger:focus-visible,
-.oauth-connect-button:focus-visible,
 .sns-option:focus-visible {
-  outline: 2px solid #2268e8;
+  outline: 2px solid var(--black);
   outline-offset: 2px;
 }
 

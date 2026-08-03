@@ -53,6 +53,11 @@ describe('reference shell contract', () => {
     expect(compactCss).toContain('input:focus-visible + .product-check')
   })
 
+  it('suppresses pointer focus rings on the SNS picker while preserving keyboard focus', () => {
+    expect(compactCss).toMatch(/\.sns-trigger, \.sns-option \{[^}]*outline: none;/)
+    expect(compactCss).toMatch(/\.sns-trigger:focus-visible, \.sns-option:focus-visible \{[^}]*outline: 2px solid var\(--black\);[^}]*outline-offset: 2px;/)
+  })
+
   it('locks the reference panel, header, login, and action geometry', () => {
     expect(compactCss).toMatch(/\.app-shell \{[^}]*grid-template-columns: 552px 552px;/)
     expect(compactCss).toMatch(/\.client-panel \{[^}]*width: 552px;/)
