@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 4173",
     "build": "tsc -b && vite build",
+    "check:pages": "node scripts/check-pages-build.mjs",
     "test": "vitest"
   },
   "dependencies": {
