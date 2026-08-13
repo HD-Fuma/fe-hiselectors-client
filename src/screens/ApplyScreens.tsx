@@ -255,6 +255,12 @@ export function ApplyFormScreen() {
 
   useEffect(() => {
     hydrateVerifiedAccount()
+
+    return () => {
+      sessionStorage.removeItem('oauthVerified')
+      sessionStorage.removeItem('selectedSnsProvider')
+      sessionStorage.removeItem('oauthProvider')
+    }
   }, [])
 
   useEffect(() => {
