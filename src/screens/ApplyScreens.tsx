@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
-import { authFetch, hasValidUserSession, readAuthSession, redirectToLoginScreen } from '../auth'
+import { authFetch, hasValidUserSession, readAuthSession, redirectToLoginScreen, redirectToMainScreen } from '../auth'
 import BottomAction from '../components/BottomAction'
 import { ArrowRightIcon, CartIcon, CheckIcon, ChevronDownIcon, CoinIcon, GiftIcon, LinkIcon, PersonIcon } from '../components/Icons'
 import PanelHeader from '../components/PanelHeader'
@@ -425,7 +425,6 @@ export function ApplyFormScreen() {
           </button>
         </form>
 
-        {oauthError ? <p className="submit-feedback is-error">{oauthError}</p> : null}
         {shouldShowConnectedBadge && oauthStatus ? (
           <div className="oauth-status-card" role="status" aria-live="polite">
             <span className="oauth-status-badge">연동 완료</span>
@@ -471,10 +470,41 @@ export function ApplyFormScreen() {
           </div>
         </section>
 
-        {submitError ? <p className="submit-feedback is-error">{submitError}</p> : null}
-        {submitSuccess ? <p className="submit-feedback is-success">{submitSuccess}</p> : null}
       </div>
       <BottomAction disabled={!canSubmit} label="셀렉터스 신청하기" onClick={handleSubmit} />
+      {oauthError ? (
+        <div aria-modal="true" className="auth-gate-backdrop" role="dialog" aria-labelledby="oauth-error-title">
+          <div className="auth-gate-modal">
+            <h3 id="oauth-error-title">계정 연결 실패</h3>
+            <p>{oauthError}</p>
+            <div className="auth-gate-actions">
+              <button className="primary-action" onClick={() => setOauthError('')} type="button">확인</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {submitError ? (
+        <div aria-modal="true" className="auth-gate-backdrop" role="dialog" aria-labelledby="submit-error-title">
+          <div className="auth-gate-modal">
+            <h3 id="submit-error-title">제출 실패</h3>
+            <p>{submitError}</p>
+            <div className="auth-gate-actions">
+              <button className="primary-action" onClick={() => setSubmitError('')} type="button">확인</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {submitSuccess ? (
+        <div aria-modal="true" className="auth-gate-backdrop" role="dialog" aria-labelledby="submit-success-title">
+          <div className="auth-gate-modal">
+            <h3 id="submit-success-title">제출 완료</h3>
+            <p>{submitSuccess}</p>
+            <div className="auth-gate-actions">
+              <button className="primary-action" onClick={redirectToMainScreen} type="button">확인</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }
