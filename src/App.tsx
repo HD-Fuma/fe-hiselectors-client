@@ -100,7 +100,7 @@ function RoutedApp({ shopProbe }: AppProps) {
         return
       }
 
-      const anchor = (event.target as HTMLElement).closest('a[href="#/apply"], a[href="#/apply/form"]')
+      const anchor = (event.target as HTMLElement).closest('a[href="#/apply/form"]')
       if (!anchor) {
         return
       }
