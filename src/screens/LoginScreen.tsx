@@ -101,7 +101,14 @@ export default function LoginScreen() {
       persistAuthSession(authState)
       window.dispatchEvent(new CustomEvent('auth:changed', { detail: authState }))
       setPassword('')
-      redirectToMainScreen()
+
+      const postLoginRedirect = sessionStorage.getItem('postLoginRedirect')
+      if (postLoginRedirect) {
+        sessionStorage.removeItem('postLoginRedirect')
+        window.location.hash = postLoginRedirect
+      } else {
+        redirectToMainScreen()
+      }
     } catch (error) {
       const nextError = error instanceof Error ? error.message : '로그인 요청 중 오류가 발생했습니다.'
       setErrorMessage(nextError)

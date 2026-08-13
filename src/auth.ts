@@ -9,6 +9,20 @@ export type AuthSession = {
 
 const AUTH_STORAGE_KEY = 'selectors-auth'
 
+function isJwtExpired(token: string): boolean {
+  const payload = token.split('.')[1]
+  if (!payload) {
+    return false
+  }
+
+  try {
+    const decoded = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/'))) as { exp?: number }
+    return typeof decoded.exp === 'number' && decoded.exp * 1000 <= Date.now()
+  } catch {
+    return false
+  }
+}
+
 export function persistAuthSession(session: AuthSession) {
   localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session))
 }
@@ -26,6 +40,11 @@ export function readAuthSession(): AuthSession | null {
       memberName?: string
     }
     if (!parsed.accessToken || typeof parsed.accessToken !== 'string') {
+      return null
+    }
+
+    if (isJwtExpired(parsed.accessToken)) {
+      localStorage.removeItem(AUTH_STORAGE_KEY)
       return null
     }
 

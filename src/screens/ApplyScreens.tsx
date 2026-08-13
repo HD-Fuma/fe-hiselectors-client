@@ -213,7 +213,8 @@ export function ApplyFormScreen() {
 
   useEffect(() => {
     if (!isUserSessionValid) {
-      redirectToLoginScreen()
+      sessionStorage.setItem('postLoginRedirect', '#/apply/form')
+      window.dispatchEvent(new CustomEvent('auth:required'))
     }
   }, [isUserSessionValid])
 

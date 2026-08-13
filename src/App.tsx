@@ -43,7 +43,6 @@ function RoutedApp({ shopProbe }: AppProps) {
   const [screen, setScreen] = useState(selectCurrentScreen)
   const [showAuthGateModal, setShowAuthGateModal] = useState(false)
   const [showNoCohortModal, setShowNoCohortModal] = useState(false)
-  const [authRequired, setAuthRequired] = useState(false)
   const [hasActiveCohort, setHasActiveCohort] = useState(false)
 
   useEffect(() => {
@@ -115,41 +114,44 @@ function RoutedApp({ shopProbe }: AppProps) {
       setScreen(selectCurrentScreen())
     }
 
-    const handleCohortGateClick = (event: MouseEvent) => {
-      if (hasActiveCohort) {
-        return
-      }
-
+    const handleApplyGateClick = (event: MouseEvent) => {
       const anchor = (event.target as HTMLElement).closest('a[href="#/apply/form"]')
       if (!anchor) {
         return
       }
 
-      event.preventDefault()
-      setShowNoCohortModal(true)
+      if (!hasValidUserSession(readAuthSession())) {
+        event.preventDefault()
+        sessionStorage.setItem('postLoginRedirect', '#/apply/form')
+        setShowAuthGateModal(true)
+        return
+      }
+
+      if (!hasActiveCohort) {
+        event.preventDefault()
+        setShowNoCohortModal(true)
+      }
     }
 
     const handleAuthRequired = () => {
-      setAuthRequired(true)
       setShowAuthGateModal(true)
     }
 
     const handleAuthChanged = () => {
-      setAuthRequired(false)
       setShowAuthGateModal(false)
       setShowNoCohortModal(false)
       setScreen(selectCurrentScreen())
     }
 
     window.addEventListener('hashchange', handleHashChange)
-    document.addEventListener('click', handleCohortGateClick, true)
+    document.addEventListener('click', handleApplyGateClick, true)
     window.addEventListener('auth:required', handleAuthRequired)
     window.addEventListener('auth:changed', handleAuthChanged)
     window.addEventListener('storage', handleAuthChanged)
 
     return () => {
       window.removeEventListener('hashchange', handleHashChange)
-      document.removeEventListener('click', handleCohortGateClick, true)
+      document.removeEventListener('click', handleApplyGateClick, true)
       window.removeEventListener('auth:required', handleAuthRequired)
       window.removeEventListener('auth:changed', handleAuthChanged)
       window.removeEventListener('storage', handleAuthChanged)
@@ -162,44 +164,23 @@ function RoutedApp({ shopProbe }: AppProps) {
     setShowNoCohortModal(!hasActiveCohort && currentScreenId === 'apply-form')
   }, [currentScreenId, hasActiveCohort])
 
-  const isProtectedApplyRoute = currentScreenId === 'apply-intro' || currentScreenId === 'apply-form'
-  const session = readAuthSession()
-  const requiresLogin = isProtectedApplyRoute && !hasValidUserSession(session)
-
   useEffect(() => {
-    if (requiresLogin) {
-      setAuthRequired(true)
-      setShowAuthGateModal(true)
-      if (window.location.hash !== '#/login') {
-        window.location.hash = '#/login'
-      }
-      return
-    }
-
-    setAuthRequired(false)
-    setShowAuthGateModal(false)
-  }, [authRequired, requiresLogin])
-
-  useEffect(() => {
-    const nextScreen = requiresLogin ? selectScreenByHash('#/login') : screen
-    document.title = `${nextScreen.title} | Selectors Client`
+    document.title = `${screen.title} | Selectors Client`
     document.querySelector<HTMLElement>('.client-panel h1')?.focus({ preventScroll: true })
-  }, [requiresLogin, screen])
+  }, [screen])
 
-  const routeScreen = requiresLogin ? selectScreenByHash('#/login') : screen
-  const Screen = getScreenComponent(routeScreen.id)
+  const Screen = getScreenComponent(screen.id)
 
   const handleGoToLogin = () => {
-    setAuthRequired(false)
     setShowAuthGateModal(false)
     window.location.hash = '#/login'
   }
 
   return (
     <>
-      <AppShell screenId={routeScreen.id}>
+      <AppShell screenId={screen.id}>
         <p aria-atomic="true" aria-live="polite" className="sr-only route-announcement">
-          {routeScreen.title} 화면
+          {screen.title} 화면
         </p>
         <Screen />
       </AppShell>
@@ -221,7 +202,7 @@ function RoutedApp({ shopProbe }: AppProps) {
             <p>지원서 제출은 로그인한 더현대 HI 회원만 사용할 수 있어요. 로그인 페이지로 이동할까요?</p>
             <div className="auth-gate-actions">
               <button className="secondary-action" onClick={() => {
-                setAuthRequired(false)
+                sessionStorage.removeItem('postLoginRedirect')
                 setShowAuthGateModal(false)
               }} type="button">취소</button>
               <button className="primary-action" onClick={handleGoToLogin} type="button">로그인하기</button>
