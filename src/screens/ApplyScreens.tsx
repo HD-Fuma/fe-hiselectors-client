@@ -104,6 +104,7 @@ export function ApplyFormScreen() {
   const [isOptionsOpen, setIsOptionsOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(0)
   const [privacyAgreed, setPrivacyAgreed] = useState(false)
+  const [shopTermsAgreed, setShopTermsAgreed] = useState(false)
   const [alarmAgreed, setAlarmAgreed] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
@@ -220,7 +221,7 @@ export function ApplyFormScreen() {
     return null
   }
 
-  const canSubmit = !isSubmitting && Boolean(selectedChannel) && privacyAgreed
+  const canSubmit = !isSubmitting && Boolean(selectedChannel) && privacyAgreed && shopTermsAgreed && alarmAgreed
 
   const hydrateVerifiedAccount = () => {
     const verifiedJson = sessionStorage.getItem('oauthVerified')
@@ -447,7 +448,7 @@ export function ApplyFormScreen() {
           </div>
           <div className="term-row">
             <label>
-              <input aria-label="한무쇼핑 이용약관 동의 (필수)" type="checkbox" />
+              <input aria-label="한무쇼핑 이용약관 동의 (필수)" checked={shopTermsAgreed} onChange={(event) => setShopTermsAgreed(event.target.checked)} type="checkbox" />
               <span className="custom-check"><CheckIcon size={16} /></span>
               <span>한무쇼핑 이용약관 (필수)</span>
             </label>
@@ -455,9 +456,9 @@ export function ApplyFormScreen() {
           </div>
           <div className="term-row">
             <label>
-              <input aria-label="카카오 알림톡 수신 동의 (선택)" checked={alarmAgreed} onChange={(event) => setAlarmAgreed(event.target.checked)} type="checkbox" />
+              <input aria-label="카카오 알림톡 수신 동의 (필수)" checked={alarmAgreed} onChange={(event) => setAlarmAgreed(event.target.checked)} type="checkbox" />
               <span className="custom-check"><CheckIcon size={16} /></span>
-              <span>카카오 알림톡 수신 동의 (선택)</span>
+              <span>카카오 알림톡 수신 동의 (필수)</span>
             </label>
             <button aria-label="카카오 알림톡 수신 동의 내용 보기" type="button"><ArrowRightIcon size={18} /></button>
           </div>

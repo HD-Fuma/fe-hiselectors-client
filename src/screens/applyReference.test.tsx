@@ -271,9 +271,15 @@ describe('apply reference contract', () => {
     const termQueries = within(terms as HTMLElement)
     expect(termQueries.getByText('현대백화점 이용약관 (필수)')).toBeTruthy()
     expect(termQueries.getByText('한무쇼핑 이용약관 (필수)')).toBeTruthy()
-    expect(termQueries.getByText('카카오 알림톡 수신 동의 (선택)')).toBeTruthy()
+    expect(termQueries.getByText('카카오 알림톡 수신 동의 (필수)')).toBeTruthy()
     expect(termQueries.getAllByRole('checkbox')).toHaveLength(3)
 
     expect(screen.getByRole('button', { name: '셀렉터스 신청하기' })).toHaveProperty('disabled', true)
+
+    fireEvent.click(termQueries.getAllByRole('checkbox')[0])
+    fireEvent.click(termQueries.getAllByRole('checkbox')[1])
+    fireEvent.click(termQueries.getAllByRole('checkbox')[2])
+
+    expect(screen.getByRole('button', { name: '셀렉터스 신청하기' })).toHaveProperty('disabled', false)
   })
 })
