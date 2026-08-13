@@ -11,6 +11,15 @@ export type OAuthVerificationResult = {
   channelTitle?: string
 }
 
+function extractErrorMessage(payload: string): string {
+  try {
+    const parsed = JSON.parse(payload) as Record<string, unknown>
+    return typeof parsed.message === 'string' && parsed.message.trim() ? parsed.message.trim() : payload
+  } catch {
+    return payload
+  }
+}
+
 async function getAuthorizationUrl(provider: OAuthProvider): Promise<string> {
   const response = await authFetch(`${API_BASE_URL}/api/${provider}/oauth/authorize`, {
     method: 'GET',
@@ -24,11 +33,11 @@ async function getAuthorizationUrl(provider: OAuthProvider): Promise<string> {
     if (response.status === 401) {
       throw new Error('인증이 필요합니다.')
     }
-    throw new Error(rawMessage || 'OAuth authorization failed.')
+    throw new Error(extractErrorMessage(rawMessage) || 'OAuth authorization failed.')
   }
 
-  const payload = await response.json() as { authorizationUrl?: string; url?: string }
-  const authorizationUrl = payload.authorizationUrl ?? payload.url
+  const envelope = await response.json() as { data: { authorizationUrl?: string; url?: string } }
+  const authorizationUrl = envelope.data?.authorizationUrl ?? envelope.data?.url
 
   if (!authorizationUrl) {
     throw new Error('Authorization URL is missing from the OAuth response.')
@@ -56,8 +65,9 @@ export async function verifyOAuth(provider: OAuthProvider, code: string, state: 
 
   if (!response.ok) {
     const rawMessage = await response.text()
-    throw new Error(rawMessage || 'OAuth verification failed.')
+    throw new Error(extractErrorMessage(rawMessage) || 'OAuth verification failed.')
   }
 
-  return (await response.json()) as OAuthVerificationResult
+  const envelope = (await response.json()) as { data: OAuthVerificationResult }
+  return envelope.data
 }

@@ -85,7 +85,8 @@ export default function LoginScreen() {
         throw new Error(extractErrorMessage(rawMessage))
       }
 
-      const payload = (await response.json()) as AuthTokenResponse
+      const envelope = (await response.json()) as { data: AuthTokenResponse }
+      const payload = envelope.data
       const authState = {
         ...payload,
         loginId: trimmedLoginId,

@@ -53,7 +53,8 @@ function RoutedApp({ shopProbe }: AppProps) {
 
     authFetch(`${API_BASE_URL}/api/generations/active`)
       .then((response) => (response.ok ? response.json().catch(() => null) : null))
-      .then((data) => {
+      .then((envelope) => {
+        const data = envelope?.data ?? null
         if (!cancelled) {
           setHasActiveCohort(Boolean(data))
           setIsCohortStatusLoaded(true)
