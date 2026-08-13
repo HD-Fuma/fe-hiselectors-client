@@ -22,10 +22,6 @@ function hasPendingOAuthCallback(): boolean {
   return Boolean(params.get('code') && params.get('state'))
 }
 
-function hasVerifiedOAuthState(): boolean {
-  return Boolean(window.location.hash && sessionStorage.getItem('oauthVerified'))
-}
-
 function selectCurrentScreen() {
   const currentHash = window.location.hash
   const canonicalHash = canonicalizeHash(currentHash)
@@ -34,20 +30,21 @@ function selectCurrentScreen() {
     window.history.replaceState(window.history.state, '', canonicalHash)
   }
 
-  if (hasPendingOAuthCallback() || hasVerifiedOAuthState()) {
+  if (hasPendingOAuthCallback()) {
     const nextHash = '#/apply/form'
-    if (window.location.hash !== nextHash) {
-      window.location.hash = nextHash
-    }
+    window.history.replaceState(window.history.state, '', window.location.pathname + nextHash)
     return selectScreenByHash(nextHash)
   }
 
   return selectScreenByHash(canonicalHash)
 }
 
+const hasActiveCohort = false
+
 function RoutedApp({ shopProbe }: AppProps) {
   const [screen, setScreen] = useState(selectCurrentScreen)
   const [showAuthGateModal, setShowAuthGateModal] = useState(false)
+  const [showNoCohortModal, setShowNoCohortModal] = useState(() => !hasActiveCohort && selectCurrentScreen().id === 'apply-form')
   const [authRequired, setAuthRequired] = useState(false)
 
   useEffect(() => {
@@ -98,6 +95,20 @@ function RoutedApp({ shopProbe }: AppProps) {
       setScreen(selectCurrentScreen())
     }
 
+    const handleCohortGateClick = (event: MouseEvent) => {
+      if (hasActiveCohort) {
+        return
+      }
+
+      const anchor = (event.target as HTMLElement).closest('a[href="#/apply"], a[href="#/apply/form"]')
+      if (!anchor) {
+        return
+      }
+
+      event.preventDefault()
+      setShowNoCohortModal(true)
+    }
+
     const handleAuthRequired = () => {
       setAuthRequired(true)
       setShowAuthGateModal(true)
@@ -106,16 +117,19 @@ function RoutedApp({ shopProbe }: AppProps) {
     const handleAuthChanged = () => {
       setAuthRequired(false)
       setShowAuthGateModal(false)
+      setShowNoCohortModal(false)
       setScreen(selectCurrentScreen())
     }
 
     window.addEventListener('hashchange', handleHashChange)
+    document.addEventListener('click', handleCohortGateClick, true)
     window.addEventListener('auth:required', handleAuthRequired)
     window.addEventListener('auth:changed', handleAuthChanged)
     window.addEventListener('storage', handleAuthChanged)
 
     return () => {
       window.removeEventListener('hashchange', handleHashChange)
+      document.removeEventListener('click', handleCohortGateClick, true)
       window.removeEventListener('auth:required', handleAuthRequired)
       window.removeEventListener('auth:changed', handleAuthChanged)
       window.removeEventListener('storage', handleAuthChanged)
@@ -123,6 +137,13 @@ function RoutedApp({ shopProbe }: AppProps) {
   }, [])
 
   const currentScreenId = screen.id
+
+  useEffect(() => {
+    if (!hasActiveCohort && currentScreenId === 'apply-form') {
+      setShowNoCohortModal(true)
+    }
+  }, [currentScreenId])
+
   const isProtectedApplyRoute = currentScreenId === 'apply-intro' || currentScreenId === 'apply-form'
   const session = readAuthSession()
   const requiresLogin = isProtectedApplyRoute && !hasValidUserSession(session)
@@ -164,6 +185,17 @@ function RoutedApp({ shopProbe }: AppProps) {
         </p>
         <Screen />
       </AppShell>
+      {showNoCohortModal ? (
+        <div aria-modal="true" className="auth-gate-backdrop" role="dialog" aria-labelledby="cohort-closed-title">
+          <div className="auth-gate-modal">
+            <h3 id="cohort-closed-title">현재 모집 중인 기수가 없어 지원할 수 없습니다.</h3>
+            <p>모집이 시작되면 다시 신청해 주세요.</p>
+            <div className="auth-gate-actions">
+              <button className="primary-action" onClick={() => setShowNoCohortModal(false)} type="button">확인</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       {showAuthGateModal ? (
         <div aria-modal="true" className="auth-gate-backdrop" role="dialog" aria-labelledby="auth-gate-title">
           <div className="auth-gate-modal">

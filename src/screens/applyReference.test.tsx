@@ -24,6 +24,16 @@ describe('apply reference contract', () => {
     expect(screen.queryByText('수익 정산')).toBeNull()
   })
 
+  it('shows the no-active-cohort modal when the user tries to start the apply flow', () => {
+    window.location.hash = '#/apply'
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('link', { name: '셀렉터스 신청하기' }))
+
+    expect(screen.getByRole('dialog', { name: '현재 모집 중인 기수가 없어 지원할 수 없습니다.' })).toBeTruthy()
+    expect(window.location.hash).toBe('#/apply')
+  })
+
   it('shows only the exact selector benefit copy', () => {
     window.location.hash = '#/apply'
     render(<App />)
