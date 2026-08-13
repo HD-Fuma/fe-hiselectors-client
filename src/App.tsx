@@ -32,7 +32,9 @@ function selectCurrentScreen() {
 
   if (hasPendingOAuthCallback()) {
     const nextHash = '#/apply/form'
-    window.history.replaceState(window.history.state, '', window.location.pathname + nextHash)
+    if (window.location.hash !== nextHash) {
+      window.location.hash = nextHash
+    }
     return selectScreenByHash(nextHash)
   }
 
@@ -44,6 +46,7 @@ function RoutedApp({ shopProbe }: AppProps) {
   const [showAuthGateModal, setShowAuthGateModal] = useState(false)
   const [showNoCohortModal, setShowNoCohortModal] = useState(false)
   const [hasActiveCohort, setHasActiveCohort] = useState(false)
+  const [isCohortStatusLoaded, setIsCohortStatusLoaded] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -53,11 +56,13 @@ function RoutedApp({ shopProbe }: AppProps) {
       .then((data) => {
         if (!cancelled) {
           setHasActiveCohort(Boolean(data))
+          setIsCohortStatusLoaded(true)
         }
       })
       .catch(() => {
         if (!cancelled) {
           setHasActiveCohort(false)
+          setIsCohortStatusLoaded(true)
         }
       })
 
@@ -76,8 +81,13 @@ function RoutedApp({ shopProbe }: AppProps) {
         return
       }
 
+      const clearOAuthQueryParams = () => {
+        window.history.replaceState(window.history.state, '', window.location.pathname + window.location.hash)
+      }
+
       const provider = sessionStorage.getItem('oauthProvider') as 'instagram' | 'youtube' | null
       if (!provider) {
+        clearOAuthQueryParams()
         return
       }
 
@@ -99,6 +109,7 @@ function RoutedApp({ shopProbe }: AppProps) {
         console.error('OAuth verification failed:', error)
       } finally {
         sessionStorage.removeItem('oauthProvider')
+        clearOAuthQueryParams()
         setScreen(selectScreenByHash('#/apply/form'))
         if (window.location.hash !== '#/apply/form') {
           window.location.hash = '#/apply/form'
@@ -161,8 +172,11 @@ function RoutedApp({ shopProbe }: AppProps) {
   const currentScreenId = screen.id
 
   useEffect(() => {
+    if (!isCohortStatusLoaded) {
+      return
+    }
     setShowNoCohortModal(!hasActiveCohort && currentScreenId === 'apply-form')
-  }, [currentScreenId, hasActiveCohort])
+  }, [currentScreenId, hasActiveCohort, isCohortStatusLoaded])
 
   useEffect(() => {
     document.title = `${screen.title} | Selectors Client`
