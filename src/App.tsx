@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 
 import AppShell from './components/AppShell'
-import { hasValidUserSession, readAuthSession } from './auth'
+import { authFetch, hasValidUserSession, readAuthSession } from './auth'
 import { selectScreenByHash } from './screenRegistry'
 import { getScreenComponent } from './screens'
 import { ShopDemoProvider } from './shop/ShopDemoContext'
@@ -39,13 +39,33 @@ function selectCurrentScreen() {
   return selectScreenByHash(canonicalHash)
 }
 
-const hasActiveCohort = false
-
 function RoutedApp({ shopProbe }: AppProps) {
   const [screen, setScreen] = useState(selectCurrentScreen)
   const [showAuthGateModal, setShowAuthGateModal] = useState(false)
-  const [showNoCohortModal, setShowNoCohortModal] = useState(() => !hasActiveCohort && selectCurrentScreen().id === 'apply-form')
+  const [showNoCohortModal, setShowNoCohortModal] = useState(false)
   const [authRequired, setAuthRequired] = useState(false)
+  const [hasActiveCohort, setHasActiveCohort] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+
+    authFetch('http://localhost:8080/api/generations/active')
+      .then((response) => (response.ok ? response.json().catch(() => null) : null))
+      .then((data) => {
+        if (!cancelled) {
+          setHasActiveCohort(Boolean(data))
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setHasActiveCohort(false)
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     const handleOAuthCallback = async () => {
@@ -139,10 +159,8 @@ function RoutedApp({ shopProbe }: AppProps) {
   const currentScreenId = screen.id
 
   useEffect(() => {
-    if (!hasActiveCohort && currentScreenId === 'apply-form') {
-      setShowNoCohortModal(true)
-    }
-  }, [currentScreenId])
+    setShowNoCohortModal(!hasActiveCohort && currentScreenId === 'apply-form')
+  }, [currentScreenId, hasActiveCohort])
 
   const isProtectedApplyRoute = currentScreenId === 'apply-intro' || currentScreenId === 'apply-form'
   const session = readAuthSession()
