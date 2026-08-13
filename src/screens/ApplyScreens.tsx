@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
-import { authFetch, hasValidUserSession, readAuthSession, redirectToLoginScreen, redirectToMainScreen } from '../auth'
+import { API_BASE_URL, authFetch, hasValidUserSession, readAuthSession, redirectToLoginScreen, redirectToMainScreen } from '../auth'
 import BottomAction from '../components/BottomAction'
 import { ArrowRightIcon, CartIcon, CheckIcon, ChevronDownIcon, CoinIcon, GiftIcon, LinkIcon, PersonIcon } from '../components/Icons'
 import PanelHeader from '../components/PanelHeader'
@@ -220,10 +220,6 @@ export function ApplyFormScreen() {
     }
   }, [isUserSessionValid])
 
-  if (!isUserSessionValid) {
-    return null
-  }
-
   const canSubmit = !isSubmitting && isCurrentChannelConnected && privacyAgreed && shopTermsAgreed && alarmAgreed
 
   const hydrateVerifiedAccount = () => {
@@ -274,11 +270,19 @@ export function ApplyFormScreen() {
       hydrateVerifiedAccount()
     }
 
+    const handleVerificationFailedEvent = () => {
+      const message = sessionStorage.getItem('oauthVerificationError')
+      sessionStorage.removeItem('oauthVerificationError')
+      setOauthError(message || 'SNS 계정 연동에 실패했습니다.')
+    }
+
     window.addEventListener('hashchange', handleOAuthCallback)
     window.addEventListener('oauth-verified', handleVerifiedEvent)
+    window.addEventListener('oauth-verification-failed', handleVerificationFailedEvent)
     return () => {
       window.removeEventListener('hashchange', handleOAuthCallback)
       window.removeEventListener('oauth-verified', handleVerifiedEvent)
+      window.removeEventListener('oauth-verification-failed', handleVerificationFailedEvent)
     }
   }, [])
 
@@ -291,6 +295,10 @@ export function ApplyFormScreen() {
       setOauthStatus('')
     }
   }, [selectedChannel, connectedAccount])
+
+  if (!isUserSessionValid) {
+    return null
+  }
 
   const handleOAuthConnect = async () => {
     if (!selectedChannel) {
@@ -352,7 +360,7 @@ export function ApplyFormScreen() {
         alarmAgreed,
       }
 
-      const response = await authFetch('http://localhost:8080/api/applications', {
+      const response = await authFetch(`${API_BASE_URL}/api/applications`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -451,7 +459,7 @@ export function ApplyFormScreen() {
           <h2>셀렉터스 이용 약관 동의</h2>
           <div className="term-row">
             <label>
-              <input aria-label="개인정보 수집 및 이용 동의 (필수)" checked={privacyAgreed} onChange={(event) => setPrivacyAgreed(event.target.checked)} type="checkbox" />
+              <input checked={privacyAgreed} onChange={(event) => setPrivacyAgreed(event.target.checked)} type="checkbox" />
               <span className="custom-check"><CheckIcon size={16} /></span>
               <span>현대백화점 이용약관 (필수)</span>
             </label>
@@ -459,7 +467,7 @@ export function ApplyFormScreen() {
           </div>
           <div className="term-row">
             <label>
-              <input aria-label="한무쇼핑 이용약관 동의 (필수)" checked={shopTermsAgreed} onChange={(event) => setShopTermsAgreed(event.target.checked)} type="checkbox" />
+              <input checked={shopTermsAgreed} onChange={(event) => setShopTermsAgreed(event.target.checked)} type="checkbox" />
               <span className="custom-check"><CheckIcon size={16} /></span>
               <span>한무쇼핑 이용약관 (필수)</span>
             </label>
@@ -467,7 +475,7 @@ export function ApplyFormScreen() {
           </div>
           <div className="term-row">
             <label>
-              <input aria-label="카카오 알림톡 수신 동의 (필수)" checked={alarmAgreed} onChange={(event) => setAlarmAgreed(event.target.checked)} type="checkbox" />
+              <input checked={alarmAgreed} onChange={(event) => setAlarmAgreed(event.target.checked)} type="checkbox" />
               <span className="custom-check"><CheckIcon size={16} /></span>
               <span>카카오 알림톡 수신 동의 (필수)</span>
             </label>

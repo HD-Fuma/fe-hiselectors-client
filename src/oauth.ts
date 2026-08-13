@@ -1,4 +1,4 @@
-import { authFetch } from './auth'
+import { API_BASE_URL, authFetch } from './auth'
 
 export type OAuthProvider = 'instagram' | 'facebook' | 'youtube'
 
@@ -12,7 +12,7 @@ export type OAuthVerificationResult = {
 }
 
 async function getAuthorizationUrl(provider: OAuthProvider): Promise<string> {
-  const response = await authFetch(`http://localhost:8080/api/${provider}/oauth/authorize`, {
+  const response = await authFetch(`${API_BASE_URL}/api/${provider}/oauth/authorize`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -46,7 +46,7 @@ export async function startOAuthAuthorization(provider: OAuthProvider): Promise<
 }
 
 export async function verifyOAuth(provider: OAuthProvider, code: string, state: string): Promise<OAuthVerificationResult> {
-  const response = await authFetch(`http://localhost:8080/api/${provider}/oauth/verify`, {
+  const response = await authFetch(`${API_BASE_URL}/api/${provider}/oauth/verify`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

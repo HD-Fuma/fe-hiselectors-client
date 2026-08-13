@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 
 import AppShell from './components/AppShell'
-import { authFetch, hasValidUserSession, readAuthSession } from './auth'
+import { API_BASE_URL, authFetch, hasValidUserSession, readAuthSession } from './auth'
 import { selectScreenByHash } from './screenRegistry'
 import { getScreenComponent } from './screens'
 import { ShopDemoProvider } from './shop/ShopDemoContext'
@@ -51,7 +51,7 @@ function RoutedApp({ shopProbe }: AppProps) {
   useEffect(() => {
     let cancelled = false
 
-    authFetch('http://localhost:8080/api/generations/active')
+    authFetch(`${API_BASE_URL}/api/generations/active`)
       .then((response) => (response.ok ? response.json().catch(() => null) : null))
       .then((data) => {
         if (!cancelled) {
@@ -104,9 +104,15 @@ function RoutedApp({ shopProbe }: AppProps) {
           sessionStorage.setItem('oauthVerified', JSON.stringify(nextVerifiedState))
           sessionStorage.setItem('selectedSnsProvider', provider)
           window.dispatchEvent(new CustomEvent('oauth-verified'))
+        } else {
+          sessionStorage.setItem('oauthVerificationError', 'SNS 계정 인증에 실패했습니다. 다시 시도해 주세요.')
+          window.dispatchEvent(new CustomEvent('oauth-verification-failed'))
         }
       } catch (error) {
         console.error('OAuth verification failed:', error)
+        const message = error instanceof Error ? error.message : 'SNS 계정 연동 중 오류가 발생했습니다.'
+        sessionStorage.setItem('oauthVerificationError', message)
+        window.dispatchEvent(new CustomEvent('oauth-verification-failed'))
       } finally {
         sessionStorage.removeItem('oauthProvider')
         clearOAuthQueryParams()
@@ -131,16 +137,16 @@ function RoutedApp({ shopProbe }: AppProps) {
         return
       }
 
+      if (isCohortStatusLoaded && !hasActiveCohort) {
+        event.preventDefault()
+        setShowNoCohortModal(true)
+        return
+      }
+
       if (!hasValidUserSession(readAuthSession())) {
         event.preventDefault()
         sessionStorage.setItem('postLoginRedirect', '#/apply/form')
         setShowAuthGateModal(true)
-        return
-      }
-
-      if (!hasActiveCohort) {
-        event.preventDefault()
-        setShowNoCohortModal(true)
       }
     }
 
@@ -167,7 +173,7 @@ function RoutedApp({ shopProbe }: AppProps) {
       window.removeEventListener('auth:changed', handleAuthChanged)
       window.removeEventListener('storage', handleAuthChanged)
     }
-  }, [hasActiveCohort])
+  }, [hasActiveCohort, isCohortStatusLoaded])
 
   const currentScreenId = screen.id
 

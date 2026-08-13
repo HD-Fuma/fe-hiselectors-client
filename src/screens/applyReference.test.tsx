@@ -6,6 +6,9 @@ import App from '../App'
 afterEach(() => {
   cleanup()
   window.location.hash = ''
+  localStorage.clear()
+  sessionStorage.clear()
+  vi.restoreAllMocks()
 })
 
 describe('apply reference contract', () => {
@@ -24,13 +27,15 @@ describe('apply reference contract', () => {
     expect(screen.queryByText('수익 정산')).toBeNull()
   })
 
-  it('shows the no-active-cohort modal when the user tries to start the apply flow', () => {
+  it('shows the no-active-cohort modal when the user tries to start the apply flow', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('null', { status: 200 }))
     window.location.hash = '#/apply'
     render(<App />)
 
-    fireEvent.click(screen.getByRole('link', { name: '셀렉터스 신청하기' }))
-
-    expect(screen.getByRole('dialog', { name: '현재 모집 중인 기수가 없어 지원할 수 없습니다.' })).toBeTruthy()
+    await vi.waitFor(() => {
+      fireEvent.click(screen.getByRole('link', { name: '셀렉터스 신청하기' }))
+      expect(screen.getByRole('dialog', { name: '현재 모집 중인 기수가 없어 지원할 수 없습니다.' })).toBeTruthy()
+    })
     expect(window.location.hash).toBe('#/apply')
   })
 
@@ -48,6 +53,7 @@ describe('apply reference contract', () => {
   })
 
   it('provides an accessible representative SNS OAuth selector', () => {
+    localStorage.setItem('selectors-auth', JSON.stringify({ accessToken: 'demo.jwt', tokenType: 'Bearer', role: 'USER', loginId: 'demo-user' }))
     window.location.hash = '#/apply/form'
     render(<App />)
 
@@ -122,6 +128,7 @@ describe('apply reference contract', () => {
   })
 
   it('renders the connected SNS username below the button after OAuth verification', () => {
+    localStorage.setItem('selectors-auth', JSON.stringify({ accessToken: 'demo.jwt', tokenType: 'Bearer', role: 'USER', loginId: 'demo-user' }))
     sessionStorage.setItem('oauthVerified', JSON.stringify({
       provider: 'instagram',
       accountId: 'vbcjspt0909',
@@ -137,6 +144,7 @@ describe('apply reference contract', () => {
   })
 
   it('re-enables the OAuth button when the user reselects a provider', () => {
+    localStorage.setItem('selectors-auth', JSON.stringify({ accessToken: 'demo.jwt', tokenType: 'Bearer', role: 'USER', loginId: 'demo-user' }))
     sessionStorage.setItem('oauthVerified', JSON.stringify({
       provider: 'instagram',
       accountId: 'vbcjspt0909',
@@ -146,13 +154,14 @@ describe('apply reference contract', () => {
     window.location.hash = '#/apply/form'
     render(<App />)
 
-    fireEvent.click(screen.getByRole('button', { name: '대표 SNS 선택' }))
+    fireEvent.click(screen.getByRole('button', { name: '인스타그램' }))
     fireEvent.click(screen.getByRole('option', { name: '유튜브' }))
 
     expect(screen.getByRole('button', { name: 'YouTube 계정 연결하기' })).toHaveProperty('disabled', false)
   })
 
   it('clears stale verified SNS state when the user switches to another provider', () => {
+    localStorage.setItem('selectors-auth', JSON.stringify({ accessToken: 'demo.jwt', tokenType: 'Bearer', role: 'USER', loginId: 'demo-user' }))
     sessionStorage.setItem('oauthVerified', JSON.stringify({
       provider: 'instagram',
       accountId: 'vbcjspt0909',
@@ -162,7 +171,7 @@ describe('apply reference contract', () => {
     window.location.hash = '#/apply/form'
     render(<App />)
 
-    fireEvent.click(screen.getByRole('button', { name: '대표 SNS 선택' }))
+    fireEvent.click(screen.getByRole('button', { name: '인스타그램' }))
     fireEvent.click(screen.getByRole('option', { name: '유튜브' }))
 
     expect(screen.queryByText('연동 완료')).toBeNull()
@@ -171,6 +180,7 @@ describe('apply reference contract', () => {
   })
 
   it('dismisses the representative SNS listbox when focus or a pointer leaves the picker', () => {
+    localStorage.setItem('selectors-auth', JSON.stringify({ accessToken: 'demo.jwt', tokenType: 'Bearer', role: 'USER', loginId: 'demo-user' }))
     window.location.hash = '#/apply/form'
     render(<App />)
 
@@ -190,33 +200,52 @@ describe('apply reference contract', () => {
     expect(screen.queryByRole('listbox', { name: '대표 SNS' })).toBeNull()
     expect(document.activeElement).not.toBe(trigger)
   })
-  it('opens the provider authorization window from the user click and keeps the login modal flow separate', async () => {
+  it('redirects to the provider authorization URL from the user click and keeps the login modal flow separate', async () => {
     localStorage.setItem('selectors-auth', JSON.stringify({ accessToken: 'demo.jwt', tokenType: 'Bearer', role: 'USER', loginId: 'demo-user' }))
-    const popup = { location: { href: '' } } as Window
-    const openSpy = vi.spyOn(window, 'open').mockReturnValue(popup)
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(JSON.stringify({ authorizationUrl: 'https://instagram.example.com/oauth' }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      }),
-    )
-
-    window.location.hash = '#/apply/form'
-    render(<App />)
-
-    fireEvent.click(screen.getByRole('button', { name: '대표 SNS 선택' }))
-    fireEvent.click(screen.getByRole('option', { name: '인스타그램' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Instagram 계정 연결하기' }))
-
-    expect(openSpy).toHaveBeenCalledTimes(1)
-    expect(fetchSpy).toHaveBeenCalledWith(
-      'http://localhost:8080/api/instagram/oauth/authorize',
-      expect.objectContaining({ method: 'GET' }),
-    )
-
-    await vi.waitFor(() => {
-      expect(popup.location.href).toBe('https://instagram.example.com/oauth')
+    const originalLocation = window.location
+    const assignSpy = vi.fn()
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: {
+        origin: originalLocation.origin,
+        pathname: originalLocation.pathname,
+        href: originalLocation.href,
+        hash: originalLocation.hash,
+        search: originalLocation.search,
+        assign: assignSpy,
+      },
     })
+    try {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+        const url = typeof input === 'string' ? input : input.toString()
+        if (url.includes('/oauth/authorize')) {
+          return new Response(JSON.stringify({ authorizationUrl: 'https://instagram.example.com/oauth' }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          })
+        }
+        return new Response('null', { status: 200 })
+      })
+
+      window.location.hash = '#/apply/form'
+      render(<App />)
+
+      fireEvent.click(screen.getByRole('button', { name: '대표 SNS 선택' }))
+      fireEvent.click(screen.getByRole('option', { name: '인스타그램' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Instagram 계정 연결하기' }))
+
+      expect(fetchSpy).toHaveBeenCalledWith(
+        'http://localhost:8080/api/instagram/oauth/authorize',
+        expect.objectContaining({ method: 'GET' }),
+      )
+
+      await vi.waitFor(() => {
+        expect(assignSpy).toHaveBeenCalledTimes(1)
+      })
+      expect(assignSpy.mock.calls[0][0].toString()).toContain('https://instagram.example.com/oauth')
+    } finally {
+      Object.defineProperty(window, 'location', { configurable: true, value: originalLocation })
+    }
   })
 
   it('shows the login modal on unauthorized OAuth, and redirects only after the user chooses to move', async () => {
@@ -270,6 +299,7 @@ describe('apply reference contract', () => {
   })
 
   it('shows only the three supplied agreement rows and disabled CTA', () => {
+    localStorage.setItem('selectors-auth', JSON.stringify({ accessToken: 'demo.jwt', tokenType: 'Bearer', role: 'USER', loginId: 'demo-user' }))
     window.location.hash = '#/apply/form'
     const { container } = render(<App />)
 
@@ -290,6 +320,7 @@ describe('apply reference contract', () => {
     fireEvent.click(termQueries.getAllByRole('checkbox')[1])
     fireEvent.click(termQueries.getAllByRole('checkbox')[2])
 
-    expect(screen.getByRole('button', { name: '셀렉터스 신청하기' })).toHaveProperty('disabled', false)
+    // Agreement alone isn't enough — SNS OAuth verification is also required before submit unlocks.
+    expect(screen.getByRole('button', { name: '셀렉터스 신청하기' })).toHaveProperty('disabled', true)
   })
 })
