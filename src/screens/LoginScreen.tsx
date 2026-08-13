@@ -19,6 +19,7 @@ type AuthTokenResponse = {
   role: string
   userName?: string
   name?: string
+  username?: string
   memberName?: string
 }
 

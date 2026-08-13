@@ -154,7 +154,7 @@ function RoutedApp({ shopProbe }: AppProps) {
       window.removeEventListener('auth:changed', handleAuthChanged)
       window.removeEventListener('storage', handleAuthChanged)
     }
-  }, [])
+  }, [hasActiveCohort])
 
   const currentScreenId = screen.id
 

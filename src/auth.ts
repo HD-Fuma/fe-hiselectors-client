@@ -20,7 +20,11 @@ export function readAuthSession(): AuthSession | null {
   }
 
   try {
-    const parsed = JSON.parse(raw) as Partial<AuthSession>
+    const parsed = JSON.parse(raw) as Partial<AuthSession> & {
+      name?: string
+      username?: string
+      memberName?: string
+    }
     if (!parsed.accessToken || typeof parsed.accessToken !== 'string') {
       return null
     }
