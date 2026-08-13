@@ -77,6 +77,8 @@ type ConnectedAccount = {
   label: string
 }
 
+const DUPLICATE_APPLICATION_MESSAGE = '이미 해당 기수에 신청하셨습니다.'
+
 function extractErrorMessage(payload: string): string {
   if (!payload.trim()) {
     return '지원서 제출에 실패했습니다.'
@@ -360,7 +362,7 @@ export function ApplyFormScreen() {
 
       if (!response.ok) {
         if (response.status === 409) {
-          throw new Error('이미 해당 기수에 신청하셨습니다.')
+          throw new Error(DUPLICATE_APPLICATION_MESSAGE)
         }
         const rawMessage = await response.text()
         throw new Error(extractErrorMessage(rawMessage))
@@ -492,7 +494,13 @@ export function ApplyFormScreen() {
             <h3 id="submit-error-title">제출 실패</h3>
             <p>{submitError}</p>
             <div className="auth-gate-actions">
-              <button className="primary-action" onClick={() => setSubmitError('')} type="button">확인</button>
+              <button
+                className="primary-action"
+                onClick={submitError === DUPLICATE_APPLICATION_MESSAGE ? redirectToMainScreen : () => setSubmitError('')}
+                type="button"
+              >
+                확인
+              </button>
             </div>
           </div>
         </div>
