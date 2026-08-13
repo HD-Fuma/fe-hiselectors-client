@@ -97,7 +97,7 @@ describe('apply reference contract', () => {
     fireEvent.keyDown(trigger, { key: ' ' })
     fireEvent.click(screen.getByRole('option', { name: '페이스북' }))
     expect(trigger.textContent).toContain('페이스북')
-    expect(screen.getByRole('button', { name: 'Facebook 계정 연결하기' })).toHaveProperty('disabled', false)
+    expect(screen.getByRole('button', { name: 'Facebook 계정 연결하기' })).not.toHaveProperty('disabled', true)
 
     fireEvent.click(trigger)
     expect(document.activeElement).toBe(screen.getByRole('option', { name: '페이스북' }))
@@ -171,7 +171,66 @@ describe('apply reference contract', () => {
 
     render(<App />)
 
-    expect(screen.getByText(/Instagram.*연결이 완료.*my_handle/)).toBeTruthy()
+    expect(screen.getByRole('button', { name: '인스타그램' })).toBeTruthy()
+    expect(screen.getByText('연동 완료')).toBeTruthy()
+    expect(screen.getByText('my_handle')).toBeTruthy()
+    expect(screen.getByRole('button', { name: '인증 완료' })).not.toHaveProperty('disabled', true)
+
+    fireEvent.click(screen.getByRole('button', { name: '인스타그램' }))
+    fireEvent.click(screen.getByRole('option', { name: '유튜브' }))
+    expect(screen.queryByText('연동 완료')).toBeNull()
+    expect(screen.queryByText('my_handle')).toBeNull()
+  })
+
+  it('does not auto-route from the root URL when a stale oauthVerified value is still in sessionStorage', () => {
+    localStorage.setItem('selectors-auth', JSON.stringify({
+      accessToken: 'hi-user-jwt',
+      tokenType: 'Bearer',
+      role: 'USER',
+      loginId: 'hi-user',
+    }))
+    sessionStorage.setItem(
+      'oauthVerified',
+      JSON.stringify({
+        provider: 'instagram',
+        accountId: '1234567890',
+        followerCount: 5000,
+        label: 'my_handle',
+      }),
+    )
+    window.location.hash = ''
+
+    render(<App />)
+
+    expect(window.location.hash).toBe('')
+    expect(screen.getByRole('link', { name: '더현대 기프트' })).toBeTruthy()
+  })
+
+  it('clears a previously verified Instagram connection when the same channel is selected again', () => {
+    localStorage.setItem('selectors-auth', JSON.stringify({
+      accessToken: 'hi-user-jwt',
+      tokenType: 'Bearer',
+      role: 'USER',
+      loginId: 'hi-user',
+    }))
+    sessionStorage.setItem(
+      'oauthVerified',
+      JSON.stringify({
+        provider: 'instagram',
+        accountId: '1234567890',
+        followerCount: 5000,
+        label: 'my_handle',
+      }),
+    )
+    window.location.hash = '#/apply/form'
+
+    render(<App />)
+
+    expect(screen.getByText('연동 완료')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '인스타그램' }))
+    fireEvent.click(screen.getByRole('option', { name: '인스타그램' }))
+
+    expect(screen.queryByText('연동 완료')).toBeNull()
     expect(screen.getByRole('button', { name: 'Instagram 계정 연결하기' })).toHaveProperty('disabled', false)
   })
 

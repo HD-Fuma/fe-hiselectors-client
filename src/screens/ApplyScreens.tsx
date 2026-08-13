@@ -155,6 +155,12 @@ export function ApplyFormScreen() {
   }
 
   const selectChannel = (index: number) => {
+    const nextChannel = snsChannels[index]
+    if (nextChannel && connectedAccount && connectedAccount.provider === nextChannel.provider) {
+      setConnectedAccount(null)
+      setOauthStatus('')
+      sessionStorage.removeItem('oauthVerified')
+    }
     setSelectedIndex(index)
     closeOptions()
   }
@@ -189,6 +195,12 @@ export function ApplyFormScreen() {
   }
 
   const selectedChannel = selectedIndex === null ? null : snsChannels[selectedIndex]
+  const isCurrentChannelConnected = Boolean(
+    selectedChannel && connectedAccount && connectedAccount.provider === selectedChannel.provider,
+  )
+  const shouldShowConnectedBadge = Boolean(
+    selectedChannel && connectedAccount && connectedAccount.provider === selectedChannel.provider,
+  )
 
   useEffect(() => {
     if (!isUserSessionValid) {
@@ -218,6 +230,7 @@ export function ApplyFormScreen() {
       setOauthStatus(
         `${verified.provider === 'instagram' ? 'Instagram' : 'YouTube'} 계정 연결이 완료되었습니다. ${verified.label}`,
       )
+      sessionStorage.removeItem('oauthVerified')
     } catch (error) {
       console.error('Failed to parse OAuth verified data:', error)
     }
@@ -244,8 +257,26 @@ export function ApplyFormScreen() {
     }
   }, [])
 
+  useEffect(() => {
+    if (!selectedChannel || !connectedAccount) {
+      return
+    }
+
+    if (connectedAccount.provider !== selectedChannel.provider) {
+      setOauthStatus('')
+    }
+  }, [selectedChannel, connectedAccount])
+
   const handleOAuthConnect = async () => {
-    if (!selectedChannel || selectedChannel.provider === 'facebook') {
+    if (!selectedChannel) {
+      return
+    }
+
+    if (selectedChannel.provider === 'facebook') {
+      setOauthError('')
+      setOauthStatus('')
+      setSubmitError('')
+      setSubmitSuccess('')
       return
     }
 
@@ -355,13 +386,25 @@ export function ApplyFormScreen() {
               </div>
             ) : null}
           </div>
-          <button className="oauth-connect-button" disabled={!selectedChannel} onClick={handleOAuthConnect} type="button">
-            {selectedChannel ? `${selectedChannel.oauthLabel} 계정 연결하기` : 'SNS 계정 연결하기'}
+          <button
+            className={`oauth-connect-button${isCurrentChannelConnected ? ' is-connected' : ''}`}
+            disabled={!selectedChannel}
+            onClick={handleOAuthConnect}
+            type="button"
+          >
+            {isCurrentChannelConnected ? '인증 완료' : selectedChannel ? `${selectedChannel.oauthLabel} 계정 연결하기` : 'SNS 계정 연결하기'}
           </button>
         </form>
 
         {oauthError ? <p className="submit-feedback is-error">{oauthError}</p> : null}
-        {oauthStatus ? <p className="submit-feedback is-success">{oauthStatus}</p> : null}
+        {shouldShowConnectedBadge && oauthStatus ? (
+          <div className="oauth-status-card" role="status" aria-live="polite">
+            <span className="oauth-status-badge">연동 완료</span>
+            <div className="oauth-status-content">
+              <strong>{connectedAccount?.label ?? '연동된 계정'}</strong>
+            </div>
+          </div>
+        ) : null}
 
         <section className="privacy-section">
           <h2>서비스 신청을 위한 필수 개인정보 수집/이용 안내</h2>

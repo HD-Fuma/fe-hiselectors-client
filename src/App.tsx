@@ -23,7 +23,7 @@ function hasPendingOAuthCallback(): boolean {
 }
 
 function hasVerifiedOAuthState(): boolean {
-  return Boolean(sessionStorage.getItem('oauthVerified'))
+  return Boolean(window.location.hash && sessionStorage.getItem('oauthVerified'))
 }
 
 function selectCurrentScreen() {
