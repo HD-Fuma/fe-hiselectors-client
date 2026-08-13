@@ -344,7 +344,7 @@ export function ApplyFormScreen() {
       const snsCode = connectedAccount?.provider === 'instagram' ? 'INSTAGRAM' : connectedAccount?.provider === 'youtube' ? 'YOUTUBE' : selectedChannel.provider === 'instagram' ? 'INSTAGRAM' : 'YOUTUBE'
       const payload = {
         snsCode,
-        snsAccountId: connectedAccount?.accountId || session.loginId || selectedChannel.label,
+        snsAccountId: connectedAccount?.label || session.loginId || selectedChannel.label,
         followerCount: connectedAccount?.followerCount ?? 0,
         privacyAgreed,
         alarmAgreed,
@@ -359,6 +359,9 @@ export function ApplyFormScreen() {
       })
 
       if (!response.ok) {
+        if (response.status === 409) {
+          throw new Error('이미 해당 기수에 신청하셨습니다.')
+        }
         const rawMessage = await response.text()
         throw new Error(extractErrorMessage(rawMessage))
       }
