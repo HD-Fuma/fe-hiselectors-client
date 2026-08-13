@@ -4,6 +4,7 @@ import { authFetch, hasValidUserSession, readAuthSession, redirectToLoginScreen 
 import BottomAction from '../components/BottomAction'
 import { ArrowRightIcon, CartIcon, CheckIcon, ChevronDownIcon, CoinIcon, GiftIcon, LinkIcon, PersonIcon } from '../components/Icons'
 import PanelHeader from '../components/PanelHeader'
+import { startOAuthAuthorization, type OAuthProvider } from '../oauth'
 
 const flowSteps = [
   { label: '상품 큐레이션', icon: <CartIcon size={26} /> },
@@ -64,16 +65,17 @@ const privacyItems = [
 ] as const
 
 const snsChannels = [
-  { label: '인스타그램', oauthLabel: 'Instagram' },
-  { label: '페이스북', oauthLabel: 'Facebook' },
-  { label: '유튜브', oauthLabel: 'YouTube' },
+  { label: '인스타그램', oauthLabel: 'Instagram', provider: 'instagram' },
+  { label: '페이스북', oauthLabel: 'Facebook', provider: 'facebook' },
+  { label: '유튜브', oauthLabel: 'YouTube', provider: 'youtube' },
 ] as const
 
-const terms = [
-  '현대백화점 이용약관 (필수)',
-  '한무쇼핑 이용약관 (필수)',
-  '카카오 알림톡 수신 동의 (선택)',
-] as const
+type ConnectedAccount = {
+  provider: Exclude<OAuthProvider, 'facebook'>
+  accountId: string
+  followerCount: number | null
+  label: string
+}
 
 function extractErrorMessage(payload: string): string {
   if (!payload.trim()) {
@@ -106,6 +108,9 @@ export function ApplyFormScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
   const [submitSuccess, setSubmitSuccess] = useState('')
+  const [oauthError, setOauthError] = useState('')
+  const [oauthStatus, setOauthStatus] = useState('')
+  const [connectedAccount, setConnectedAccount] = useState<ConnectedAccount | null>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const pickerRef = useRef<HTMLDivElement>(null)
   const optionRefs = useRef<Array<HTMLButtonElement | null>>([])
@@ -197,6 +202,79 @@ export function ApplyFormScreen() {
 
   const canSubmit = !isSubmitting && Boolean(selectedChannel) && privacyAgreed
 
+  useEffect(() => {
+    const verifiedJson = sessionStorage.getItem('oauthVerified')
+    if (verifiedJson) {
+      try {
+        const verified = JSON.parse(verifiedJson) as ConnectedAccount
+        const providerIndex = snsChannels.findIndex((channel) => channel.provider === verified.provider)
+        if (providerIndex >= 0) {
+          setSelectedIndex(providerIndex)
+        }
+        setConnectedAccount(verified)
+        setOauthStatus(
+          `${verified.provider === 'instagram' ? 'Instagram' : 'YouTube'} 계정 연결이 완료되었습니다. ${verified.label}`,
+        )
+        sessionStorage.removeItem('oauthVerified')
+      } catch (error) {
+        console.error('Failed to parse OAuth verified data:', error)
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    const handleOAuthCallback = () => {
+      const verifiedJson = sessionStorage.getItem('oauthVerified')
+      if (verifiedJson) {
+        try {
+          const verified = JSON.parse(verifiedJson) as ConnectedAccount
+          const providerIndex = snsChannels.findIndex((channel) => channel.provider === verified.provider)
+          if (providerIndex >= 0) {
+            setSelectedIndex(providerIndex)
+          }
+          setConnectedAccount(verified)
+          setOauthStatus(
+            `${verified.provider === 'instagram' ? 'Instagram' : 'YouTube'} 계정 연결이 완료되었습니다. ${verified.label}`,
+          )
+          sessionStorage.removeItem('oauthVerified')
+        } catch (error) {
+          console.error('Failed to parse OAuth verified data:', error)
+        }
+      }
+    }
+
+    window.addEventListener('hashchange', handleOAuthCallback)
+    return () => {
+      window.removeEventListener('hashchange', handleOAuthCallback)
+    }
+  }, [])
+
+  const handleOAuthConnect = async () => {
+    if (!selectedChannel || selectedChannel.provider === 'facebook') {
+      return
+    }
+
+    setOauthError('')
+    setOauthStatus('')
+    setSubmitError('')
+    setSubmitSuccess('')
+
+    try {
+      sessionStorage.setItem('oauthProvider', selectedChannel.provider)
+      const authorizationUrl = await startOAuthAuthorization(selectedChannel.provider)
+      const callbackUrl = `${window.location.origin}${import.meta.env.BASE_URL}`
+      const redirectUrl = new URL(authorizationUrl)
+      redirectUrl.searchParams.set('redirect_uri', callbackUrl)
+      if (window.location.assign) {
+        window.location.assign(redirectUrl.toString())
+        return
+      }
+      window.location.href = redirectUrl.toString()
+    } catch (error) {
+      setOauthError(error instanceof Error ? error.message : '계정 연결에 실패했습니다.')
+    }
+  }
+
   const handleSubmit = async () => {
     if (!selectedChannel || !session || !isUserSessionValid) {
       redirectToLoginScreen()
@@ -208,18 +286,21 @@ export function ApplyFormScreen() {
     setSubmitSuccess('')
 
     try {
+      const snsCode = connectedAccount?.provider === 'instagram' ? 'INSTAGRAM' : connectedAccount?.provider === 'youtube' ? 'YOUTUBE' : selectedChannel.provider === 'instagram' ? 'INSTAGRAM' : 'YOUTUBE'
+      const payload = {
+        snsCode,
+        snsAccountId: connectedAccount?.accountId || session.loginId || selectedChannel.label,
+        followerCount: connectedAccount?.followerCount ?? 0,
+        privacyAgreed,
+        alarmAgreed,
+      }
+
       const response = await authFetch('http://localhost:8080/api/applications', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          snsCode: selectedChannel.oauthLabel === 'Instagram' ? 'INSTAGRAM' : 'YOUTUBE',
-          snsAccountId: session.loginId || selectedChannel.label,
-          followerCount: 0,
-          privacyAgreed,
-          alarmAgreed,
-        }),
+        body: JSON.stringify(payload),
       })
 
       if (!response.ok) {
@@ -279,10 +360,13 @@ export function ApplyFormScreen() {
               </div>
             ) : null}
           </div>
-          <button className="oauth-connect-button" disabled={!selectedChannel} type="button">
+          <button className="oauth-connect-button" disabled={!selectedChannel} onClick={handleOAuthConnect} type="button">
             {selectedChannel ? `${selectedChannel.oauthLabel} 계정 연결하기` : 'SNS 계정 연결하기'}
           </button>
         </form>
+
+        {oauthError ? <p className="submit-feedback is-error">{oauthError}</p> : null}
+        {oauthStatus ? <p className="submit-feedback is-success">{oauthStatus}</p> : null}
 
         <section className="privacy-section">
           <h2>서비스 신청을 위한 필수 개인정보 수집/이용 안내</h2>

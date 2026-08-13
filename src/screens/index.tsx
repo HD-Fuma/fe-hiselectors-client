@@ -14,7 +14,7 @@ import {
   ShopGroupsScreen,
 } from './ShopScreens'
 
-const screens: Record<ScreenId, () => React.JSX.Element> = {
+const screens: Record<ScreenId, () => React.JSX.Element | null> = {
   catalog: CatalogScreen,
   login: LoginScreen,
   'apply-intro': ApplyIntroScreen,

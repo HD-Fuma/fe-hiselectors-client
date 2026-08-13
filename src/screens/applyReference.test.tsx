@@ -115,6 +115,65 @@ describe('apply reference contract', () => {
     ].forEach((copy) => expect(screen.getByText(copy)).toBeTruthy())
   })
 
+  it('triggers Instagram OAuth authorize when the connect button is clicked', async () => {
+    localStorage.setItem('selectors-auth', JSON.stringify({
+      accessToken: 'hi-user-jwt',
+      tokenType: 'Bearer',
+      role: 'USER',
+      loginId: 'hi-user',
+    }))
+    window.location.hash = '#/apply/form'
+
+    const fetchSpy = vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({ authorizationUrl: 'https://instagram.example.com/oauth/authorize?client_id=abc' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }))
+
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: '대표 SNS 선택' }))
+    fireEvent.click(screen.getByRole('option', { name: '인스타그램' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Instagram 계정 연결하기' }))
+
+    await vi.waitFor(() => {
+      expect(fetchSpy).toHaveBeenCalledWith(
+        'http://localhost:8080/api/instagram/oauth/authorize',
+        expect.objectContaining({
+          method: 'GET',
+          headers: expect.objectContaining({
+            Authorization: 'Bearer hi-user-jwt',
+          }),
+        }),
+      )
+      expect(sessionStorage.getItem('oauthProvider')).toBe('instagram')
+    })
+  })
+
+  it('displays connected account info when oauthVerified is stored in sessionStorage', () => {
+    localStorage.setItem('selectors-auth', JSON.stringify({
+      accessToken: 'hi-user-jwt',
+      tokenType: 'Bearer',
+      role: 'USER',
+      loginId: 'hi-user',
+    }))
+    sessionStorage.setItem(
+      'oauthVerified',
+      JSON.stringify({
+        provider: 'instagram',
+        accountId: '1234567890',
+        followerCount: 5000,
+        label: 'my_handle',
+      }),
+    )
+    window.location.hash = '#/apply/form'
+
+    render(<App />)
+
+    expect(screen.getByText(/Instagram.*연결이 완료.*my_handle/)).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Instagram 계정 연결하기' })).toHaveProperty('disabled', false)
+  })
+
   it('redirects unauthenticated users away from the apply flow', () => {
     window.location.hash = '#/apply/form'
     render(<App />)

@@ -5,6 +5,7 @@ import { hasValidUserSession, readAuthSession } from './auth'
 import { selectScreenByHash } from './screenRegistry'
 import { getScreenComponent } from './screens'
 import { ShopDemoProvider } from './shop/ShopDemoContext'
+import { verifyOAuth } from './oauth'
 import './styles/global.css'
 import './styles/shop.css'
 
@@ -30,6 +31,46 @@ function selectCurrentScreen() {
 function RoutedApp({ shopProbe }: AppProps) {
   const [screen, setScreen] = useState(selectCurrentScreen)
   const [showAuthGateModal, setShowAuthGateModal] = useState(false)
+
+  useEffect(() => {
+    const handleOAuthCallback = async () => {
+      const params = new URLSearchParams(window.location.search)
+      const code = params.get('code')
+      const state = params.get('state')
+
+      if (!code || !state) {
+        return
+      }
+
+      const provider = sessionStorage.getItem('oauthProvider') as 'instagram' | 'youtube' | null
+      if (!provider) {
+        return
+      }
+
+      try {
+        const verified = await verifyOAuth(provider, code, state)
+        if (verified.verified) {
+          sessionStorage.setItem(
+            'oauthVerified',
+            JSON.stringify({
+              provider,
+              accountId: provider === 'instagram' ? (verified.accountId ?? verified.username ?? '') : (verified.channelId ?? verified.channelTitle ?? ''),
+              followerCount: verified.followerCount ?? null,
+              label: provider === 'instagram' ? (verified.username ?? 'Instagram') : (verified.channelTitle ?? 'YouTube'),
+            }),
+          )
+        }
+      } catch (error) {
+        console.error('OAuth verification failed:', error)
+      } finally {
+        sessionStorage.removeItem('oauthProvider')
+        window.history.replaceState({}, '', import.meta.env.BASE_URL)
+        window.location.hash = '#/apply/form'
+      }
+    }
+
+    void handleOAuthCallback()
+  }, [])
 
   useEffect(() => {
     const handleHashChange = () => {
