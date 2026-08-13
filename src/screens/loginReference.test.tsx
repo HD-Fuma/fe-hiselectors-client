@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
 
 import App from '../App'
+import { logout } from '../auth'
 
 const workspaceRoot = (globalThis as typeof globalThis & {
   process: { cwd(): string }
@@ -124,6 +125,20 @@ describe('The Hyundai login reference contract', () => {
         body: JSON.stringify({ loginId: 'admin-user', password: 'admin-pass' }),
       }),
     )
+  })
+
+  it('clears the auth session and redirects to login on logout', () => {
+    localStorage.setItem('selectors-auth', JSON.stringify({ accessToken: 'keep.me', role: 'USER' }))
+    window.location.hash = '#/screens'
+
+    render(<App />)
+
+    expect(screen.queryByRole('button', { name: '로그아웃' })).toBeNull()
+
+    logout()
+
+    expect(localStorage.getItem('selectors-auth')).toBeNull()
+    expect(window.location.hash).toBe('#/login')
   })
 
   it('locks the compact reference form geometry', () => {

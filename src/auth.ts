@@ -30,6 +30,15 @@ export function clearAuthSession() {
   localStorage.removeItem(AUTH_STORAGE_KEY)
 }
 
+export function logout() {
+  clearAuthSession()
+  window.dispatchEvent(new CustomEvent('auth:changed', { detail: null }))
+
+  if (window.location.hash !== '#/login') {
+    window.location.hash = '#/login'
+  }
+}
+
 export function authFetch(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
   const session = readAuthSession()
   const headers = { ...(init.headers ?? {}) } as Record<string, string>
@@ -51,4 +60,8 @@ export function authFetch(input: RequestInfo | URL, init: RequestInit = {}): Pro
 
 export function redirectToMainScreen() {
   window.location.hash = '#/screens'
+}
+
+export function redirectToLoginScreen() {
+  window.location.hash = '#/login'
 }
