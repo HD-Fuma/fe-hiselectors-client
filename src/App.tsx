@@ -48,6 +48,7 @@ function selectCurrentScreen() {
 function RoutedApp({ shopProbe }: AppProps) {
   const [screen, setScreen] = useState(selectCurrentScreen)
   const [showAuthGateModal, setShowAuthGateModal] = useState(false)
+  const [authRequired, setAuthRequired] = useState(false)
 
   useEffect(() => {
     const handleOAuthCallback = async () => {
@@ -75,6 +76,7 @@ function RoutedApp({ shopProbe }: AppProps) {
           }
 
           sessionStorage.setItem('oauthVerified', JSON.stringify(nextVerifiedState))
+          sessionStorage.setItem('selectedSnsProvider', provider)
           window.dispatchEvent(new CustomEvent('oauth-verified'))
         }
       } catch (error) {
@@ -96,9 +98,28 @@ function RoutedApp({ shopProbe }: AppProps) {
       setScreen(selectCurrentScreen())
     }
 
-    window.addEventListener('hashchange', handleHashChange)
+    const handleAuthRequired = () => {
+      setAuthRequired(true)
+      setShowAuthGateModal(true)
+    }
 
-    return () => window.removeEventListener('hashchange', handleHashChange)
+    const handleAuthChanged = () => {
+      setAuthRequired(false)
+      setShowAuthGateModal(false)
+      setScreen(selectCurrentScreen())
+    }
+
+    window.addEventListener('hashchange', handleHashChange)
+    window.addEventListener('auth:required', handleAuthRequired)
+    window.addEventListener('auth:changed', handleAuthChanged)
+    window.addEventListener('storage', handleAuthChanged)
+
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange)
+      window.removeEventListener('auth:required', handleAuthRequired)
+      window.removeEventListener('auth:changed', handleAuthChanged)
+      window.removeEventListener('storage', handleAuthChanged)
+    }
   }, [])
 
   const currentScreenId = screen.id
@@ -108,14 +129,17 @@ function RoutedApp({ shopProbe }: AppProps) {
 
   useEffect(() => {
     if (requiresLogin) {
+      setAuthRequired(true)
       setShowAuthGateModal(true)
       if (window.location.hash !== '#/login') {
         window.location.hash = '#/login'
       }
-    } else {
-      setShowAuthGateModal(false)
+      return
     }
-  }, [requiresLogin])
+
+    setAuthRequired(false)
+    setShowAuthGateModal(false)
+  }, [authRequired, requiresLogin])
 
   useEffect(() => {
     const nextScreen = requiresLogin ? selectScreenByHash('#/login') : screen
@@ -127,6 +151,7 @@ function RoutedApp({ shopProbe }: AppProps) {
   const Screen = getScreenComponent(routeScreen.id)
 
   const handleGoToLogin = () => {
+    setAuthRequired(false)
     setShowAuthGateModal(false)
     window.location.hash = '#/login'
   }
@@ -145,7 +170,10 @@ function RoutedApp({ shopProbe }: AppProps) {
             <h3 id="auth-gate-title">로그인이 필요합니다</h3>
             <p>지원서 제출은 로그인한 더현대 HI 회원만 사용할 수 있어요. 로그인 페이지로 이동할까요?</p>
             <div className="auth-gate-actions">
-              <button className="secondary-action" onClick={() => setShowAuthGateModal(false)} type="button">취소</button>
+              <button className="secondary-action" onClick={() => {
+                setAuthRequired(false)
+                setShowAuthGateModal(false)
+              }} type="button">취소</button>
               <button className="primary-action" onClick={handleGoToLogin} type="button">로그인하기</button>
             </div>
           </div>

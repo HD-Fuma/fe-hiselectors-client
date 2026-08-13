@@ -1,61 +1,53 @@
-export const AUTH_STORAGE_KEY = 'selectors-auth'
-
 export type AuthSession = {
   accessToken: string
-  tokenType?: string
-  role?: string
-  loginId?: string
+  tokenType: string
+  role: string
+  loginId: string
+  userName?: string
   issuedAt?: number
 }
 
-export function readAuthSession(): AuthSession | null {
-  try {
-    const raw = localStorage.getItem(AUTH_STORAGE_KEY)
-
-    if (!raw) {
-      return null
-    }
-
-    return JSON.parse(raw) as AuthSession
-  } catch {
-    return null
-  }
-}
+const AUTH_STORAGE_KEY = 'selectors-auth'
 
 export function persistAuthSession(session: AuthSession) {
   localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session))
 }
 
-export function clearAuthSession() {
-  localStorage.removeItem(AUTH_STORAGE_KEY)
-}
+export function readAuthSession(): AuthSession | null {
+  const raw = localStorage.getItem(AUTH_STORAGE_KEY)
+  if (!raw) {
+    return null
+  }
 
-export function logout() {
-  clearAuthSession()
-  window.dispatchEvent(new CustomEvent('auth:changed', { detail: null }))
+  try {
+    const parsed = JSON.parse(raw) as Partial<AuthSession>
+    if (!parsed.accessToken || typeof parsed.accessToken !== 'string') {
+      return null
+    }
 
-  if (window.location.hash !== '#/login') {
-    window.location.hash = '#/login'
+    const userName =
+      (typeof parsed.userName === 'string' && parsed.userName.trim()) ||
+      (typeof parsed.name === 'string' && parsed.name.trim()) ||
+      (typeof parsed.username === 'string' && parsed.username.trim()) ||
+      (typeof parsed.memberName === 'string' && parsed.memberName.trim()) ||
+      (typeof parsed.loginId === 'string' && parsed.loginId.trim()) ||
+      ''
+
+    return {
+      accessToken: parsed.accessToken,
+      tokenType: parsed.tokenType || 'Bearer',
+      role: parsed.role || 'USER',
+      loginId: parsed.loginId || '',
+      userName,
+      issuedAt: parsed.issuedAt,
+    }
+  } catch {
+    return null
   }
 }
 
-export function authFetch(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
-  const session = readAuthSession()
-  const headers = { ...(init.headers ?? {}) } as Record<string, string>
-
-  if (session && !(headers.Authorization || headers.authorization)) {
-    const tokenType = session.tokenType || 'Bearer'
-    headers.Authorization = `${tokenType} ${session.accessToken}`
-  }
-
-  if (init.body != null && typeof init.body === 'string' && !headers['Content-Type'] && !headers['content-type']) {
-    headers['Content-Type'] = 'application/json'
-  }
-
-  return fetch(input, {
-    ...init,
-    headers,
-  })
+export function hasValidUserSession(session: AuthSession | null): boolean {
+  return Boolean(session && session.accessToken && session.role)
 }
 
 export function redirectToMainScreen() {
@@ -66,6 +58,21 @@ export function redirectToLoginScreen() {
   window.location.hash = '#/login'
 }
 
-export function hasValidUserSession(session: AuthSession | null = readAuthSession()) {
-  return Boolean(session && session.accessToken && session.role === 'USER')
+export function logout() {
+  localStorage.removeItem(AUTH_STORAGE_KEY)
+  window.location.hash = '#/login'
+}
+
+export async function authFetch(input: RequestInfo | URL, init: RequestInit = {}) {
+  const session = readAuthSession()
+  const headers = new Headers(init.headers ?? {})
+
+  if (session?.accessToken) {
+    headers.set('Authorization', `${session.tokenType || 'Bearer'} ${session.accessToken}`)
+  }
+
+  return fetch(input, {
+    ...init,
+    headers,
+  })
 }

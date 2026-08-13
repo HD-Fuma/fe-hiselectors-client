@@ -156,10 +156,18 @@ export function ApplyFormScreen() {
 
   const selectChannel = (index: number) => {
     const nextChannel = snsChannels[index]
-    if (nextChannel && connectedAccount && connectedAccount.provider === nextChannel.provider) {
-      setConnectedAccount(null)
-      setOauthStatus('')
-      sessionStorage.removeItem('oauthVerified')
+    if (nextChannel) {
+      sessionStorage.setItem('selectedSnsProvider', nextChannel.provider)
+      if (connectedAccount && connectedAccount.provider !== nextChannel.provider) {
+        setConnectedAccount(null)
+        setOauthStatus('')
+        sessionStorage.removeItem('oauthVerified')
+      }
+      if (connectedAccount && connectedAccount.provider === nextChannel.provider) {
+        setConnectedAccount(null)
+        setOauthStatus('')
+        sessionStorage.removeItem('oauthVerified')
+      }
     }
     setSelectedIndex(index)
     closeOptions()
@@ -217,6 +225,13 @@ export function ApplyFormScreen() {
   const hydrateVerifiedAccount = () => {
     const verifiedJson = sessionStorage.getItem('oauthVerified')
     if (!verifiedJson) {
+      const storedProvider = sessionStorage.getItem('selectedSnsProvider') as OAuthProvider | null
+      if (storedProvider) {
+        const providerIndex = snsChannels.findIndex((channel) => channel.provider === storedProvider)
+        if (providerIndex >= 0) {
+          setSelectedIndex(providerIndex)
+        }
+      }
       return
     }
 
@@ -225,12 +240,12 @@ export function ApplyFormScreen() {
       const providerIndex = snsChannels.findIndex((channel) => channel.provider === verified.provider)
       if (providerIndex >= 0) {
         setSelectedIndex(providerIndex)
+        sessionStorage.setItem('selectedSnsProvider', verified.provider)
       }
       setConnectedAccount(verified)
       setOauthStatus(
         `${verified.provider === 'instagram' ? 'Instagram' : 'YouTube'} 계정 연결이 완료되었습니다. ${verified.label}`,
       )
-      sessionStorage.removeItem('oauthVerified')
     } catch (error) {
       console.error('Failed to parse OAuth verified data:', error)
     }
@@ -297,7 +312,13 @@ export function ApplyFormScreen() {
       }
       window.location.href = redirectUrl.toString()
     } catch (error) {
-      setOauthError(error instanceof Error ? error.message : '계정 연결에 실패했습니다.')
+      const message = error instanceof Error ? error.message : '계정 연결에 실패했습니다.'
+      if (message === '인증이 필요합니다.') {
+        sessionStorage.removeItem('oauthProvider')
+        window.dispatchEvent(new CustomEvent('auth:required'))
+        return
+      }
+      setOauthError(message)
     }
   }
 

@@ -17,6 +17,9 @@ type AuthTokenResponse = {
   accessToken: string
   tokenType: string
   role: string
+  userName?: string
+  name?: string
+  memberName?: string
 }
 
 function extractErrorMessage(payload: string): string {
@@ -85,6 +88,12 @@ export default function LoginScreen() {
       const authState = {
         ...payload,
         loginId: trimmedLoginId,
+        userName:
+          payload.userName ||
+          payload.name ||
+          payload.username ||
+          payload.memberName ||
+          trimmedLoginId,
         issuedAt: Date.now(),
       }
 

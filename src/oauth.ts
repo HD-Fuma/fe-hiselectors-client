@@ -1,54 +1,51 @@
-import { authFetch, readAuthSession } from './auth'
+import { authFetch } from './auth'
 
-export type OAuthProvider = 'instagram' | 'youtube' | 'facebook'
+export type OAuthProvider = 'instagram' | 'facebook' | 'youtube'
 
-export type OAuthAuthorizeResponse = {
-  authorizationUrl?: string
-}
-
-export type OAuthVerifyResponse = {
-  verified?: boolean
-  accountId?: string
-  channelId?: string
+export type OAuthVerificationResult = {
+  verified: boolean
   username?: string
+  accountId?: string
+  followerCount?: number
+  channelId?: string
   channelTitle?: string
-  followerCount?: number | null
 }
 
-function ensureSession() {
-  const session = readAuthSession()
-
-  if (!session?.accessToken) {
-    throw new Error('로그인이 필요합니다.')
-  }
-
-  return session
-}
-
-export async function startOAuthAuthorization(provider: Exclude<OAuthProvider, 'facebook'>): Promise<string> {
-  ensureSession()
-
+async function getAuthorizationUrl(provider: OAuthProvider): Promise<string> {
   const response = await authFetch(`http://localhost:8080/api/${provider}/oauth/authorize`, {
     method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
   })
 
   if (!response.ok) {
     const rawMessage = await response.text()
-    throw new Error(rawMessage || 'OAuth 인증을 시작할 수 없습니다.')
+    if (response.status === 401) {
+      throw new Error('인증이 필요합니다.')
+    }
+    throw new Error(rawMessage || 'OAuth authorization failed.')
   }
 
-  const payload = (await response.json()) as OAuthAuthorizeResponse
+  const payload = await response.json() as { authorizationUrl?: string; url?: string }
+  const authorizationUrl = payload.authorizationUrl ?? payload.url
 
-  if (!payload.authorizationUrl) {
-    throw new Error('인증 URL을 받지 못했습니다.')
+  if (!authorizationUrl) {
+    throw new Error('Authorization URL is missing from the OAuth response.')
   }
 
-  return payload.authorizationUrl
+  return authorizationUrl
 }
 
-export async function verifyOAuth(provider: Exclude<OAuthProvider, 'facebook'>, code: string, state: string): Promise<OAuthVerifyResponse> {
-  ensureSession()
+export async function startOAuthAuthorization(provider: OAuthProvider): Promise<string> {
+  if (provider === 'facebook') {
+    return getAuthorizationUrl(provider)
+  }
 
+  return getAuthorizationUrl(provider)
+}
+
+export async function verifyOAuth(provider: OAuthProvider, code: string, state: string): Promise<OAuthVerificationResult> {
   const response = await authFetch(`http://localhost:8080/api/${provider}/oauth/verify`, {
     method: 'POST',
     headers: {
@@ -59,8 +56,8 @@ export async function verifyOAuth(provider: Exclude<OAuthProvider, 'facebook'>, 
 
   if (!response.ok) {
     const rawMessage = await response.text()
-    throw new Error(rawMessage || 'OAuth 인증 검증에 실패했습니다.')
+    throw new Error(rawMessage || 'OAuth verification failed.')
   }
 
-  return (await response.json()) as OAuthVerifyResponse
+  return (await response.json()) as OAuthVerificationResult
 }
