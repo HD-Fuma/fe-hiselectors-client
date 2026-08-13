@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
+import { authFetch, hasValidUserSession, readAuthSession, redirectToLoginScreen } from '../auth'
 import BottomAction from '../components/BottomAction'
 import { ArrowRightIcon, CartIcon, CheckIcon, ChevronDownIcon, CoinIcon, GiftIcon, LinkIcon, PersonIcon } from '../components/Icons'
 import PanelHeader from '../components/PanelHeader'
@@ -74,13 +75,42 @@ const terms = [
   '카카오 알림톡 수신 동의 (선택)',
 ] as const
 
+function extractErrorMessage(payload: string): string {
+  if (!payload.trim()) {
+    return '지원서 제출에 실패했습니다.'
+  }
+
+  try {
+    const parsed = JSON.parse(payload) as Record<string, unknown>
+    const message =
+      (typeof parsed.message === 'string' && parsed.message.trim()) ||
+      (typeof parsed.error === 'string' && parsed.error.trim()) ||
+      (typeof parsed.error === 'object' && parsed.error !== null && 'message' in parsed.error && typeof parsed.error.message === 'string' ? parsed.error.message.trim() : '')
+
+    if (message) {
+      return message
+    }
+  } catch {
+    // ignore JSON parse failure and fall back to raw text
+  }
+
+  return payload
+}
+
 export function ApplyFormScreen() {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
   const [isOptionsOpen, setIsOptionsOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(0)
+  const [privacyAgreed, setPrivacyAgreed] = useState(false)
+  const [alarmAgreed, setAlarmAgreed] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState('')
+  const [submitSuccess, setSubmitSuccess] = useState('')
   const triggerRef = useRef<HTMLButtonElement>(null)
   const pickerRef = useRef<HTMLDivElement>(null)
   const optionRefs = useRef<Array<HTMLButtonElement | null>>([])
+  const session = readAuthSession()
+  const isUserSessionValid = hasValidUserSession(session)
 
   useEffect(() => {
     if (isOptionsOpen) {
@@ -155,6 +185,56 @@ export function ApplyFormScreen() {
 
   const selectedChannel = selectedIndex === null ? null : snsChannels[selectedIndex]
 
+  useEffect(() => {
+    if (!isUserSessionValid) {
+      redirectToLoginScreen()
+    }
+  }, [isUserSessionValid])
+
+  if (!isUserSessionValid) {
+    return null
+  }
+
+  const canSubmit = !isSubmitting && Boolean(selectedChannel) && privacyAgreed
+
+  const handleSubmit = async () => {
+    if (!selectedChannel || !session || !isUserSessionValid) {
+      redirectToLoginScreen()
+      return
+    }
+
+    setIsSubmitting(true)
+    setSubmitError('')
+    setSubmitSuccess('')
+
+    try {
+      const response = await authFetch('http://localhost:8080/api/applications', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          snsCode: selectedChannel.oauthLabel === 'Instagram' ? 'INSTAGRAM' : 'YOUTUBE',
+          snsAccountId: session.loginId || selectedChannel.label,
+          followerCount: 0,
+          privacyAgreed,
+          alarmAgreed,
+        }),
+      })
+
+      if (!response.ok) {
+        const rawMessage = await response.text()
+        throw new Error(extractErrorMessage(rawMessage))
+      }
+
+      setSubmitSuccess('지원서가 정상적으로 제출되었습니다.')
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : '지원서 제출 중 오류가 발생했습니다.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
   return (
     <div className="panel-page">
       <PanelHeader backHref="#/apply" title="셀렉터스 신청하기" />
@@ -214,19 +294,36 @@ export function ApplyFormScreen() {
 
         <section className="terms-section">
           <h2>셀렉터스 이용 약관 동의</h2>
-          {terms.map((term) => (
-            <div className="term-row" key={term}>
-              <label>
-                <input type="checkbox" />
-                <span className="custom-check"><CheckIcon size={16} /></span>
-                <span>{term}</span>
-              </label>
-              <button aria-label={`${term} 내용 보기`} type="button"><ArrowRightIcon size={18} /></button>
-            </div>
-          ))}
+          <div className="term-row">
+            <label>
+              <input aria-label="개인정보 수집 및 이용 동의 (필수)" checked={privacyAgreed} onChange={(event) => setPrivacyAgreed(event.target.checked)} type="checkbox" />
+              <span className="custom-check"><CheckIcon size={16} /></span>
+              <span>현대백화점 이용약관 (필수)</span>
+            </label>
+            <button aria-label="현대백화점 이용약관 내용 보기" type="button"><ArrowRightIcon size={18} /></button>
+          </div>
+          <div className="term-row">
+            <label>
+              <input aria-label="한무쇼핑 이용약관 동의 (필수)" type="checkbox" />
+              <span className="custom-check"><CheckIcon size={16} /></span>
+              <span>한무쇼핑 이용약관 (필수)</span>
+            </label>
+            <button aria-label="한무쇼핑 이용약관 내용 보기" type="button"><ArrowRightIcon size={18} /></button>
+          </div>
+          <div className="term-row">
+            <label>
+              <input aria-label="카카오 알림톡 수신 동의 (선택)" checked={alarmAgreed} onChange={(event) => setAlarmAgreed(event.target.checked)} type="checkbox" />
+              <span className="custom-check"><CheckIcon size={16} /></span>
+              <span>카카오 알림톡 수신 동의 (선택)</span>
+            </label>
+            <button aria-label="카카오 알림톡 수신 동의 내용 보기" type="button"><ArrowRightIcon size={18} /></button>
+          </div>
         </section>
+
+        {submitError ? <p className="submit-feedback is-error">{submitError}</p> : null}
+        {submitSuccess ? <p className="submit-feedback is-success">{submitSuccess}</p> : null}
       </div>
-      <BottomAction disabled label="셀렉터스 신청하기" />
+      <BottomAction disabled={!canSubmit} label="셀렉터스 신청하기" onClick={handleSubmit} />
     </div>
   )
 }

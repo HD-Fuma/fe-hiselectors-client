@@ -65,3 +65,7 @@ export function redirectToMainScreen() {
 export function redirectToLoginScreen() {
   window.location.hash = '#/login'
 }
+
+export function hasValidUserSession(session: AuthSession | null = readAuthSession()) {
+  return Boolean(session && session.accessToken && session.role === 'USER')
+}

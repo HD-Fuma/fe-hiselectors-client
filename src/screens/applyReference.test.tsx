@@ -1,15 +1,17 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import App from '../App'
 
 afterEach(() => {
   cleanup()
+  localStorage.clear()
   window.location.hash = ''
 })
 
 describe('apply reference contract', () => {
   it('matches the supplied apply intro copy and four-step flow', () => {
+    localStorage.setItem('selectors-auth', JSON.stringify({ accessToken: 'jwt', tokenType: 'Bearer', role: 'USER', loginId: 'hi-user' }))
     window.location.hash = '#/apply'
     render(<App />)
 
@@ -25,6 +27,7 @@ describe('apply reference contract', () => {
   })
 
   it('shows only the exact selector benefit copy', () => {
+    localStorage.setItem('selectors-auth', JSON.stringify({ accessToken: 'jwt', tokenType: 'Bearer', role: 'USER', loginId: 'hi-user' }))
     window.location.hash = '#/apply'
     render(<App />)
 
@@ -38,6 +41,7 @@ describe('apply reference contract', () => {
   })
 
   it('provides an accessible representative SNS OAuth selector', () => {
+    localStorage.setItem('selectors-auth', JSON.stringify({ accessToken: 'jwt', tokenType: 'Bearer', role: 'USER', loginId: 'hi-user' }))
     window.location.hash = '#/apply/form'
     render(<App />)
 
@@ -111,7 +115,59 @@ describe('apply reference contract', () => {
     ].forEach((copy) => expect(screen.getByText(copy)).toBeTruthy())
   })
 
+  it('redirects unauthenticated users away from the apply flow', () => {
+    window.location.hash = '#/apply/form'
+    render(<App />)
+
+    expect(window.location.hash).toBe('#/login')
+    expect(screen.getByRole('heading', { name: '로그인' })).toBeTruthy()
+  })
+
+  it('submits the application through the authenticated backend API for HI users', async () => {
+    localStorage.setItem('selectors-auth', JSON.stringify({
+      accessToken: 'hi-user-jwt',
+      tokenType: 'Bearer',
+      role: 'USER',
+      loginId: 'hi-user',
+    }))
+    window.location.hash = '#/apply/form'
+
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ id: 12, status: 'PENDING' }), {
+        status: 201,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: '대표 SNS 선택' }))
+    fireEvent.click(screen.getByRole('option', { name: '인스타그램' }))
+
+    const privacy = screen.getByRole('checkbox', { name: /개인정보 수집.*필수/i })
+    const alarm = screen.getByRole('checkbox', { name: /카카오 알림톡.*선택/i })
+    fireEvent.click(privacy)
+    fireEvent.click(alarm)
+
+    fireEvent.click(screen.getByRole('button', { name: '셀렉터스 신청하기' }))
+
+    await vi.waitFor(() => {
+      expect(fetchSpy).toHaveBeenCalledWith(
+        'http://localhost:8080/api/applications',
+        expect.objectContaining({
+          method: 'POST',
+          headers: expect.objectContaining({
+            Authorization: 'Bearer hi-user-jwt',
+            'Content-Type': 'application/json',
+          }),
+          body: expect.stringContaining('"snsCode":"INSTAGRAM"'),
+        }),
+      )
+    })
+  })
+
   it('dismisses the representative SNS listbox when focus or a pointer leaves the picker', () => {
+    localStorage.setItem('selectors-auth', JSON.stringify({ accessToken: 'jwt', tokenType: 'Bearer', role: 'USER', loginId: 'hi-user' }))
     window.location.hash = '#/apply/form'
     render(<App />)
 
@@ -133,6 +189,7 @@ describe('apply reference contract', () => {
   })
 
   it('shows only the three supplied agreement rows and disabled CTA', () => {
+    localStorage.setItem('selectors-auth', JSON.stringify({ accessToken: 'jwt', tokenType: 'Bearer', role: 'USER', loginId: 'hi-user' }))
     window.location.hash = '#/apply/form'
     const { container } = render(<App />)
 

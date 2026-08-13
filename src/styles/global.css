@@ -318,6 +318,61 @@ ol {
   background: var(--white);
 }
 
+.auth-gate-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(17, 17, 17, 0.45);
+  backdrop-filter: blur(2px);
+}
+
+.auth-gate-modal {
+  width: min(100%, 360px);
+  padding: 24px 22px 18px;
+  border: 1px solid rgba(17, 17, 17, 0.08);
+  border-radius: 18px;
+  background: var(--white);
+  box-shadow: 0 18px 48px rgba(17, 17, 17, 0.2);
+}
+
+.auth-gate-modal h3 {
+  margin: 0;
+  color: var(--black);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.auth-gate-modal p {
+  margin: 12px 0 0;
+  color: var(--gray-700);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.auth-gate-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.auth-gate-actions > button {
+  flex: 1;
+  height: 44px;
+  border-radius: 12px;
+  font-weight: 700;
+}
+
+.secondary-action {
+  border: 1px solid var(--line);
+  background: var(--white);
+  color: var(--black);
+}
+
 .primary-action {
   display: flex;
   align-items: center;
