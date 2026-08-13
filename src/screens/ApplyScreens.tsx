@@ -222,7 +222,7 @@ export function ApplyFormScreen() {
     return null
   }
 
-  const canSubmit = !isSubmitting && Boolean(selectedChannel) && privacyAgreed && shopTermsAgreed && alarmAgreed
+  const canSubmit = !isSubmitting && isCurrentChannelConnected && privacyAgreed && shopTermsAgreed && alarmAgreed
 
   const hydrateVerifiedAccount = () => {
     const verifiedJson = sessionStorage.getItem('oauthVerified')
