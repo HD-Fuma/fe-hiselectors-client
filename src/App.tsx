@@ -17,12 +17,29 @@ export function canonicalizeHash(hash: string): string {
   return hash === '#/shop/groups/edit' ? '#/shop/groups/new' : hash
 }
 
+function hasPendingOAuthCallback(): boolean {
+  const params = new URLSearchParams(window.location.search)
+  return Boolean(params.get('code') && params.get('state'))
+}
+
+function hasVerifiedOAuthState(): boolean {
+  return Boolean(sessionStorage.getItem('oauthVerified'))
+}
+
 function selectCurrentScreen() {
   const currentHash = window.location.hash
   const canonicalHash = canonicalizeHash(currentHash)
 
   if (canonicalHash !== currentHash) {
     window.history.replaceState(window.history.state, '', canonicalHash)
+  }
+
+  if (hasPendingOAuthCallback() || hasVerifiedOAuthState()) {
+    const nextHash = '#/apply/form'
+    if (window.location.hash !== nextHash) {
+      window.location.hash = nextHash
+    }
+    return selectScreenByHash(nextHash)
   }
 
   return selectScreenByHash(canonicalHash)
@@ -50,22 +67,24 @@ function RoutedApp({ shopProbe }: AppProps) {
       try {
         const verified = await verifyOAuth(provider, code, state)
         if (verified.verified) {
-          sessionStorage.setItem(
-            'oauthVerified',
-            JSON.stringify({
-              provider,
-              accountId: provider === 'instagram' ? (verified.accountId ?? verified.username ?? '') : (verified.channelId ?? verified.channelTitle ?? ''),
-              followerCount: verified.followerCount ?? null,
-              label: provider === 'instagram' ? (verified.username ?? 'Instagram') : (verified.channelTitle ?? 'YouTube'),
-            }),
-          )
+          const nextVerifiedState = {
+            provider,
+            accountId: provider === 'instagram' ? (verified.accountId ?? verified.username ?? '') : (verified.channelId ?? verified.channelTitle ?? ''),
+            followerCount: verified.followerCount ?? null,
+            label: provider === 'instagram' ? (verified.username ?? 'Instagram') : (verified.channelTitle ?? 'YouTube'),
+          }
+
+          sessionStorage.setItem('oauthVerified', JSON.stringify(nextVerifiedState))
+          window.dispatchEvent(new CustomEvent('oauth-verified'))
         }
       } catch (error) {
         console.error('OAuth verification failed:', error)
       } finally {
         sessionStorage.removeItem('oauthProvider')
-        window.history.replaceState({}, '', import.meta.env.BASE_URL)
-        window.location.hash = '#/apply/form'
+        setScreen(selectScreenByHash('#/apply/form'))
+        if (window.location.hash !== '#/apply/form') {
+          window.location.hash = '#/apply/form'
+        }
       }
     }
 

@@ -6,6 +6,7 @@ import App from '../App'
 afterEach(() => {
   cleanup()
   localStorage.clear()
+  sessionStorage.clear()
   window.location.hash = ''
 })
 

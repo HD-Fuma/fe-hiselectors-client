@@ -202,50 +202,45 @@ export function ApplyFormScreen() {
 
   const canSubmit = !isSubmitting && Boolean(selectedChannel) && privacyAgreed
 
-  useEffect(() => {
+  const hydrateVerifiedAccount = () => {
     const verifiedJson = sessionStorage.getItem('oauthVerified')
-    if (verifiedJson) {
-      try {
-        const verified = JSON.parse(verifiedJson) as ConnectedAccount
-        const providerIndex = snsChannels.findIndex((channel) => channel.provider === verified.provider)
-        if (providerIndex >= 0) {
-          setSelectedIndex(providerIndex)
-        }
-        setConnectedAccount(verified)
-        setOauthStatus(
-          `${verified.provider === 'instagram' ? 'Instagram' : 'YouTube'} 계정 연결이 완료되었습니다. ${verified.label}`,
-        )
-        sessionStorage.removeItem('oauthVerified')
-      } catch (error) {
-        console.error('Failed to parse OAuth verified data:', error)
-      }
+    if (!verifiedJson) {
+      return
     }
+
+    try {
+      const verified = JSON.parse(verifiedJson) as ConnectedAccount
+      const providerIndex = snsChannels.findIndex((channel) => channel.provider === verified.provider)
+      if (providerIndex >= 0) {
+        setSelectedIndex(providerIndex)
+      }
+      setConnectedAccount(verified)
+      setOauthStatus(
+        `${verified.provider === 'instagram' ? 'Instagram' : 'YouTube'} 계정 연결이 완료되었습니다. ${verified.label}`,
+      )
+    } catch (error) {
+      console.error('Failed to parse OAuth verified data:', error)
+    }
+  }
+
+  useEffect(() => {
+    hydrateVerifiedAccount()
   }, [])
 
   useEffect(() => {
     const handleOAuthCallback = () => {
-      const verifiedJson = sessionStorage.getItem('oauthVerified')
-      if (verifiedJson) {
-        try {
-          const verified = JSON.parse(verifiedJson) as ConnectedAccount
-          const providerIndex = snsChannels.findIndex((channel) => channel.provider === verified.provider)
-          if (providerIndex >= 0) {
-            setSelectedIndex(providerIndex)
-          }
-          setConnectedAccount(verified)
-          setOauthStatus(
-            `${verified.provider === 'instagram' ? 'Instagram' : 'YouTube'} 계정 연결이 완료되었습니다. ${verified.label}`,
-          )
-          sessionStorage.removeItem('oauthVerified')
-        } catch (error) {
-          console.error('Failed to parse OAuth verified data:', error)
-        }
-      }
+      hydrateVerifiedAccount()
+    }
+
+    const handleVerifiedEvent = () => {
+      hydrateVerifiedAccount()
     }
 
     window.addEventListener('hashchange', handleOAuthCallback)
+    window.addEventListener('oauth-verified', handleVerifiedEvent)
     return () => {
       window.removeEventListener('hashchange', handleOAuthCallback)
+      window.removeEventListener('oauth-verified', handleVerifiedEvent)
     }
   }, [])
 
