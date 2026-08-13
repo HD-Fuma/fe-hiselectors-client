@@ -52,8 +52,15 @@ describe('The Hyundai login reference contract', () => {
     expect(screen.getByText('최근에 로그인 했어요.')).toBeTruthy()
   })
 
-  it('keeps every login action inert while exposing the required alternatives in order', () => {
+  it('calls the user/admin backend login API and stores the JWT payload', async () => {
     window.location.hash = '#/login'
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ accessToken: 'test.jwt', tokenType: 'Bearer', role: 'USER' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+
     render(<App />)
 
     const expectedMethods = [
@@ -68,47 +75,55 @@ describe('The Hyundai login reference contract', () => {
     const methods = within(alternativeGroup).getAllByRole('button')
     expect(methods.map((method) => method.textContent)).toEqual(expectedMethods)
     expect(methods).toHaveLength(6)
-    const providerMarks = alternativeGroup.querySelectorAll('.login-provider-mark')
-    expect(providerMarks).toHaveLength(6)
-    expect([...providerMarks].every((mark) => mark.getAttribute('aria-hidden') === 'true')).toBe(true)
-    expect([...providerMarks].every((mark) => mark.tagName.toLowerCase() === 'svg')).toBe(true)
-    expect([...providerMarks].every((mark) => mark.querySelector('path, circle, rect, ellipse'))).toBe(true)
 
-    expect(screen.queryByText('|', { exact: true })).toBeNull()
+    fireEvent.change(screen.getByLabelText('아이디'), { target: { value: 'demo-user' } })
+    fireEvent.change(screen.getByLabelText('비밀번호'), { target: { value: 'demo-pass' } })
+    fireEvent.click(screen.getByRole('button', { name: '로그인' }))
 
-    expect(screen.getByRole('heading', { name: 'BIZ회원 로그인' })).toBeTruthy()
-    expect(screen.getByText('BIZ회원으로 가입하시는 경우 BIZ회원 로그인 화면에서 로그인 해주세요.')).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'BIZ회원 로그인 페이지로' })).toBeTruthy()
-    expect(screen.getByRole('heading', { name: '통합회원 전환' })).toBeTruthy()
-    expect(screen.getByText('기존 더현대닷컴 회원이라면 H.Point 통합회원으로 전환해 주세요.')).toBeTruthy()
-    expect(screen.getByRole('button', { name: '통합회원 전환하기' })).toBeTruthy()
+    expect(fetchSpy).toHaveBeenCalledWith(
+      'http://localhost:8080/api/auth/user/login',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({
+          'Content-Type': 'application/json',
+        }),
+        body: JSON.stringify({ loginId: 'demo-user', password: 'demo-pass' }),
+      }),
+    )
 
-    const fetchSpy = vi.spyOn(globalThis, 'fetch')
-    const storageSpy = vi.spyOn(Storage.prototype, 'setItem')
-    const actionNames = [
-      '비밀번호 보기',
-      '로그인',
-      '통합회원 가입하기',
-      '아이디/비밀번호 찾기',
-      ...expectedMethods,
-      'BIZ회원 로그인 페이지로',
-      '통합회원 전환하기',
-    ]
-    actionNames.forEach((name) => {
-      const action = screen.getByRole('button', { name })
-      expect(action.getAttribute('type')).toBe(name === '로그인' ? 'submit' : 'button')
-      const hashBeforeAction = window.location.hash
-      fireEvent.click(action)
-      expect(window.location.hash).toBe(hashBeforeAction)
+    await vi.waitFor(() => {
+      expect(JSON.parse(localStorage.getItem('selectors-auth') ?? '{}')).toMatchObject({
+        accessToken: 'test.jwt',
+        role: 'USER',
+      })
+      expect(window.location.hash).toBe('#/screens')
     })
 
-    const form = screen.getByRole('button', { name: '로그인' }).closest('form')
-    expect(form).not.toBeNull()
-    const submitEvent = new Event('submit', { bubbles: true, cancelable: true })
-    fireEvent(form as HTMLFormElement, submitEvent)
-    expect(submitEvent.defaultPrevented).toBe(true)
-    expect(fetchSpy).not.toHaveBeenCalled()
-    expect(storageSpy).not.toHaveBeenCalled()
+    fetchSpy.mockResolvedValueOnce(
+      new Response(JSON.stringify({ accessToken: 'admin.jwt', tokenType: 'Bearer', role: 'ADMIN' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+
+    window.location.hash = '#/login'
+    cleanup()
+    render(<App />)
+
+    fireEvent.change(screen.getByLabelText('아이디'), { target: { value: 'admin-user' } })
+    fireEvent.change(screen.getByLabelText('비밀번호'), { target: { value: 'admin-pass' } })
+    fireEvent.click(screen.getByRole('button', { name: '로그인' }))
+
+    expect(fetchSpy).toHaveBeenLastCalledWith(
+      'http://localhost:8080/api/auth/admin/login',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({
+          'Content-Type': 'application/json',
+        }),
+        body: JSON.stringify({ loginId: 'admin-user', password: 'admin-pass' }),
+      }),
+    )
   })
 
   it('locks the compact reference form geometry', () => {

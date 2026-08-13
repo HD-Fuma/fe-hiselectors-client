@@ -1,5 +1,6 @@
 import { useState } from 'react'
 
+import { authFetch, persistAuthSession, redirectToMainScreen } from '../auth'
 import { EyeIcon, LoginProviderIcon } from '../components/Icons'
 import PanelHeader from '../components/PanelHeader'
 
@@ -12,8 +13,74 @@ const simpleLoginMethods = [
   ['H.Point APP 로그인', 'hpoint'],
 ] as const
 
+type AuthTokenResponse = {
+  accessToken: string
+  tokenType: string
+  role: string
+}
+
+function getLoginEndpoint(loginId: string) {
+  const normalizedLoginId = loginId.trim().toLowerCase()
+
+  return normalizedLoginId.includes('admin')
+    ? 'http://localhost:8080/api/auth/admin/login'
+    : 'http://localhost:8080/api/auth/user/login'
+}
+
 export default function LoginScreen() {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false)
+  const [loginId, setLoginId] = useState('')
+  const [password, setPassword] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    const trimmedLoginId = loginId.trim()
+
+    if (!trimmedLoginId || !password.trim()) {
+      setErrorMessage('아이디와 비밀번호를 입력해주세요.')
+      return
+    }
+
+    setErrorMessage('')
+    setIsSubmitting(true)
+
+    try {
+      const response = await authFetch(getLoginEndpoint(trimmedLoginId), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          loginId: trimmedLoginId,
+          password,
+        }),
+      })
+
+      if (!response.ok) {
+        const message = await response.text()
+        throw new Error(message || '로그인에 실패했습니다.')
+      }
+
+      const payload = (await response.json()) as AuthTokenResponse
+      const authState = {
+        ...payload,
+        loginId: trimmedLoginId,
+        issuedAt: Date.now(),
+      }
+
+      persistAuthSession(authState)
+      window.dispatchEvent(new CustomEvent('auth:changed', { detail: authState }))
+      setPassword('')
+      redirectToMainScreen()
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : '로그인 요청 중 오류가 발생했습니다.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   return (
     <>
@@ -21,15 +88,30 @@ export default function LoginScreen() {
       <div className="screen-scroll login-screen">
         <section className="login-member-section" aria-labelledby="member-login-heading">
           <h2 id="member-login-heading">H.Point 통합회원 로그인</h2>
-          <form className="login-form" onSubmit={(event) => event.preventDefault()}>
+          <form className="login-form" onSubmit={handleSubmit}>
             <label className="login-field" htmlFor="login-user-id">
               <span className="sr-only">아이디</span>
-              <input autoComplete="username" id="login-user-id" name="userId" placeholder="아이디" />
+              <input
+                autoComplete="username"
+                id="login-user-id"
+                name="userId"
+                onChange={(event) => setLoginId(event.target.value)}
+                placeholder="아이디"
+                value={loginId}
+              />
             </label>
             <div className="login-field login-password-field">
               <label className="sr-only" htmlFor="login-password">비밀번호</label>
               <span className="login-password-input">
-                <input autoComplete="current-password" id="login-password" name="password" placeholder="비밀번호" type={isPasswordVisible ? 'text' : 'password'} />
+                <input
+                  autoComplete="current-password"
+                  id="login-password"
+                  name="password"
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="비밀번호"
+                  type={isPasswordVisible ? 'text' : 'password'}
+                  value={password}
+                />
                 <button aria-label={isPasswordVisible ? '비밀번호 숨기기' : '비밀번호 보기'} className="login-password-toggle" onClick={() => setIsPasswordVisible((visible) => !visible)} type="button">
                   <EyeIcon size={20} />
                 </button>
@@ -40,9 +122,10 @@ export default function LoginScreen() {
               <label><input name="autoLogin" type="checkbox" />자동 로그인</label>
             </div>
             <div className="login-submit-wrap">
-              <button className="primary-action login-button" type="submit">로그인</button>
+              <button className="primary-action login-button" disabled={isSubmitting} type="submit">로그인</button>
               <span className="login-recent-badge">최근에 로그인 했어요.</span>
             </div>
+            {errorMessage ? <p aria-live="polite">{errorMessage}</p> : null}
           </form>
           <div className="login-link-row">
             <button type="button">통합회원 가입하기</button>
