@@ -53,7 +53,7 @@ describe('The Hyundai login reference contract', () => {
     expect(screen.getByText('최근에 로그인 했어요.')).toBeTruthy()
   })
 
-  it('calls the user/admin backend login API and stores the JWT payload', async () => {
+  it('calls the user login API and surfaces the backend message only', async () => {
     window.location.hash = '#/login'
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(JSON.stringify({ accessToken: 'test.jwt', tokenType: 'Bearer', role: 'USER' }), {
@@ -77,7 +77,7 @@ describe('The Hyundai login reference contract', () => {
     expect(methods.map((method) => method.textContent)).toEqual(expectedMethods)
     expect(methods).toHaveLength(6)
 
-    fireEvent.change(screen.getByLabelText('아이디'), { target: { value: 'demo-user' } })
+    fireEvent.change(screen.getByLabelText('아이디'), { target: { value: 'admin-user' } })
     fireEvent.change(screen.getByLabelText('비밀번호'), { target: { value: 'demo-pass' } })
     fireEvent.click(screen.getByRole('button', { name: '로그인' }))
 
@@ -88,7 +88,7 @@ describe('The Hyundai login reference contract', () => {
         headers: expect.objectContaining({
           'Content-Type': 'application/json',
         }),
-        body: JSON.stringify({ loginId: 'demo-user', password: 'demo-pass' }),
+        body: JSON.stringify({ loginId: 'admin-user', password: 'demo-pass' }),
       }),
     )
 
@@ -101,8 +101,8 @@ describe('The Hyundai login reference contract', () => {
     })
 
     fetchSpy.mockResolvedValueOnce(
-      new Response(JSON.stringify({ accessToken: 'admin.jwt', tokenType: 'Bearer', role: 'ADMIN' }), {
-        status: 200,
+      new Response(JSON.stringify({ message: '아이디 또는 비밀번호가 올바르지 않습니다.' }), {
+        status: 401,
         headers: { 'Content-Type': 'application/json' },
       }),
     )
@@ -111,20 +111,13 @@ describe('The Hyundai login reference contract', () => {
     cleanup()
     render(<App />)
 
-    fireEvent.change(screen.getByLabelText('아이디'), { target: { value: 'admin-user' } })
-    fireEvent.change(screen.getByLabelText('비밀번호'), { target: { value: 'admin-pass' } })
+    fireEvent.change(screen.getByLabelText('아이디'), { target: { value: 'user@example.com' } })
+    fireEvent.change(screen.getByLabelText('비밀번호'), { target: { value: 'wrong-pass' } })
     fireEvent.click(screen.getByRole('button', { name: '로그인' }))
 
-    expect(fetchSpy).toHaveBeenLastCalledWith(
-      'http://localhost:8080/api/auth/admin/login',
-      expect.objectContaining({
-        method: 'POST',
-        headers: expect.objectContaining({
-          'Content-Type': 'application/json',
-        }),
-        body: JSON.stringify({ loginId: 'admin-user', password: 'admin-pass' }),
-      }),
-    )
+    const dialog = await screen.findByRole('dialog', { name: '로그인 실패' })
+    expect(dialog).toBeTruthy()
+    expect(within(dialog).getByText('아이디 또는 비밀번호가 올바르지 않습니다.')).toBeTruthy()
   })
 
   it('clears the auth session and redirects to login on logout', () => {

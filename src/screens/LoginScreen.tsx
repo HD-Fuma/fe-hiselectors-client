@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-import { authFetch, persistAuthSession, redirectToMainScreen } from '../auth'
+import { persistAuthSession, redirectToMainScreen } from '../auth'
 import { EyeIcon, LoginProviderIcon } from '../components/Icons'
 import PanelHeader from '../components/PanelHeader'
 
@@ -19,12 +19,26 @@ type AuthTokenResponse = {
   role: string
 }
 
-function getLoginEndpoint(loginId: string) {
-  const normalizedLoginId = loginId.trim().toLowerCase()
+function extractErrorMessage(payload: string): string {
+  if (!payload.trim()) {
+    return '로그인에 실패했습니다.'
+  }
 
-  return normalizedLoginId.includes('admin')
-    ? 'http://localhost:8080/api/auth/admin/login'
-    : 'http://localhost:8080/api/auth/user/login'
+  try {
+    const parsed = JSON.parse(payload) as Record<string, unknown>
+    const message =
+      (typeof parsed.message === 'string' && parsed.message.trim()) ||
+      (typeof parsed.error === 'string' && parsed.error.trim()) ||
+      (typeof parsed.error === 'object' && parsed.error !== null && 'message' in parsed.error && typeof parsed.error.message === 'string' ? parsed.error.message.trim() : '')
+
+    if (message) {
+      return message
+    }
+  } catch {
+    // ignore JSON parse failure and fall back to raw text
+  }
+
+  return payload
 }
 
 export default function LoginScreen() {
@@ -33,6 +47,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
+  const [showErrorModal, setShowErrorModal] = useState(false)
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -41,14 +56,16 @@ export default function LoginScreen() {
 
     if (!trimmedLoginId || !password.trim()) {
       setErrorMessage('아이디와 비밀번호를 입력해주세요.')
+      setShowErrorModal(true)
       return
     }
 
     setErrorMessage('')
+    setShowErrorModal(false)
     setIsSubmitting(true)
 
     try {
-      const response = await authFetch(getLoginEndpoint(trimmedLoginId), {
+      const response = await fetch('http://localhost:8080/api/auth/user/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -60,8 +77,8 @@ export default function LoginScreen() {
       })
 
       if (!response.ok) {
-        const message = await response.text()
-        throw new Error(message || '로그인에 실패했습니다.')
+        const rawMessage = await response.text()
+        throw new Error(extractErrorMessage(rawMessage))
       }
 
       const payload = (await response.json()) as AuthTokenResponse
@@ -76,7 +93,9 @@ export default function LoginScreen() {
       setPassword('')
       redirectToMainScreen()
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : '로그인 요청 중 오류가 발생했습니다.')
+      const nextError = error instanceof Error ? error.message : '로그인 요청 중 오류가 발생했습니다.'
+      setErrorMessage(nextError)
+      setShowErrorModal(true)
     } finally {
       setIsSubmitting(false)
     }
@@ -125,7 +144,6 @@ export default function LoginScreen() {
               <button className="primary-action login-button" disabled={isSubmitting} type="submit">로그인</button>
               <span className="login-recent-badge">최근에 로그인 했어요.</span>
             </div>
-            {errorMessage ? <p aria-live="polite">{errorMessage}</p> : null}
           </form>
           <div className="login-link-row">
             <button type="button">통합회원 가입하기</button>
@@ -151,6 +169,22 @@ export default function LoginScreen() {
           <button type="button">통합회원 전환하기</button>
         </section>
       </div>
+
+      {showErrorModal ? (
+        <div aria-modal="true" className="login-error-backdrop" role="dialog" aria-labelledby="login-error-title">
+          <div className="login-error-modal">
+            <h3 id="login-error-title">로그인 실패</h3>
+            <p>{errorMessage}</p>
+            <button
+              className="primary-action"
+              onClick={() => setShowErrorModal(false)}
+              type="button"
+            >
+              확인
+            </button>
+          </div>
+        </div>
+      ) : null}
     </>
   )
 }
