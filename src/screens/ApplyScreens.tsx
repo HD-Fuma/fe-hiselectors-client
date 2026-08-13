@@ -409,7 +409,7 @@ export function ApplyFormScreen() {
           </div>
           <button
             className={`oauth-connect-button${isCurrentChannelConnected ? ' is-connected' : ''}`}
-            disabled={!selectedChannel}
+            disabled={!selectedChannel || isCurrentChannelConnected}
             onClick={handleOAuthConnect}
             type="button"
           >

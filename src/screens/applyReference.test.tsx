@@ -123,6 +123,23 @@ describe('apply reference contract', () => {
 
     expect(screen.getByText('연동 완료')).toBeTruthy()
     expect(screen.getByText('vbcjspt0909')).toBeTruthy()
+    expect(screen.getByRole('button', { name: '인증 완료' })).toHaveProperty('disabled', true)
+  })
+
+  it('re-enables the OAuth button when the user reselects a provider', () => {
+    sessionStorage.setItem('oauthVerified', JSON.stringify({
+      provider: 'instagram',
+      accountId: 'vbcjspt0909',
+      followerCount: 123,
+      label: 'vbcjspt0909',
+    }))
+    window.location.hash = '#/apply/form'
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: '대표 SNS 선택' }))
+    fireEvent.click(screen.getByRole('option', { name: '유튜브' }))
+
+    expect(screen.getByRole('button', { name: 'YouTube 계정 연결하기' })).toHaveProperty('disabled', false)
   })
 
   it('clears stale verified SNS state when the user switches to another provider', () => {
