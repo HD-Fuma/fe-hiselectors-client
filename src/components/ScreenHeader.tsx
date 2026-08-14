@@ -2,17 +2,17 @@ import type { MouseEventHandler, ReactNode } from 'react'
 
 import { ArrowLeftIcon } from './Icons'
 
-type PanelHeaderProps = {
+type ScreenHeaderProps = {
   action?: ReactNode
   backHref?: string
   onBack?: MouseEventHandler<HTMLAnchorElement>
   title: string
 }
 
-export default function PanelHeader({ action, backHref, onBack, title }: PanelHeaderProps) {
+export default function ScreenHeader({ action, backHref, onBack, title }: ScreenHeaderProps) {
   return (
-    <header className="panel-header">
-      <div className="panel-header-side">
+    <header className="screen-header">
+      <div className="screen-header-side">
         {backHref ? (
           <a
             aria-label="뒤로 가기"
@@ -20,12 +20,12 @@ export default function PanelHeader({ action, backHref, onBack, title }: PanelHe
             href={backHref}
             onClick={onBack}
           >
-            <ArrowLeftIcon />
+            <ArrowLeftIcon size={24} />
           </a>
         ) : null}
       </div>
       <h1 tabIndex={-1}>{title}</h1>
-      <div className="panel-header-side panel-header-action">{action}</div>
+      <div className="screen-header-side screen-header-action">{action}</div>
     </header>
   )
 }

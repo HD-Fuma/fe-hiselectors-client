@@ -75,8 +75,14 @@ export function hasValidUserSession(session: AuthSession | null): boolean {
   return Boolean(session && session.accessToken && session.role)
 }
 
+export function isLocalApplyTestMode(): boolean {
+  return import.meta.env.DEV
+    && ['127.0.0.1', 'localhost'].includes(window.location.hostname)
+    && new URLSearchParams(window.location.search).get('applyTest') === '1'
+}
+
 export function redirectToMainScreen() {
-  window.location.hash = '#/screens'
+  window.location.hash = '#/campaigns'
 }
 
 export function redirectToLoginScreen() {
@@ -85,7 +91,10 @@ export function redirectToLoginScreen() {
 
 export function logout() {
   localStorage.removeItem(AUTH_STORAGE_KEY)
-  window.location.hash = '#/login'
+  window.dispatchEvent(new CustomEvent('auth:changed', { detail: null }))
+  if (window.location.hash !== '#/login') {
+    window.location.hash = '#/login'
+  }
 }
 
 export async function authFetch(input: RequestInfo | URL, init: RequestInit = {}) {

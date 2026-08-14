@@ -1,6 +1,6 @@
 import { useId, useRef, useState, type RefObject } from 'react'
 
-import { CheckIcon } from '../components/Icons'
+import { CheckIcon } from '../../components/Icons'
 import type { ShopDemoGroup } from './ShopDemoContext'
 import type { ShopProduct } from './shopData'
 import useModalFocus from './useModalFocus'

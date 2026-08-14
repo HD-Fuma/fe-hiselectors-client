@@ -1,10 +1,17 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 
-import { API_BASE_URL, authFetch, hasValidUserSession, readAuthSession, redirectToLoginScreen, redirectToMainScreen } from '../auth'
-import BottomAction from '../components/BottomAction'
-import { ArrowRightIcon, CartIcon, CheckIcon, ChevronDownIcon, CoinIcon, GiftIcon, LinkIcon, PersonIcon } from '../components/Icons'
-import PanelHeader from '../components/PanelHeader'
-import { startOAuthAuthorization, type OAuthProvider } from '../oauth'
+import {
+  API_BASE_URL,
+  authFetch,
+  hasValidUserSession,
+  readAuthSession,
+  redirectToLoginScreen,
+  redirectToMainScreen,
+} from '../../auth'
+import BottomActionBar from '../../components/BottomActionBar'
+import { ArrowRightIcon, CartIcon, CheckIcon, ChevronDownIcon, CoinIcon, GiftIcon, LinkIcon, PersonIcon } from '../../components/Icons'
+import ScreenHeader from '../../components/ScreenHeader'
+import { startOAuthAuthorization, type OAuthProvider } from '../../oauth'
 
 const flowSteps = [
   { label: '상품 큐레이션', icon: <CartIcon size={26} /> },
@@ -22,7 +29,7 @@ const benefits = [
 export function ApplyIntroScreen() {
   return (
     <div className="panel-page">
-      <PanelHeader backHref="#/screens" title="셀렉터스 신청하기" />
+      <ScreenHeader backHref="#/login" title="셀렉터스 신청하기" />
       <div className="screen-scroll apply-intro-screen">
         <section className="apply-hero">
           <h2>당신의 감각을 보여주세요!<br />여러분의 큐레이션이<br />기분 좋은 수익으로 이어집니다.</h2>
@@ -50,10 +57,10 @@ export function ApplyIntroScreen() {
               </article>
             ))}
           </div>
-          <a className="detail-link" href="#/campaigns">자세히 알아보기 <ArrowRightIcon size={14} /></a>
+          <a className="detail-link" href="#/apply/form">자세히 알아보기 <ArrowRightIcon size={14} /></a>
         </section>
       </div>
-      <BottomAction href="#/apply/form" label="셀렉터스 신청하기" />
+      <BottomActionBar href="#/apply/form" label="셀렉터스 신청하기" />
     </div>
   )
 }
@@ -103,106 +110,32 @@ function extractErrorMessage(payload: string): string {
 
 export function ApplyFormScreen() {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
-  const [isOptionsOpen, setIsOptionsOpen] = useState(false)
-  const [activeIndex, setActiveIndex] = useState(0)
+  const [isSnsMenuOpen, setIsSnsMenuOpen] = useState(false)
   const [privacyAgreed, setPrivacyAgreed] = useState(false)
   const [shopTermsAgreed, setShopTermsAgreed] = useState(false)
   const [alarmAgreed, setAlarmAgreed] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
-  const [submitSuccess, setSubmitSuccess] = useState('')
   const [oauthError, setOauthError] = useState('')
   const [oauthStatus, setOauthStatus] = useState('')
   const [connectedAccount, setConnectedAccount] = useState<ConnectedAccount | null>(null)
-  const triggerRef = useRef<HTMLButtonElement>(null)
-  const pickerRef = useRef<HTMLDivElement>(null)
-  const optionRefs = useRef<Array<HTMLButtonElement | null>>([])
   const session = readAuthSession()
   const isUserSessionValid = hasValidUserSession(session)
 
-  useEffect(() => {
-    if (isOptionsOpen) {
-      optionRefs.current[activeIndex]?.focus()
-    }
-  }, [activeIndex, isOptionsOpen])
-
-  useEffect(() => {
-    if (!isOptionsOpen) return
-
-    const dismissWhenOutside = (event: Event) => {
-      if (event.target instanceof Node && !pickerRef.current?.contains(event.target)) {
-        setIsOptionsOpen(false)
-      }
-    }
-
-    document.addEventListener('focusin', dismissWhenOutside)
-    document.addEventListener('pointerdown', dismissWhenOutside)
-    return () => {
-      document.removeEventListener('focusin', dismissWhenOutside)
-      document.removeEventListener('pointerdown', dismissWhenOutside)
-    }
-  }, [isOptionsOpen])
-
-  const openOptions = (index: number) => {
-    setActiveIndex(index)
-    setIsOptionsOpen(true)
-  }
-
-  const dismissOptions = () => {
-    setIsOptionsOpen(false)
-  }
-
-  const closeOptions = () => {
-    dismissOptions()
-    triggerRef.current?.focus()
-  }
-
-  const selectChannel = (index: number) => {
-    const nextChannel = snsChannels[index]
+  const selectChannel = (index: number | null) => {
+    const nextChannel = index === null ? null : snsChannels[index]
     if (nextChannel) {
       sessionStorage.setItem('selectedSnsProvider', nextChannel.provider)
-      if (connectedAccount && connectedAccount.provider !== nextChannel.provider) {
-        setConnectedAccount(null)
-        setOauthStatus('')
-        sessionStorage.removeItem('oauthVerified')
-      }
-      if (connectedAccount && connectedAccount.provider === nextChannel.provider) {
-        setConnectedAccount(null)
-        setOauthStatus('')
-        sessionStorage.removeItem('oauthVerified')
-      }
+    } else {
+      sessionStorage.removeItem('selectedSnsProvider')
+    }
+    if (connectedAccount) {
+      setConnectedAccount(null)
+      setOauthStatus('')
+      sessionStorage.removeItem('oauthVerified')
     }
     setSelectedIndex(index)
-    closeOptions()
-  }
-
-  const handleTriggerKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
-    if (event.key === 'ArrowDown') {
-      event.preventDefault()
-      openOptions(0)
-    } else if (event.key === 'ArrowUp') {
-      event.preventDefault()
-      openOptions(snsChannels.length - 1)
-    } else if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault()
-      openOptions(selectedIndex ?? 0)
-    }
-  }
-
-  const handleOptionKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
-    if (event.key === 'ArrowDown') {
-      event.preventDefault()
-      setActiveIndex((index + 1) % snsChannels.length)
-    } else if (event.key === 'ArrowUp') {
-      event.preventDefault()
-      setActiveIndex((index - 1 + snsChannels.length) % snsChannels.length)
-    } else if (event.key === 'Enter') {
-      event.preventDefault()
-      selectChannel(index)
-    } else if (event.key === 'Escape') {
-      event.preventDefault()
-      closeOptions()
-    }
+    setIsSnsMenuOpen(false)
   }
 
   const selectedChannel = selectedIndex === null ? null : snsChannels[selectedIndex]
@@ -309,26 +242,21 @@ export function ApplyFormScreen() {
       setOauthError('')
       setOauthStatus('')
       setSubmitError('')
-      setSubmitSuccess('')
       return
     }
 
     setOauthError('')
     setOauthStatus('')
     setSubmitError('')
-    setSubmitSuccess('')
 
     try {
       sessionStorage.setItem('oauthProvider', selectedChannel.provider)
       const authorizationUrl = await startOAuthAuthorization(selectedChannel.provider)
-      const callbackUrl = `${window.location.origin}${import.meta.env.BASE_URL}`
-      const redirectUrl = new URL(authorizationUrl)
-      redirectUrl.searchParams.set('redirect_uri', callbackUrl)
       if (window.location.assign) {
-        window.location.assign(redirectUrl.toString())
+        window.location.assign(authorizationUrl)
         return
       }
-      window.location.href = redirectUrl.toString()
+      window.location.href = authorizationUrl
     } catch (error) {
       const message = error instanceof Error ? error.message : '계정 연결에 실패했습니다.'
       if (message === '인증이 필요합니다.') {
@@ -348,7 +276,6 @@ export function ApplyFormScreen() {
 
     setIsSubmitting(true)
     setSubmitError('')
-    setSubmitSuccess('')
 
     try {
       const snsCode = connectedAccount?.provider === 'instagram' ? 'INSTAGRAM' : connectedAccount?.provider === 'youtube' ? 'YOUTUBE' : selectedChannel.provider === 'instagram' ? 'INSTAGRAM' : 'YOUTUBE'
@@ -376,7 +303,7 @@ export function ApplyFormScreen() {
         throw new Error(extractErrorMessage(rawMessage))
       }
 
-      setSubmitSuccess('지원서가 정상적으로 제출되었습니다.')
+      window.location.hash = '#/apply/status'
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : '지원서 제출 중 오류가 발생했습니다.')
     } finally {
@@ -386,43 +313,56 @@ export function ApplyFormScreen() {
 
   return (
     <div className="panel-page">
-      <PanelHeader backHref="#/apply" title="셀렉터스 신청하기" />
+      <ScreenHeader backHref="#/apply" title="셀렉터스 신청하기" />
       <div className="screen-scroll apply-form-screen">
         <section className="form-intro">
           <h2>나의 대표 SNS</h2>
-          <p>본인 소유의 공개된 대표 SNS를 연결해주세요.</p>
+          <p>본인 소유의 공개된 대표 SNS를 입력해주세요.</p>
         </section>
 
         <form className="application-form" onSubmit={(event) => event.preventDefault()}>
-          <div className="select-wrap" ref={pickerRef}>
+          <div
+            className={`select-wrap${isSnsMenuOpen ? ' is-open' : ''}`}
+            onBlur={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget)) {
+                setIsSnsMenuOpen(false)
+              }
+            }}
+          >
             <button
-              aria-controls="representative-sns-options"
-              aria-expanded={isOptionsOpen}
+              aria-controls="sns-options"
+              aria-expanded={isSnsMenuOpen}
               aria-haspopup="listbox"
+              aria-label="대표 SNS"
               className={`sns-trigger${selectedChannel ? ' is-selected' : ''}`}
-              onClick={() => (isOptionsOpen ? dismissOptions() : openOptions(selectedIndex ?? 0))}
-              onKeyDown={handleTriggerKeyDown}
-              ref={triggerRef}
+              onClick={() => setIsSnsMenuOpen((open) => !open)}
+              onKeyDown={(event) => {
+                if (event.key === 'ArrowDown') {
+                  event.preventDefault()
+                  setIsSnsMenuOpen(true)
+                }
+                if (event.key === 'Escape') {
+                  setIsSnsMenuOpen(false)
+                }
+              }}
+              role="combobox"
               type="button"
             >
-              {selectedChannel?.label ?? '대표 SNS 선택'}
+              <span>{selectedChannel?.label ?? '대표 SNS 선택'}</span>
+              <ChevronDownIcon size={18} />
             </button>
-            <ChevronDownIcon size={18} />
-            {isOptionsOpen ? (
-              <div aria-label="대표 SNS" className="sns-options" id="representative-sns-options" role="listbox">
-                {snsChannels.map((channel, index) => (
+            {isSnsMenuOpen ? (
+              <div aria-label="대표 SNS 선택 목록" className="sns-options" id="sns-options" role="listbox">
+                {snsChannels.map(({ label, provider }, index) => (
                   <button
                     aria-selected={selectedIndex === index}
                     className="sns-option"
-                    key={channel.label}
+                    key={provider}
                     onClick={() => selectChannel(index)}
-                    onKeyDown={(event) => handleOptionKeyDown(event, index)}
-                    ref={(element) => { optionRefs.current[index] = element }}
                     role="option"
-                    tabIndex={index === activeIndex ? 0 : -1}
                     type="button"
                   >
-                    {channel.label}
+                    {label}
                   </button>
                 ))}
               </div>
@@ -484,7 +424,7 @@ export function ApplyFormScreen() {
         </section>
 
       </div>
-      <BottomAction disabled={!canSubmit} label="셀렉터스 신청하기" onClick={handleSubmit} />
+      <BottomActionBar disabled={!canSubmit} label="셀렉터스 신청하기" onClick={handleSubmit} />
       {oauthError ? (
         <div aria-modal="true" className="auth-gate-backdrop" role="dialog" aria-labelledby="oauth-error-title">
           <div className="auth-gate-modal">
@@ -513,17 +453,20 @@ export function ApplyFormScreen() {
           </div>
         </div>
       ) : null}
-      {submitSuccess ? (
-        <div aria-modal="true" className="auth-gate-backdrop" role="dialog" aria-labelledby="submit-success-title">
-          <div className="auth-gate-modal">
-            <h3 id="submit-success-title">제출 완료</h3>
-            <p>{submitSuccess}</p>
-            <div className="auth-gate-actions">
-              <button className="primary-action" onClick={redirectToMainScreen} type="button">확인</button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+    </div>
+  )
+}
+
+export function ApplyStatusScreen() {
+  return (
+    <div className="panel-page">
+      <ScreenHeader backHref="#/campaigns" title="신청 완료" />
+      <div className="screen-scroll apply-status-screen">
+        <span aria-hidden="true">✓</span>
+        <h2>셀렉터스 신청을 완료했어요.</h2>
+        <p>심사가 끝나면 결과를 안내해 드릴게요.<br />승인 후 캠페인부터 시작할 수 있어요.</p>
+      </div>
+      <BottomActionBar href="#/campaigns" label="캠페인으로 이동" />
     </div>
   )
 }

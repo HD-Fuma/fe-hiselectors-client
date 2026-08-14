@@ -410,6 +410,20 @@
   line-height: 14px;
 }
 
+.shop-manage-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 520px;
+  height: 44px;
+  margin-top: 8px;
+  background: var(--black);
+  color: var(--white);
+  font-size: 14px;
+  font-weight: 700;
+}
+
 .shop-group-list {
   display: flex;
   flex-direction: column;
@@ -426,10 +440,20 @@
   margin-bottom: 24px;
 }
 
+.shop-group-heading-copy {
+  min-width: 0;
+}
+
 .shop-group-heading {
   font-size: 18px;
   font-weight: 700;
   line-height: 24px;
+}
+
+.shop-group-description {
+  margin-top: 4px;
+  font-size: 14px;
+  line-height: 20px;
 }
 
 .shop-group-owner-action {
@@ -866,27 +890,32 @@
   padding: 0 16px;
 }
 
+.owner-shop-group-screen .shop-group-section {
+  padding-top: 27px;
+}
+
+.owner-shop-group-screen .shop-group-heading-row {
+  align-items: flex-start;
+}
+
+.owner-shop-group-screen .shop-group-heading-copy {
+  padding-top: 4px;
+}
+
 .shop-group-menu-root {
   position: relative;
-  flex: 0 0 40px;
-  width: 40px;
-  height: 40px;
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
 }
 
 .shop-group-menu-trigger {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   color: var(--black);
-}
-
-.shop-group-menu-trigger span {
-  padding-bottom: 5px;
-  font-size: 14px;
-  line-height: 1;
-  letter-spacing: 2px;
 }
 
 .shop-group-menu {

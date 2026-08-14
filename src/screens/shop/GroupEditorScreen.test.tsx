@@ -2,9 +2,9 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import App from '../../App'
-import BottomAction from '../../components/BottomAction'
-import GroupProductPicker from '../../shop/GroupProductPicker'
-import { useShopDemo } from '../../shop/ShopDemoContext'
+import BottomActionBar from '../../components/BottomActionBar'
+import GroupProductPicker from './GroupProductPicker'
+import { useShopDemo } from './ShopDemoContext'
 
 const earringNames = [
   '에센스 실버(W) 모이사나이트 쁘띠 원터치 귀걸이 HL4E54406W9XXX',
@@ -56,7 +56,7 @@ function RuntimeDisabledAction({
   onActivate: (tagName: string) => void
 }) {
   return (
-    <BottomAction
+    <BottomActionBar
       disabled={disabled}
       href="#/shop/groups"
       label="동적 액션"

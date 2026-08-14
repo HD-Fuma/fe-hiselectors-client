@@ -1,7 +1,7 @@
 import { access, readFile } from 'node:fs/promises'
 import path from 'node:path'
 
-const pagesBase = '/fe-selectors-client/'
+const pagesBase = '/fe-hiselectors-client/'
 const distDirectory = path.resolve('dist')
 const indexPath = path.join(distDirectory, 'index.html')
 const indexHtml = await readFile(indexPath, 'utf8')

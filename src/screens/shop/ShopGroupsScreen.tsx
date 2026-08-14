@@ -1,14 +1,16 @@
-import BottomAction from '../../components/BottomAction'
-import { CopyIcon } from '../../components/Icons'
-import PanelHeader from '../../components/PanelHeader'
-import { useShopDemo } from '../../shop/ShopDemoContext'
+import BottomActionBar from '../../components/BottomActionBar'
+import { CopyIcon, MoreIcon } from '../../components/Icons'
+import ScreenHeader from '../../components/ScreenHeader'
+import MainNavigation from '../../components/layout/MainNavigation'
+import { useShopDemo } from './ShopDemoContext'
 
 export default function ShopGroupsScreen() {
   const { getProducts, state } = useShopDemo()
 
   return (
     <div className="panel-page">
-      <PanelHeader backHref="#/screens" title="상품 그룹" />
+      <ScreenHeader title="상품 그룹" />
+      <MainNavigation current="shop" />
       <div className="screen-scroll shop-groups-screen">
         <section className="shop-link-card">
           <span>내 셀렉터스샵</span>
@@ -37,18 +39,16 @@ export default function ShopGroupsScreen() {
               <div className="group-card-body">
                 <span>GROUP {String(index + 1).padStart(2, '0')}</span>
                 <strong>
-                  {group.id === '1'
-                    ? <a href="#/shop/RC000003200T/1">{group.name}</a>
-                    : group.name}
+                  <a href={`#/shop/RC000003200T/${group.id}`}>{group.name}</a>
                 </strong>
                 <p>상품 {group.productIds.length}개 · {group.createdAt} 생성</p>
               </div>
-              <button aria-label={`${group.name} 메뉴`} type="button">•••</button>
+              <button aria-label={`${group.name} 메뉴`} type="button"><MoreIcon size={24} /></button>
             </article>
           ))}
         </div>
       </div>
-      <BottomAction href="#/shop/groups/new" label="상품 그룹 만들기" />
+      <BottomActionBar href="#/shop/groups/new" label="상품 그룹 만들기" />
     </div>
   )
 }

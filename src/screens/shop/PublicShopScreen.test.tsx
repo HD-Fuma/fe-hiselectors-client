@@ -2,7 +2,7 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import App from '../../App'
-import { useShopDemo } from '../../shop/ShopDemoContext'
+import { useShopDemo } from './ShopDemoContext'
 
 const shopHash = '#/shop/RC000003200T'
 const badgeImage = 'https://image.thehyundai.com/images/badge/badge_manager_large.png?SF=webp&AO=1'
@@ -26,6 +26,7 @@ function SetShopStatusControl() {
 afterEach(() => {
   cleanup()
   window.location.hash = ''
+  localStorage.clear()
   vi.unstubAllGlobals()
   vi.restoreAllMocks()
 
@@ -55,13 +56,14 @@ describe('public selectors shop', () => {
     const { container } = render(<App />)
 
     expect(screen.getByRole('heading', { level: 1, name: '셀렉터스샵' })).toBeTruthy()
-    expect(screen.getByRole('link', { name: '뒤로 가기' })).toBeTruthy()
+    expect(screen.getByRole('link', { name: '뒤로 가기' }).getAttribute('href')).toBe('#/campaigns')
     expect(screen.getByRole('button', { name: '셀렉터스샵 공유' })).toBeTruthy()
 
     const badge = screen.getByAltText('인플루언서 뱃지')
     expect(badge.getAttribute('src')).toBe(badgeImage)
     expect(screen.getByRole('heading', { level: 2, name: 'byunjjii' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'byunjjii의 ME스페이스' })).toBeTruthy()
+    expect(screen.queryByRole('link', { name: '관리하기' })).toBeNull()
 
     const sections = [...container.querySelectorAll<HTMLElement>('[data-shop-group-id]')]
     expect(sections.map((section) => (
@@ -103,6 +105,20 @@ describe('public selectors shop', () => {
     expect(within(secondCard).getByText('127,500원').tagName).toBe('STRONG')
 
     expect(screen.getByText(disclosure)).toBeTruthy()
+  })
+
+  it('shows shop management only to the signed-in owner', () => {
+    localStorage.setItem('selectors-auth', JSON.stringify({
+      accessToken: 'owner.token',
+      role: 'USER',
+    }))
+    window.location.hash = shopHash
+
+    render(<App />)
+
+    expect(screen.getByRole('link', { name: '관리하기' }).getAttribute('href')).toBe(
+      '#/shop/groups',
+    )
   })
 
   it('announces only actual shop statuses', () => {

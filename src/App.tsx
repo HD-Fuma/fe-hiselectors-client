@@ -1,10 +1,15 @@
 import { useEffect, useState, type ReactNode } from 'react'
 
-import AppShell from './components/AppShell'
-import { API_BASE_URL, authFetch, hasValidUserSession, readAuthSession } from './auth'
-import { selectScreenByHash } from './screenRegistry'
-import { getScreenComponent } from './screens'
-import { ShopDemoProvider } from './shop/ShopDemoContext'
+import AppShell from './components/layout/AppShell'
+import {
+  API_BASE_URL,
+  authFetch,
+  hasValidUserSession,
+  isLocalApplyTestMode,
+  readAuthSession,
+} from './auth'
+import { routeMatchesHash, selectRouteByHash } from './routes'
+import { ShopDemoProvider } from './screens/shop/ShopDemoContext'
 import { verifyOAuth } from './oauth'
 import './styles/global.css'
 import './styles/shop.css'
@@ -13,42 +18,43 @@ type AppProps = {
   shopProbe?: ReactNode
 }
 
-export function canonicalizeHash(hash: string): string {
-  return hash === '#/shop/groups/edit' ? '#/shop/groups/new' : hash
-}
-
 function hasPendingOAuthCallback(): boolean {
   const params = new URLSearchParams(window.location.search)
   return Boolean(params.get('code') && params.get('state'))
 }
 
-function selectCurrentScreen() {
-  const currentHash = window.location.hash
-  const canonicalHash = canonicalizeHash(currentHash)
-
-  if (canonicalHash !== currentHash) {
-    window.history.replaceState(window.history.state, '', canonicalHash)
-  }
-
+function selectCurrentRoute() {
+  let requestedHash = window.location.hash
   if (hasPendingOAuthCallback()) {
-    const nextHash = '#/apply/form'
-    if (window.location.hash !== nextHash) {
-      window.location.hash = nextHash
+    requestedHash = '#/apply/form'
+    if (window.location.hash !== requestedHash) {
+      window.location.hash = requestedHash
     }
-    return selectScreenByHash(nextHash)
   }
 
-  return selectScreenByHash(canonicalHash)
+  const route = selectRouteByHash(requestedHash)
+  if (!routeMatchesHash(route, window.location.hash)) {
+    window.history.replaceState(window.history.state, '', route.path)
+  }
+
+  return route
 }
 
 function RoutedApp({ shopProbe }: AppProps) {
-  const [screen, setScreen] = useState(selectCurrentScreen)
+  const [route, setRoute] = useState(selectCurrentRoute)
   const [showAuthGateModal, setShowAuthGateModal] = useState(false)
   const [showNoCohortModal, setShowNoCohortModal] = useState(false)
   const [hasActiveCohort, setHasActiveCohort] = useState(false)
   const [isCohortStatusLoaded, setIsCohortStatusLoaded] = useState(false)
+  const localApplyTestMode = isLocalApplyTestMode()
 
   useEffect(() => {
+    if (route.id !== 'apply-intro' && route.id !== 'apply-form') {
+      setHasActiveCohort(false)
+      setIsCohortStatusLoaded(false)
+      return
+    }
+
     let cancelled = false
 
     authFetch(`${API_BASE_URL}/api/generations/active`)
@@ -70,7 +76,7 @@ function RoutedApp({ shopProbe }: AppProps) {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [route.id])
 
   useEffect(() => {
     const handleOAuthCallback = async () => {
@@ -117,7 +123,7 @@ function RoutedApp({ shopProbe }: AppProps) {
       } finally {
         sessionStorage.removeItem('oauthProvider')
         clearOAuthQueryParams()
-        setScreen(selectScreenByHash('#/apply/form'))
+        setRoute(selectRouteByHash('#/apply/form'))
         if (window.location.hash !== '#/apply/form') {
           window.location.hash = '#/apply/form'
         }
@@ -129,7 +135,7 @@ function RoutedApp({ shopProbe }: AppProps) {
 
   useEffect(() => {
     const handleHashChange = () => {
-      setScreen(selectCurrentScreen())
+      setRoute(selectCurrentRoute())
     }
 
     const handleApplyGateClick = (event: MouseEvent) => {
@@ -138,7 +144,7 @@ function RoutedApp({ shopProbe }: AppProps) {
         return
       }
 
-      if (isCohortStatusLoaded && !hasActiveCohort) {
+      if (!localApplyTestMode && isCohortStatusLoaded && !hasActiveCohort) {
         event.preventDefault()
         setShowNoCohortModal(true)
         return
@@ -158,7 +164,7 @@ function RoutedApp({ shopProbe }: AppProps) {
     const handleAuthChanged = () => {
       setShowAuthGateModal(false)
       setShowNoCohortModal(false)
-      setScreen(selectCurrentScreen())
+      setRoute(selectCurrentRoute())
     }
 
     window.addEventListener('hashchange', handleHashChange)
@@ -174,23 +180,39 @@ function RoutedApp({ shopProbe }: AppProps) {
       window.removeEventListener('auth:changed', handleAuthChanged)
       window.removeEventListener('storage', handleAuthChanged)
     }
-  }, [hasActiveCohort, isCohortStatusLoaded])
+  }, [hasActiveCohort, isCohortStatusLoaded, localApplyTestMode])
 
-  const currentScreenId = screen.id
+  const currentRouteId = route.id
+
+  useEffect(() => {
+    if (
+      currentRouteId !== 'apply-form'
+      || hasValidUserSession(readAuthSession())
+    ) {
+      return
+    }
+
+    sessionStorage.setItem('postLoginRedirect', '#/apply/form')
+    setShowAuthGateModal(true)
+  }, [currentRouteId])
 
   useEffect(() => {
     if (!isCohortStatusLoaded) {
       return
     }
-    setShowNoCohortModal(!hasActiveCohort && currentScreenId === 'apply-form')
-  }, [currentScreenId, hasActiveCohort, isCohortStatusLoaded])
+    const shouldShowCohortModal = hasValidUserSession(readAuthSession())
+      && !localApplyTestMode
+      && !hasActiveCohort
+      && currentRouteId === 'apply-form'
+    setShowNoCohortModal(shouldShowCohortModal)
+  }, [currentRouteId, hasActiveCohort, isCohortStatusLoaded, localApplyTestMode])
 
   useEffect(() => {
-    document.title = `${screen.title} | Selectors Client`
+    document.title = `${route.title} | Selectors Client`
     document.querySelector<HTMLElement>('.client-panel h1')?.focus({ preventScroll: true })
-  }, [screen])
+  }, [route])
 
-  const Screen = getScreenComponent(screen.id)
+  const { Screen } = route
 
   const handleGoToLogin = () => {
     setShowAuthGateModal(false)
@@ -199,9 +221,11 @@ function RoutedApp({ shopProbe }: AppProps) {
 
   return (
     <>
-      <AppShell screenId={screen.id}>
+      <AppShell
+        screenId={route.id}
+      >
         <p aria-atomic="true" aria-live="polite" className="sr-only route-announcement">
-          {screen.title} 화면
+          {route.title} 화면
         </p>
         <Screen />
       </AppShell>

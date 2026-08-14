@@ -1,6 +1,9 @@
 import { useEffect, useId, useRef, useState, type RefObject } from 'react'
 
+import { MoreIcon } from '../../components/Icons'
+
 type ShopGroupMenuProps = {
+  groupId: string
   triggerRef: RefObject<HTMLButtonElement | null>
   onShare: () => void
   onRename: () => void
@@ -10,6 +13,7 @@ type ShopGroupMenuProps = {
 const menuItemSelector = '[role="menuitem"]'
 
 export default function ShopGroupMenu({
+  groupId,
   triggerRef,
   onShare,
   onRename,
@@ -97,7 +101,7 @@ export default function ShopGroupMenu({
         ref={triggerRef}
         type="button"
       >
-        <span aria-hidden="true">•••</span>
+        <MoreIcon size={24} />
       </button>
       {open ? (
         <div
@@ -113,7 +117,7 @@ export default function ShopGroupMenu({
           <button onClick={() => closeAndRun(onRename)} role="menuitem" tabIndex={-1} type="button">
             그룹명 수정
           </button>
-          <a href="#/shop/groups/1/edit" onClick={() => setOpen(false)} role="menuitem" tabIndex={-1}>
+          <a href={`#/shop/groups/${groupId}/edit`} onClick={() => setOpen(false)} role="menuitem" tabIndex={-1}>
             항목 변경
           </a>
           <button onClick={() => closeAndRun(onDelete)} role="menuitem" tabIndex={-1} type="button">

@@ -1,25 +1,26 @@
 import { useRef, useState } from 'react'
 
 import { ArrowRightIcon, ShareIcon } from '../../components/Icons'
-import PanelHeader from '../../components/PanelHeader'
-import ShareShopSheet from '../../shop/ShareShopSheet'
-import ShopGroupSection from '../../shop/ShopGroupSection'
-import { useShopDemo } from '../../shop/ShopDemoContext'
-import ShopStatus from '../../shop/ShopStatus'
+import ScreenHeader from '../../components/ScreenHeader'
+import { hasValidUserSession, readAuthSession } from '../../auth'
+import ShareShopSheet from './ShareShopSheet'
+import ShopGroupSection from './ShopGroupSection'
+import { useShopDemo } from './ShopDemoContext'
+import ShopStatus from './ShopStatus'
 
 const initialGroupCount = 6
 const disclosure = '셀렉터스샵에서 상품을 구매하는 경우, 상품 구매로 발생한 수익의 일부가 셀렉터스에게 제공됩니다.'
 const shareUrl = 'https://hi.thehyundai.com/sellectors/manage/shop/RC000003200T'
 
 export default function PublicShopScreen() {
-  const { profile, state } = useShopDemo()
+  const { campaigns, profile, state } = useShopDemo()
   const [visibleGroupCount, setVisibleGroupCount] = useState(initialGroupCount)
   const [shareOpen, setShareOpen] = useState(false)
   const shareTriggerRef = useRef<HTMLButtonElement>(null)
 
   return (
     <div className="panel-page">
-      <PanelHeader
+      <ScreenHeader
         action={(
           <button
             aria-label="셀렉터스샵 공유"
@@ -31,7 +32,7 @@ export default function PublicShopScreen() {
             <ShareIcon size={22} />
           </button>
         )}
-        backHref="#/screens"
+        backHref="#/campaigns"
         title="셀렉터스샵"
       />
       <div className="screen-scroll public-shop-screen">
@@ -54,9 +55,17 @@ export default function PublicShopScreen() {
           <ArrowRightIcon size={14} />
         </button>
 
+        {hasValidUserSession(readAuthSession()) ? (
+          <a className="shop-manage-button" href="#/shop/groups">관리하기</a>
+        ) : null}
+
         <div className="shop-group-list">
           {state.groups.slice(0, visibleGroupCount).map((group) => (
-            <ShopGroupSection group={group} key={group.id} />
+            <ShopGroupSection
+              description={campaigns.find(({ id }) => id === group.campaignId)?.name}
+              group={group}
+              key={group.id}
+            />
           ))}
         </div>
 

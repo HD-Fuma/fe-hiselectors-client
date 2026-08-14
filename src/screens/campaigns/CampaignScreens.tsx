@@ -1,11 +1,12 @@
 import { useRef, useState } from 'react'
 
-import { ArrowRightIcon } from '../components/Icons'
-import PanelHeader from '../components/PanelHeader'
+import { ArrowRightIcon } from '../../components/Icons'
+import ScreenHeader from '../../components/ScreenHeader'
+import MainNavigation from '../../components/layout/MainNavigation'
 import CampaignQuickAddSheet from '../shop/CampaignQuickAddSheet'
 import { useShopDemo } from '../shop/ShopDemoContext'
+import { shopProducts } from '../shop/shopData'
 import ShopStatus from '../shop/ShopStatus'
-import { shopProducts } from './productData'
 
 const campaigns = [
   {
@@ -34,7 +35,8 @@ const campaigns = [
 export function CampaignListScreen() {
   return (
     <>
-      <PanelHeader backHref="#/screens" title="캠페인" />
+      <ScreenHeader title="캠페인" />
+      <MainNavigation current="campaigns" />
       <div className="screen-scroll campaigns-screen">
         <div className="screen-lead">
           <h2>지금 소개하기 좋은 캠페인</h2>
@@ -78,7 +80,7 @@ export function CampaignDetailScreen() {
 
   return (
     <>
-      <PanelHeader backHref="#/campaigns" title="시즌 픽 캠페인" />
+      <ScreenHeader backHref="#/campaigns" title="시즌 픽 캠페인" />
       <div className="screen-scroll campaign-detail-screen">
         <section className="campaign-hero-card">
           <img alt="크림색 재킷으로 완성한 여름 시즌 스타일" src={shopProducts[0].image} />

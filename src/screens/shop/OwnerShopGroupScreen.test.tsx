@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
 
 import App from '../../App'
-import { useShopDemo } from '../../shop/ShopDemoContext'
+import { useShopDemo } from './ShopDemoContext'
 
 const ownerHash = '#/shop/RC000003200T/1'
 const disclosure = '셀렉터스샵에서 상품을 구매하는 경우, 상품 구매로 발생한 수익의 일부가 셀렉터스에게 제공됩니다.'
@@ -86,6 +86,7 @@ describe('owner selectors shop group', () => {
 
     const group = screen.getByRole('region', { name: '귀걸이' })
     expect(within(group).getByRole('heading', { level: 2, name: '귀걸이' })).toBeTruthy()
+    expect(within(group).getByText('매일을 빛내는 작은 주얼리')).toBeTruthy()
     const cards = within(group).getAllByRole('article')
     expect(cards).toHaveLength(2)
     expect(within(cards[0]).getByRole('img').getAttribute('src')).toBe(
@@ -151,6 +152,30 @@ describe('owner selectors shop group', () => {
     expect(screen.queryByRole('menu')).toBeNull()
     expect(trigger.getAttribute('aria-expanded')).toBe('false')
     expect(document.activeElement).toBe(trigger)
+  })
+
+  it('opens every group through its own detail and edit route', async () => {
+    window.location.hash = '#/shop/RC000003200T/2'
+    render(<App />)
+
+    const group = screen.getByRole('region', { name: '여름의 결' })
+    expect(within(group).getByText('여름의 결을 고르는 시즌 픽')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: '옵션 열기' }))
+    const editLink = screen.getByRole('menuitem', { name: '항목 변경' })
+    expect(editLink.getAttribute('href')).toBe(
+      '#/shop/groups/2/edit',
+    )
+
+    fireEvent.click(editLink)
+
+    await waitFor(() => expect(window.location.hash).toBe('#/shop/groups/2/edit'))
+    expect((screen.getByRole('textbox', { name: '상품 그룹 이름' }) as HTMLInputElement).value).toBe(
+      '여름의 결',
+    )
+    expect(screen.getByRole('link', { name: '뒤로 가기' }).getAttribute('href')).toBe(
+      '#/shop/RC000003200T/2',
+    )
   })
 
   it('closes the menu on Tab without trapping focus', () => {
@@ -401,7 +426,9 @@ describe('owner selectors shop group', () => {
       within(card).getByText(/^(귀걸이|여름의 결|블루 니트|블랙베리 향|프리지아|프랑지파니|샴페인 주얼리|플라워 브레이슬릿|H 링크|스타일 셀렉션|향의 기록|선물 추천|오늘의 픽)$/).textContent
     ))).toEqual(overviewGroups.map(([name]) => name))
     overviewGroups.forEach(([name, productCount], index) => {
-      expect(within(cards[index]).getByText(name)).toBeTruthy()
+      expect(within(cards[index]).getByRole('link', { name }).getAttribute('href')).toBe(
+        `#/shop/RC000003200T/${index + 1}`,
+      )
       expect(
         within(cards[index]).getByText(`상품 ${productCount}개 · 2026.08.04 생성`),
       ).toBeTruthy()
@@ -416,7 +443,7 @@ describe('owner selectors shop group', () => {
     expect(ownerLinks).toHaveLength(1)
     const createLink = screen.getByRole('link', { name: '상품 그룹 만들기' })
     expect(createLink.getAttribute('href')).toBe('#/shop/groups/new')
-    expect(createLink.closest('.bottom-action')).toBeTruthy()
+    expect(createLink.closest('.bottom-action-bar')).toBeTruthy()
   })
 
   it('keeps shop state for the App lifetime and resets it on remount', () => {
@@ -443,7 +470,7 @@ describe('owner selectors shop group', () => {
 
     window.location.hash = '#/shop/groups/edit'
     fireEvent(window, new HashChangeEvent('hashchange'))
-    expect(window.location.hash).toBe('#/shop/groups/new')
+    expect(window.location.hash).toBe('#/login')
 
     window.location.hash = ownerHash
     fireEvent(window, new HashChangeEvent('hashchange'))

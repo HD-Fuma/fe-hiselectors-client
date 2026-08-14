@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
 
-import BottomAction from '../../components/BottomAction'
-import PanelHeader from '../../components/PanelHeader'
-import GroupProductPicker from '../../shop/GroupProductPicker'
-import { useShopDemo, type ShopDemoGroup } from '../../shop/ShopDemoContext'
+import BottomActionBar from '../../components/BottomActionBar'
+import ScreenHeader from '../../components/ScreenHeader'
+import GroupProductPicker from './GroupProductPicker'
+import { useShopDemo, type ShopDemoGroup } from './ShopDemoContext'
 
 export type GroupEditorMode =
   | { kind: 'create'; backHref: '#/shop/groups'; initialCampaignId: null }
-  | { kind: 'edit'; groupId: '1'; backHref: '#/shop/RC000003200T/1' }
+  | { kind: 'edit'; groupId: string; backHref: `#/shop/RC000003200T/${string}` }
   | {
     kind: 'campaign-create'
     backHref: '#/campaigns/detail'
@@ -19,7 +19,7 @@ export function MissingShopGroup({ title }: { title: '셀렉터스샵' | '상품
 
   return (
     <>
-      <PanelHeader
+      <ScreenHeader
         backHref="#/shop/RC000003200T"
         onBack={clearQuickAddDraft}
         title={title}
@@ -141,7 +141,7 @@ function GroupEditorForm({
       data-group-id={groupId}
       data-initial-campaign={initialCampaign}
     >
-      <PanelHeader
+      <ScreenHeader
         backHref={mode.backHref}
         onBack={shop.clearQuickAddDraft}
         title={editorTitle}
@@ -192,7 +192,7 @@ function GroupEditorForm({
         />
         {productError ? <p className="editor-alert" role="alert">{productError}</p> : null}
       </div>
-      <BottomAction
+      <BottomActionBar
         disabled={!canSave}
         label="상품 그룹 저장하기"
         onClick={handleSave}
@@ -214,12 +214,14 @@ export function GroupCreateScreen() {
 }
 
 export function GroupEditScreen() {
+  const groupId = window.location.hash.match(/^#\/shop\/groups\/([^/]+)\/edit$/)?.[1] ?? ''
+
   return (
     <GroupEditorScreen
       mode={{
         kind: 'edit',
-        groupId: '1',
-        backHref: '#/shop/RC000003200T/1',
+        groupId,
+        backHref: `#/shop/RC000003200T/${groupId}`,
       }}
     />
   )
