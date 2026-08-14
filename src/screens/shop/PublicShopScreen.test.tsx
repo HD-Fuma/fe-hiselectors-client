@@ -62,6 +62,7 @@ describe('public selectors shop', () => {
     expect(badge.getAttribute('src')).toBe(badgeImage)
     expect(screen.getByRole('heading', { level: 2, name: 'byunjjii' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'byunjjii의 ME스페이스' })).toBeTruthy()
+    expect(screen.queryByRole('link', { name: '관리하기' })).toBeNull()
 
     const sections = [...container.querySelectorAll<HTMLElement>('[data-shop-group-id]')]
     expect(sections.map((section) => (

@@ -8,6 +8,7 @@ import ShareShopSheet from './ShareShopSheet'
 import ShopGroupMenu from './ShopGroupMenu'
 import ShopGroupSection from './ShopGroupSection'
 import { useShopDemo } from './ShopDemoContext'
+import ShopProfile from './ShopProfile'
 import ShopStatus from './ShopStatus'
 import { MissingShopGroup } from './GroupEditorScreen'
 
@@ -49,6 +50,7 @@ export default function OwnerShopGroupScreen() {
         title="셀렉터스샵"
       />
       <div className="screen-scroll owner-shop-group-screen">
+        <ShopProfile manageHref="#/shop/groups/1/edit" />
         <ShopGroupSection
           group={group}
           ownerAction={(

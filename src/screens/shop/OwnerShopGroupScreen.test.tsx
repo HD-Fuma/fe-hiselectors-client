@@ -80,9 +80,12 @@ describe('owner selectors shop group', () => {
     expect(screen.getByRole('heading', { level: 1, name: '셀렉터스샵' })).toBeTruthy()
     expect(screen.getByRole('link', { name: '뒤로 가기' })).toBeTruthy()
     expect(screen.getByRole('button', { name: '상품 그룹 공유' })).toBeTruthy()
-    expect(screen.queryByRole('heading', { name: 'byunjjii' })).toBeNull()
-    expect(screen.queryByAltText('인플루언서 뱃지')).toBeNull()
-    expect(screen.queryByRole('button', { name: 'byunjjii의 ME스페이스' })).toBeNull()
+    expect(screen.getByRole('heading', { level: 2, name: 'byunjjii' })).toBeTruthy()
+    expect(screen.getByAltText('인플루언서 뱃지')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'byunjjii의 ME스페이스' })).toBeTruthy()
+    expect(screen.getByRole('link', { name: '관리하기' }).getAttribute('href')).toBe(
+      '#/shop/groups/1/edit',
+    )
 
     const group = screen.getByRole('region', { name: '귀걸이' })
     expect(within(group).getByRole('heading', { level: 2, name: '귀걸이' })).toBeTruthy()
