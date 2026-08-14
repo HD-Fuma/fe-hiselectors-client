@@ -150,7 +150,7 @@ function RoutedApp({ shopProbe }: AppProps) {
         return
       }
 
-      if (!localApplyTestMode && !hasValidUserSession(readAuthSession())) {
+      if (!hasValidUserSession(readAuthSession())) {
         event.preventDefault()
         sessionStorage.setItem('postLoginRedirect', '#/apply/form')
         setShowAuthGateModal(true)
@@ -187,7 +187,6 @@ function RoutedApp({ shopProbe }: AppProps) {
   useEffect(() => {
     if (
       currentRouteId !== 'apply-form'
-      || localApplyTestMode
       || hasValidUserSession(readAuthSession())
     ) {
       return
@@ -195,7 +194,7 @@ function RoutedApp({ shopProbe }: AppProps) {
 
     sessionStorage.setItem('postLoginRedirect', '#/apply/form')
     setShowAuthGateModal(true)
-  }, [currentRouteId, localApplyTestMode])
+  }, [currentRouteId])
 
   useEffect(() => {
     if (!isCohortStatusLoaded) {
