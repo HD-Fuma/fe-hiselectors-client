@@ -7,7 +7,7 @@ import { useShopDemo, type ShopDemoGroup } from './ShopDemoContext'
 
 export type GroupEditorMode =
   | { kind: 'create'; backHref: '#/shop/groups'; initialCampaignId: null }
-  | { kind: 'edit'; groupId: '1'; backHref: '#/shop/RC000003200T/1' }
+  | { kind: 'edit'; groupId: string; backHref: `#/shop/RC000003200T/${string}` }
   | {
     kind: 'campaign-create'
     backHref: '#/campaigns/detail'
@@ -214,12 +214,14 @@ export function GroupCreateScreen() {
 }
 
 export function GroupEditScreen() {
+  const groupId = window.location.hash.match(/^#\/shop\/groups\/([^/]+)\/edit$/)?.[1] ?? ''
+
   return (
     <GroupEditorScreen
       mode={{
         kind: 'edit',
-        groupId: '1',
-        backHref: '#/shop/RC000003200T/1',
+        groupId,
+        backHref: `#/shop/RC000003200T/${groupId}`,
       }}
     />
   )

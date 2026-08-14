@@ -20,7 +20,7 @@ export default function ScreenHeader({ action, backHref, onBack, title }: Screen
             href={backHref}
             onClick={onBack}
           >
-            <ArrowLeftIcon />
+            <ArrowLeftIcon size={24} />
           </a>
         ) : null}
       </div>

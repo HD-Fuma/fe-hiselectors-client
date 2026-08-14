@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 
 import AppShell from './components/layout/AppShell'
 import { API_BASE_URL, authFetch, hasValidUserSession, readAuthSession } from './auth'
-import { selectRouteByHash } from './routes'
+import { routeMatchesHash, selectRouteByHash } from './routes'
 import { ShopDemoProvider } from './screens/shop/ShopDemoContext'
 import { verifyOAuth } from './oauth'
 import './styles/global.css'
@@ -27,7 +27,7 @@ function selectCurrentRoute() {
   }
 
   const route = selectRouteByHash(requestedHash)
-  if (route.path !== window.location.hash) {
+  if (!routeMatchesHash(route, window.location.hash)) {
     window.history.replaceState(window.history.state, '', route.path)
   }
 

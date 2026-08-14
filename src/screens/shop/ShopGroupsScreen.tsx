@@ -1,5 +1,5 @@
 import BottomActionBar from '../../components/BottomActionBar'
-import { CopyIcon } from '../../components/Icons'
+import { CopyIcon, MoreIcon } from '../../components/Icons'
 import ScreenHeader from '../../components/ScreenHeader'
 import MainNavigation from '../../components/layout/MainNavigation'
 import { useShopDemo } from './ShopDemoContext'
@@ -39,13 +39,11 @@ export default function ShopGroupsScreen() {
               <div className="group-card-body">
                 <span>GROUP {String(index + 1).padStart(2, '0')}</span>
                 <strong>
-                  {group.id === '1'
-                    ? <a href="#/shop/RC000003200T/1">{group.name}</a>
-                    : group.name}
+                  <a href={`#/shop/RC000003200T/${group.id}`}>{group.name}</a>
                 </strong>
                 <p>상품 {group.productIds.length}개 · {group.createdAt} 생성</p>
               </div>
-              <button aria-label={`${group.name} 메뉴`} type="button">•••</button>
+              <button aria-label={`${group.name} 메뉴`} type="button"><MoreIcon size={24} /></button>
             </article>
           ))}
         </div>

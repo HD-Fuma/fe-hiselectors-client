@@ -22,7 +22,8 @@ function SvgIcon({ size = 24, children, ...props }: IconProps) {
 export function ArrowLeftIcon(props: IconProps) {
   return (
     <SvgIcon {...props}>
-      <path d="m15 5-7 7 7 7" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+      <path d="M4.245 11.57h15.51" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M11 4 4 11.5 11 19" stroke="currentColor" strokeWidth="1.5" />
     </SvgIcon>
   )
 }
@@ -139,8 +140,19 @@ export function LoginProviderIcon({ provider, ...props }: LoginProviderIconProps
 export function ShareIcon(props: IconProps) {
   return (
     <SvgIcon {...props}>
-      <path d="M12 16V3m-5 5 5-5 5 5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" />
-      <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" />
+      <path d="M15.646 8.37S13.676 6.45 12.126 4h-.34c-1.54 2.45-3.52 4.37-3.52 4.37" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M11.961 4v9.32" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M18.43 8.57c-.46 5.1.42 10.17.42 10.17l.05.31s-3.54-.8-6.95-.72c-3.4-.08-6.95.72-6.95.72l.05-.31s.87-5.07.42-10.17" stroke="currentColor" strokeWidth="1.5" />
+    </SvgIcon>
+  )
+}
+
+export function MoreIcon(props: IconProps) {
+  return (
+    <SvgIcon {...props}>
+      <circle cx="12" cy="5" fill="currentColor" r="1.5" />
+      <circle cx="12" cy="12" fill="currentColor" r="1.5" />
+      <circle cx="12" cy="19" fill="currentColor" r="1.5" />
     </SvgIcon>
   )
 }

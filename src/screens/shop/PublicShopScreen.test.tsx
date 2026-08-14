@@ -26,6 +26,7 @@ function SetShopStatusControl() {
 afterEach(() => {
   cleanup()
   window.location.hash = ''
+  localStorage.clear()
   vi.unstubAllGlobals()
   vi.restoreAllMocks()
 
@@ -104,6 +105,20 @@ describe('public selectors shop', () => {
     expect(within(secondCard).getByText('127,500원').tagName).toBe('STRONG')
 
     expect(screen.getByText(disclosure)).toBeTruthy()
+  })
+
+  it('shows shop management only to the signed-in owner', () => {
+    localStorage.setItem('selectors-auth', JSON.stringify({
+      accessToken: 'owner.token',
+      role: 'USER',
+    }))
+    window.location.hash = shopHash
+
+    render(<App />)
+
+    expect(screen.getByRole('link', { name: '관리하기' }).getAttribute('href')).toBe(
+      '#/shop/groups',
+    )
   })
 
   it('announces only actual shop statuses', () => {

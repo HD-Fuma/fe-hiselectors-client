@@ -8,22 +8,25 @@ import ShareShopSheet from './ShareShopSheet'
 import ShopGroupMenu from './ShopGroupMenu'
 import ShopGroupSection from './ShopGroupSection'
 import { useShopDemo } from './ShopDemoContext'
-import ShopProfile from './ShopProfile'
 import ShopStatus from './ShopStatus'
 import { MissingShopGroup } from './GroupEditorScreen'
 
 const disclosure = '셀렉터스샵에서 상품을 구매하는 경우, 상품 구매로 발생한 수익의 일부가 셀렉터스에게 제공됩니다.'
-const shareUrl = 'https://hi.thehyundai.com/sellectors/manage/shop/RC000003200T/1'
+const shopPath = '#/shop/RC000003200T'
+
+function getGroupId() {
+  return window.location.hash.match(/^#\/shop\/RC000003200T\/([^/]+)$/)?.[1] ?? ''
+}
 
 export default function OwnerShopGroupScreen() {
-  const { deleteGroup, getGroup, renameGroup, setStatus, state } = useShopDemo()
+  const { campaigns, deleteGroup, getGroup, renameGroup, setStatus, state } = useShopDemo()
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [renameOpen, setRenameOpen] = useState(false)
   const [shareOpen, setShareOpen] = useState(false)
   const activeShareInvokerRef = useRef<HTMLElement>(null)
   const headerShareTriggerRef = useRef<HTMLButtonElement>(null)
   const menuTriggerRef = useRef<HTMLButtonElement>(null)
-  const group = getGroup('1')
+  const group = getGroup(getGroupId())
 
   if (!group) {
     return <MissingShopGroup title="셀렉터스샵" />
@@ -46,15 +49,16 @@ export default function OwnerShopGroupScreen() {
             <ShareIcon size={22} />
           </button>
         )}
-        backHref="#/shop/RC000003200T"
+        backHref={shopPath}
         title="셀렉터스샵"
       />
       <div className="screen-scroll owner-shop-group-screen">
-        <ShopProfile manageHref="#/shop/groups/1/edit" />
         <ShopGroupSection
+          description={campaigns.find(({ id }) => id === group.campaignId)?.name}
           group={group}
           ownerAction={(
             <ShopGroupMenu
+              groupId={group.id}
               onDelete={() => setDeleteOpen(true)}
               onRename={() => setRenameOpen(true)}
               onShare={() => {
@@ -73,7 +77,7 @@ export default function OwnerShopGroupScreen() {
           invokerRef={activeShareInvokerRef}
           onClose={() => setShareOpen(false)}
           title="상품 그룹 공유"
-          url={shareUrl}
+          url={`https://hi.thehyundai.com/sellectors/manage/shop/RC000003200T/${group.id}`}
         />
       ) : null}
       {renameOpen ? (
@@ -96,7 +100,7 @@ export default function OwnerShopGroupScreen() {
             deleteGroup(group.id)
             setStatus('상품 그룹을 삭제했어요.')
             setDeleteOpen(false)
-            window.location.hash = '#/shop/RC000003200T'
+            window.location.hash = shopPath
           }}
         />
       ) : null}

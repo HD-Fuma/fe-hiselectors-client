@@ -106,6 +106,12 @@ export const routes = [
 export type AppRoute = (typeof routes)[number]
 export type RouteId = AppRoute['id']
 
+export function routeMatchesHash(route: AppRoute, hash: string): boolean {
+  return route.path === hash
+    || (route.id === 'owner-shop-group' && /^#\/shop\/RC000003200T\/[^/]+$/.test(hash))
+    || (route.id === 'group-edit' && /^#\/shop\/groups\/[^/]+\/edit$/.test(hash))
+}
+
 export function selectRouteByHash(hash: string): AppRoute {
-  return routes.find((route) => route.path === hash) ?? routes[0]
+  return routes.find((route) => routeMatchesHash(route, hash)) ?? routes[0]
 }

@@ -152,8 +152,9 @@ describe('service sidebar and public shop reference contract', () => {
     expect([...shareIcon?.querySelectorAll('path') ?? []].map((path) => (
       path.getAttribute('d')
     ))).toEqual([
-      'M12 16V3m-5 5 5-5 5 5',
-      'M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7',
+      'M15.646 8.37S13.676 6.45 12.126 4h-.34c-1.54 2.45-3.52 4.37-3.52 4.37',
+      'M11.961 4v9.32',
+      'M18.43 8.57c-.46 5.1.42 10.17.42 10.17l.05.31s-3.54-.8-6.95-.72c-3.4-.08-6.95.72-6.95.72l.05-.31s.87-5.07.42-10.17',
     ])
   })
 })

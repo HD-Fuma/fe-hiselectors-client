@@ -48,4 +48,9 @@ describe('routes', () => {
   it('falls back to login for an unknown hash', () => {
     expect(selectRouteByHash('#/not-a-screen').id).toBe('login')
   })
+
+  it('selects dynamic shop group detail and edit routes', () => {
+    expect(selectRouteByHash('#/shop/RC000003200T/13').id).toBe('owner-shop-group')
+    expect(selectRouteByHash('#/shop/groups/13/edit').id).toBe('group-edit')
+  })
 })

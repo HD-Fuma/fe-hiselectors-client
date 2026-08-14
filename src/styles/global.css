@@ -246,7 +246,7 @@ ol {
   top: 0;
   display: grid;
   flex: 0 0 52px;
-  grid-template-columns: 34px minmax(0, 1fr) 40px;
+  grid-template-columns: 32px minmax(0, 1fr) 32px;
   align-items: center;
   height: 52px;
   padding: 0 16px;
@@ -271,13 +271,13 @@ ol {
 .screen-header-side {
   display: flex;
   align-items: center;
-  width: 34px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
 }
 
 .screen-header-action {
   justify-content: flex-end;
-  width: 40px;
+  width: 32px;
 }
 
 .panel-text-action {
@@ -290,16 +290,16 @@ ol {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
 }
 
 .icon-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
 }
 
 .screen-scroll {
