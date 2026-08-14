@@ -1,7 +1,13 @@
 import { useEffect, useState, type ReactNode } from 'react'
 
 import AppShell from './components/layout/AppShell'
-import { API_BASE_URL, authFetch, hasValidUserSession, readAuthSession } from './auth'
+import {
+  API_BASE_URL,
+  authFetch,
+  hasValidUserSession,
+  isLocalApplyTestMode,
+  readAuthSession,
+} from './auth'
 import { routeMatchesHash, selectRouteByHash } from './routes'
 import { ShopDemoProvider } from './screens/shop/ShopDemoContext'
 import { verifyOAuth } from './oauth'
@@ -15,12 +21,6 @@ type AppProps = {
 function hasPendingOAuthCallback(): boolean {
   const params = new URLSearchParams(window.location.search)
   return Boolean(params.get('code') && params.get('state'))
-}
-
-function isLocalApplyTestMode(): boolean {
-  return import.meta.env.DEV
-    && ['127.0.0.1', 'localhost'].includes(window.location.hostname)
-    && new URLSearchParams(window.location.search).get('applyTest') === '1'
 }
 
 function selectCurrentRoute() {
@@ -150,7 +150,7 @@ function RoutedApp({ shopProbe }: AppProps) {
         return
       }
 
-      if (!hasValidUserSession(readAuthSession())) {
+      if (!localApplyTestMode && !hasValidUserSession(readAuthSession())) {
         event.preventDefault()
         sessionStorage.setItem('postLoginRedirect', '#/apply/form')
         setShowAuthGateModal(true)
@@ -185,13 +185,17 @@ function RoutedApp({ shopProbe }: AppProps) {
   const currentRouteId = route.id
 
   useEffect(() => {
-    if (currentRouteId !== 'apply-form' || hasValidUserSession(readAuthSession())) {
+    if (
+      currentRouteId !== 'apply-form'
+      || localApplyTestMode
+      || hasValidUserSession(readAuthSession())
+    ) {
       return
     }
 
     sessionStorage.setItem('postLoginRedirect', '#/apply/form')
     setShowAuthGateModal(true)
-  }, [currentRouteId])
+  }, [currentRouteId, localApplyTestMode])
 
   useEffect(() => {
     if (!isCohortStatusLoaded) {

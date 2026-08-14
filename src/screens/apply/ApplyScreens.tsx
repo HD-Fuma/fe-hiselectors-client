@@ -1,6 +1,14 @@
 import { useEffect, useState } from 'react'
 
-import { API_BASE_URL, authFetch, hasValidUserSession, readAuthSession, redirectToLoginScreen, redirectToMainScreen } from '../../auth'
+import {
+  API_BASE_URL,
+  authFetch,
+  hasValidUserSession,
+  isLocalApplyTestMode,
+  readAuthSession,
+  redirectToLoginScreen,
+  redirectToMainScreen,
+} from '../../auth'
 import BottomActionBar from '../../components/BottomActionBar'
 import { ArrowRightIcon, CartIcon, CheckIcon, ChevronDownIcon, CoinIcon, GiftIcon, LinkIcon, PersonIcon } from '../../components/Icons'
 import ScreenHeader from '../../components/ScreenHeader'
@@ -113,7 +121,8 @@ export function ApplyFormScreen() {
   const [oauthStatus, setOauthStatus] = useState('')
   const [connectedAccount, setConnectedAccount] = useState<ConnectedAccount | null>(null)
   const session = readAuthSession()
-  const isUserSessionValid = hasValidUserSession(session)
+  const localApplyTestMode = isLocalApplyTestMode()
+  const isUserSessionValid = localApplyTestMode || hasValidUserSession(session)
 
   const selectChannel = (index: number | null) => {
     const nextChannel = index === null ? null : snsChannels[index]
@@ -257,6 +266,10 @@ export function ApplyFormScreen() {
       const message = error instanceof Error ? error.message : '계정 연결에 실패했습니다.'
       if (message === '인증이 필요합니다.') {
         sessionStorage.removeItem('oauthProvider')
+        if (localApplyTestMode) {
+          setOauthError('OAuth API가 실제 로그인 토큰을 요구합니다. 로그인 후 다시 시도해 주세요.')
+          return
+        }
         window.dispatchEvent(new CustomEvent('auth:required'))
         return
       }

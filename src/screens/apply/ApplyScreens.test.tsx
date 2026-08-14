@@ -104,7 +104,7 @@ describe('apply flow', () => {
     ).toBeNull()
   })
 
-  it('shows login instead of a blank form when the local test URL has no session', async () => {
+  it('opens the local OAuth test form without a login session', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse({ data: null }))
     window.history.replaceState(
       window.history.state,
@@ -114,8 +114,9 @@ describe('apply flow', () => {
 
     render(<App />)
 
-    expect(await screen.findByRole('dialog', { name: '로그인이 필요합니다' })).toBeTruthy()
-    expect(sessionStorage.getItem('postLoginRedirect')).toBe('#/apply/form')
+    expect(await screen.findByRole('combobox', { name: '대표 SNS' })).toBeTruthy()
+    expect(screen.queryByRole('dialog', { name: '로그인이 필요합니다' })).toBeNull()
+    expect(sessionStorage.getItem('postLoginRedirect')).toBeNull()
     expect(
       screen.queryByRole('dialog', { name: '현재 모집 중인 기수가 없어 지원할 수 없습니다.' }),
     ).toBeNull()
