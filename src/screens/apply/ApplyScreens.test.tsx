@@ -190,7 +190,9 @@ describe('apply flow', () => {
           return jsonResponse({ data: { id: 1 } })
         }
         if (url.endsWith('/api/instagram/oauth/authorize')) {
-          return jsonResponse({ authorizationUrl: 'https://instagram.example.com/oauth' })
+          return jsonResponse({
+            authorizationUrl: 'https://instagram.example.com/oauth?redirect_uri=https%3A%2F%2Fapi.example.com%2Foauth%2Fcallback',
+          })
         }
         throw new Error(`Unexpected request: ${url}`)
       })
@@ -204,7 +206,9 @@ describe('apply flow', () => {
         expect.objectContaining({ method: 'GET' }),
       )
       await waitFor(() => expect(assignSpy).toHaveBeenCalledTimes(1))
-      expect(assignSpy.mock.calls[0][0].toString()).toContain('https://instagram.example.com/oauth')
+      expect(assignSpy).toHaveBeenCalledWith(
+        'https://instagram.example.com/oauth?redirect_uri=https%3A%2F%2Fapi.example.com%2Foauth%2Fcallback',
+      )
       expect(sessionStorage.getItem('oauthProvider')).toBe('instagram')
     } finally {
       Object.defineProperty(window, 'location', { configurable: true, value: originalLocation })

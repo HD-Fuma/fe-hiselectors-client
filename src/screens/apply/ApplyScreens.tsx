@@ -254,14 +254,11 @@ export function ApplyFormScreen() {
     try {
       sessionStorage.setItem('oauthProvider', selectedChannel.provider)
       const authorizationUrl = await startOAuthAuthorization(selectedChannel.provider)
-      const callbackUrl = `${window.location.origin}${import.meta.env.BASE_URL}`
-      const redirectUrl = new URL(authorizationUrl)
-      redirectUrl.searchParams.set('redirect_uri', callbackUrl)
       if (window.location.assign) {
-        window.location.assign(redirectUrl.toString())
+        window.location.assign(authorizationUrl)
         return
       }
-      window.location.href = redirectUrl.toString()
+      window.location.href = authorizationUrl
     } catch (error) {
       const message = error instanceof Error ? error.message : '계정 연결에 실패했습니다.'
       if (message === '인증이 필요합니다.') {
