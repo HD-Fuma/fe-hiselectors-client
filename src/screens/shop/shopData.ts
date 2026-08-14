@@ -164,6 +164,8 @@ export const selectorProducts = [
   },
 ] as const satisfies readonly ShopProduct[]
 
+export const shopProducts = selectorProducts.slice(0, 9)
+
 export const shopCampaigns = [
   {
     id: 'season-pick',

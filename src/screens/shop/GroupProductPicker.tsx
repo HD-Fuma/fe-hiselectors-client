@@ -1,4 +1,4 @@
-import { CheckIcon } from '../components/Icons'
+import { CheckIcon } from '../../components/Icons'
 import type { ShopProduct } from './shopData'
 
 type GroupProductPickerProps = {

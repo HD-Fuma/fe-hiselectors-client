@@ -5,8 +5,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 // @ts-expect-error The app intentionally has no Node type dependency; Vitest runs this file in Node.
 import { readFileSync } from 'node:fs'
 
-import App from '../App'
-import { logout } from '../auth'
+import App from '../../App'
+import { logout } from '../../auth'
 
 const workspaceRoot = (globalThis as typeof globalThis & {
   process: { cwd(): string }
@@ -16,6 +16,8 @@ const compactCss = readFileSync(`${workspaceRoot}/src/styles/global.css`, 'utf8'
 afterEach(() => {
   vi.restoreAllMocks()
   cleanup()
+  localStorage.clear()
+  sessionStorage.clear()
   window.location.hash = ''
 })
 
@@ -56,7 +58,9 @@ describe('The Hyundai login reference contract', () => {
   it('calls the user login API and surfaces the backend message only', async () => {
     window.location.hash = '#/login'
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(JSON.stringify({ accessToken: 'test.jwt', tokenType: 'Bearer', role: 'USER' }), {
+      new Response(JSON.stringify({
+        accessToken: 'test.jwt', tokenType: 'Bearer', role: 'USER',
+      }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       }),
@@ -97,7 +101,7 @@ describe('The Hyundai login reference contract', () => {
         accessToken: 'test.jwt',
         role: 'USER',
       })
-      expect(window.location.hash).toBe('#/screens')
+      expect(window.location.hash).toBe('#/campaigns')
     })
 
     fetchSpy.mockResolvedValueOnce(
@@ -120,9 +124,37 @@ describe('The Hyundai login reference contract', () => {
     expect(within(dialog).getByText('아이디 또는 비밀번호가 올바르지 않습니다.')).toBeTruthy()
   })
 
+  it('returns to the requested application form after login', async () => {
+    sessionStorage.setItem('postLoginRedirect', '#/apply/form')
+    window.location.hash = '#/login'
+    vi.spyOn(globalThis, 'fetch').mockImplementation((input) => Promise.resolve(
+      String(input).endsWith('/api/generations/active')
+        ? new Response(JSON.stringify({ data: { id: 1 } }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+        : new Response(JSON.stringify({
+          data: { accessToken: 'test.jwt', tokenType: 'Bearer', role: 'USER' },
+        }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+    ))
+
+    render(<App />)
+    fireEvent.change(screen.getByLabelText('아이디'), { target: { value: 'selector-user' } })
+    fireEvent.change(screen.getByLabelText('비밀번호'), { target: { value: 'demo-pass' } })
+    fireEvent.click(screen.getByRole('button', { name: '로그인' }))
+
+    await vi.waitFor(() => {
+      expect(window.location.hash).toBe('#/apply/form')
+      expect(sessionStorage.getItem('postLoginRedirect')).toBeNull()
+    })
+  })
+
   it('clears the auth session and redirects to login on logout', () => {
     localStorage.setItem('selectors-auth', JSON.stringify({ accessToken: 'keep.me', role: 'USER' }))
-    window.location.hash = '#/screens'
+    window.location.hash = '#/campaigns'
 
     render(<App />)
 

@@ -2,7 +2,7 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import App from '../../App'
-import { useShopDemo } from '../../shop/ShopDemoContext'
+import { useShopDemo } from './ShopDemoContext'
 
 const shopHash = '#/shop/RC000003200T'
 const badgeImage = 'https://image.thehyundai.com/images/badge/badge_manager_large.png?SF=webp&AO=1'

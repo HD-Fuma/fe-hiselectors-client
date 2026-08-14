@@ -76,7 +76,7 @@ export function hasValidUserSession(session: AuthSession | null): boolean {
 }
 
 export function redirectToMainScreen() {
-  window.location.hash = '#/screens'
+  window.location.hash = '#/campaigns'
 }
 
 export function redirectToLoginScreen() {
@@ -85,7 +85,10 @@ export function redirectToLoginScreen() {
 
 export function logout() {
   localStorage.removeItem(AUTH_STORAGE_KEY)
-  window.location.hash = '#/login'
+  window.dispatchEvent(new CustomEvent('auth:changed', { detail: null }))
+  if (window.location.hash !== '#/login') {
+    window.location.hash = '#/login'
+  }
 }
 
 export async function authFetch(input: RequestInfo | URL, init: RequestInit = {}) {

@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 // @ts-expect-error The app intentionally has no Node type dependency; Vitest runs this file in Node.
 import { readFileSync } from 'node:fs'
 
-import App from '../App'
+import App from './App'
 
 const workspaceRoot = (globalThis as typeof globalThis & {
   process: { cwd(): string }
@@ -31,12 +31,12 @@ describe('quality regression contracts', () => {
     const intermediateRules = globalCss.slice(globalCss.indexOf('@media (min-width: 1100px) and (max-width: 1151px)'))
 
     expect(intermediateRules).toMatch(/\.app-shell \{[^}]*grid-template-columns: repeat\(2, minmax\(0, 552px\)\);[^}]*gap: clamp\(0px, calc\(100vw - 1104px\), 48px\);/)
-    expect(intermediateRules).toMatch(/\.hihi-aside, \.client-panel \{[^}]*width: 100%;/)
-    expect(globalCss).toMatch(/\.hihi-aside \{[^}]*overflow-x: hidden;[^}]*overflow-y: auto;/)
+    expect(intermediateRules).toMatch(/\.service-sidebar, \.client-panel \{[^}]*width: 100%;/)
+    expect(globalCss).toMatch(/\.service-sidebar \{[^}]*overflow-x: hidden;[^}]*overflow-y: auto;/)
   })
 
   it('announces and focuses a newly selected hash screen', async () => {
-    window.location.hash = '#/screens'
+    window.location.hash = '#/login'
     render(<App />)
 
     window.location.hash = '#/apply'
@@ -73,7 +73,7 @@ describe('quality regression contracts', () => {
   })
 
   it('does not expose a fake search landmark without a search control', () => {
-    window.location.hash = '#/screens'
+    window.location.hash = '#/campaigns'
     render(<App />)
 
     expect(screen.queryByRole('search')).toBeNull()

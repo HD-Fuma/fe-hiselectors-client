@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
 
 import App from '../../App'
-import { useShopDemo } from '../../shop/ShopDemoContext'
+import { useShopDemo } from './ShopDemoContext'
 
 const ownerHash = '#/shop/RC000003200T/1'
 const disclosure = '셀렉터스샵에서 상품을 구매하는 경우, 상품 구매로 발생한 수익의 일부가 셀렉터스에게 제공됩니다.'
@@ -416,7 +416,7 @@ describe('owner selectors shop group', () => {
     expect(ownerLinks).toHaveLength(1)
     const createLink = screen.getByRole('link', { name: '상품 그룹 만들기' })
     expect(createLink.getAttribute('href')).toBe('#/shop/groups/new')
-    expect(createLink.closest('.bottom-action')).toBeTruthy()
+    expect(createLink.closest('.bottom-action-bar')).toBeTruthy()
   })
 
   it('keeps shop state for the App lifetime and resets it on remount', () => {
@@ -443,7 +443,7 @@ describe('owner selectors shop group', () => {
 
     window.location.hash = '#/shop/groups/edit'
     fireEvent(window, new HashChangeEvent('hashchange'))
-    expect(window.location.hash).toBe('#/shop/groups/new')
+    expect(window.location.hash).toBe('#/login')
 
     window.location.hash = ownerHash
     fireEvent(window, new HashChangeEvent('hashchange'))

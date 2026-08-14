@@ -1,14 +1,14 @@
 import { useRef, useState } from 'react'
 
 import { ShareIcon } from '../../components/Icons'
-import PanelHeader from '../../components/PanelHeader'
-import DeleteGroupDialog from '../../shop/DeleteGroupDialog'
-import RenameGroupDialog from '../../shop/RenameGroupDialog'
-import ShareShopSheet from '../../shop/ShareShopSheet'
-import ShopGroupMenu from '../../shop/ShopGroupMenu'
-import ShopGroupSection from '../../shop/ShopGroupSection'
-import { useShopDemo } from '../../shop/ShopDemoContext'
-import ShopStatus from '../../shop/ShopStatus'
+import ScreenHeader from '../../components/ScreenHeader'
+import DeleteGroupDialog from './DeleteGroupDialog'
+import RenameGroupDialog from './RenameGroupDialog'
+import ShareShopSheet from './ShareShopSheet'
+import ShopGroupMenu from './ShopGroupMenu'
+import ShopGroupSection from './ShopGroupSection'
+import { useShopDemo } from './ShopDemoContext'
+import ShopStatus from './ShopStatus'
 import { MissingShopGroup } from './GroupEditorScreen'
 
 const disclosure = '셀렉터스샵에서 상품을 구매하는 경우, 상품 구매로 발생한 수익의 일부가 셀렉터스에게 제공됩니다.'
@@ -30,7 +30,7 @@ export default function OwnerShopGroupScreen() {
 
   return (
     <div className="panel-page">
-      <PanelHeader
+      <ScreenHeader
         action={(
           <button
             aria-label="상품 그룹 공유"

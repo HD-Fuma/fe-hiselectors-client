@@ -20,6 +20,42 @@ function extractErrorMessage(payload: string): string {
   }
 }
 
+function unwrapPayload(value: unknown): unknown {
+  if (typeof value !== 'object' || value === null) {
+    return value
+  }
+
+  const envelope = value as Record<string, unknown>
+  if ('data' in envelope && envelope.data != null) {
+    return unwrapPayload(envelope.data)
+  }
+  if ('result' in envelope && envelope.result != null) {
+    return unwrapPayload(envelope.result)
+  }
+
+  return value
+}
+
+function extractAuthorizationUrl(value: unknown): string | null {
+  const payload = unwrapPayload(value)
+  if (typeof payload === 'string') {
+    return payload.trim() || null
+  }
+  if (typeof payload !== 'object' || payload === null) {
+    return null
+  }
+
+  const record = payload as Record<string, unknown>
+  for (const key of ['authorizationUrl', 'authorizeUrl', 'redirectUrl', 'url']) {
+    const candidate = record[key]
+    if (typeof candidate === 'string' && candidate.trim()) {
+      return candidate.trim()
+    }
+  }
+
+  return null
+}
+
 async function getAuthorizationUrl(provider: OAuthProvider): Promise<string> {
   const response = await authFetch(`${API_BASE_URL}/api/${provider}/oauth/authorize`, {
     method: 'GET',
@@ -36,11 +72,10 @@ async function getAuthorizationUrl(provider: OAuthProvider): Promise<string> {
     throw new Error(extractErrorMessage(rawMessage) || 'OAuth authorization failed.')
   }
 
-  const envelope = await response.json() as { data: { authorizationUrl?: string; url?: string } }
-  const authorizationUrl = envelope.data?.authorizationUrl ?? envelope.data?.url
+  const authorizationUrl = extractAuthorizationUrl(await response.json())
 
   if (!authorizationUrl) {
-    throw new Error('Authorization URL is missing from the OAuth response.')
+    throw new Error('OAuth 인증 주소를 응답에서 찾을 수 없습니다.')
   }
 
   return authorizationUrl
@@ -68,6 +103,10 @@ export async function verifyOAuth(provider: OAuthProvider, code: string, state: 
     throw new Error(extractErrorMessage(rawMessage) || 'OAuth verification failed.')
   }
 
-  const envelope = (await response.json()) as { data: OAuthVerificationResult }
-  return envelope.data
+  const result = unwrapPayload(await response.json())
+  if (typeof result !== 'object' || result === null) {
+    throw new Error('OAuth 인증 결과 형식이 올바르지 않습니다.')
+  }
+
+  return result as OAuthVerificationResult
 }

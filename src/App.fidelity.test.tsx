@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 // @ts-expect-error Vitest runs this file in Node; the app intentionally omits @types/node.
 import { existsSync, readFileSync } from 'node:fs'
 
-import App from '../App'
+import App from './App'
 
 const workspaceRoot = (globalThis as typeof globalThis & {
   process: { cwd(): string }
@@ -14,6 +14,8 @@ const compactCss = globalCss.replace(/\s+/g, ' ')
 
 afterEach(() => {
   cleanup()
+  localStorage.clear()
+  sessionStorage.clear()
   window.location.hash = ''
 })
 
@@ -23,7 +25,7 @@ describe('reference typography and packaged font', () => {
     expect(tokensCss).toContain('font-family: pretendard, "pretendard Fallback", "Microsoft YaHei", "PingFang SC", sans-serif;')
     expect(compactCss).toMatch(/body \{[^}]*font-size: 14px;[^}]*font-weight: 400;[^}]*line-height: 1\.4;[^}]*letter-spacing: -0\.25px;/)
     expect(compactCss).toMatch(/html \{[^}]*-webkit-font-smoothing: antialiased;/)
-    expect(compactCss).toMatch(/\.panel-header h1 \{[^}]*font-size: 18px;[^}]*font-weight: 500;[^}]*line-height: 22\.5px;/)
+    expect(compactCss).toMatch(/\.screen-header h1 \{[^}]*font-size: 18px;[^}]*font-weight: 500;[^}]*line-height: 22\.5px;/)
     expect(compactCss).toMatch(/\.aside-tile \{[^}]*font-size: 14px;[^}]*font-weight: 400;/)
     const numericWeights = Array.from(
       globalCss.matchAll(/font-weight:\s*(\d+)\s*;/g),
@@ -46,14 +48,13 @@ describe('reference typography and packaged font', () => {
     const canonicalFont = readFileSync(canonicalFontPath) as Uint8Array
     const signature = Array.from(packagedFont.subarray(0, 4))
       .map((byte) => String.fromCharCode(byte)).join('')
-    const packagedLicense = readFileSync(licensePath) as Uint8Array
-    const canonicalLicense = readFileSync(canonicalLicensePath) as Uint8Array
+    const packagedLicense = readFileSync(licensePath, 'utf8').replace(/\r\n/g, '\n')
+    const canonicalLicense = readFileSync(canonicalLicensePath, 'utf8').replace(/\r\n/g, '\n')
     expect(signature).toBe('wOF2')
     expect(packagedFont.byteLength).toBe(canonicalFont.byteLength)
     expect(packagedFont.every((byte, index) => byte === canonicalFont[index])).toBe(true)
-    expect(packagedLicense.byteLength).toBe(canonicalLicense.byteLength)
-    expect(packagedLicense.every((byte, index) => byte === canonicalLicense[index])).toBe(true)
-    expect(readFileSync(licensePath, 'utf8')).toContain('SIL OPEN FONT LICENSE Version 1.1')
+    expect(packagedLicense).toBe(canonicalLicense)
+    expect(packagedLicense).toContain('SIL OPEN FONT LICENSE Version 1.1')
   })
 
   it('keeps the approved login and application landmarks after the baseline change', () => {
@@ -62,6 +63,12 @@ describe('reference typography and packaged font', () => {
     expect(screen.getByRole('heading', { level: 1, name: '로그인' })).toBeTruthy()
     expect(screen.getByRole('button', { name: '로그인' })).toBeTruthy()
     cleanup()
+    localStorage.setItem('selectors-auth', JSON.stringify({
+      accessToken: 'test.jwt',
+      tokenType: 'Bearer',
+      role: 'USER',
+      loginId: 'selector-user',
+    }))
     window.location.hash = '#/apply/form'
     render(<App />)
     expect(screen.getByRole('heading', { level: 1, name: '셀렉터스 신청하기' })).toBeTruthy()
@@ -74,15 +81,15 @@ describe('shared panel and campaign fidelity', () => {
     const baseCss = compactCss.slice(0, compactCss.indexOf('@media'))
     const mobileCss = compactCss.slice(compactCss.indexOf('@media (max-width: 480px)'))
     const clientPanelRule = baseCss.match(/\.client-panel \{([^}]*)\}/)?.[1] ?? ''
-    const bottomActionRule = baseCss.match(/\.bottom-action \{([^}]*)\}/)?.[1] ?? ''
+    const bottomActionRule = baseCss.match(/\.bottom-action-bar \{([^}]*)\}/)?.[1] ?? ''
 
     expect(clientPanelRule).toContain('border: 1px solid var(--line);')
     expect(clientPanelRule).toContain('box-shadow: none;')
     expect(clientPanelRule).toContain('box-sizing: content-box;')
     expect(clientPanelRule).not.toMatch(/border-(?:left|right): 0;/)
     expect(clientPanelRule).not.toContain('box-shadow: inset')
-    expect(baseCss).toMatch(/\.panel-header \{[^}]*border-bottom: 0;/)
-    expect(baseCss).toMatch(/\.bottom-action \{[^}]*border-top: 1px solid var\(--line-soft\);/)
+    expect(baseCss).toMatch(/\.screen-header \{[^}]*border-bottom: 0;/)
+    expect(baseCss).toMatch(/\.bottom-action-bar \{[^}]*border-top: 1px solid var\(--line-soft\);/)
     expect(mobileCss).toMatch(/\.client-panel \{[^}]*border: 0;[^}]*box-shadow: none;/)
 
     const desktopPanelInnerWidth = Number(clientPanelRule.match(/width: (\d+)px;/)?.[1])

@@ -1,17 +1,10 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import App from '../App'
-import { screenRegistry } from '../screenRegistry'
-import { useShopDemo } from '../shop/ShopDemoContext'
+import App from './App'
+import { useShopDemo } from './screens/shop/ShopDemoContext'
 
 const screenExpectations = [
-  {
-    path: '#/screens',
-    id: 'catalog',
-    heading: '셀렉터스 클라이언트 화면',
-    content: '신청 인트로',
-  },
   {
     path: '#/login',
     id: 'login',
@@ -28,7 +21,13 @@ const screenExpectations = [
     path: '#/apply/form',
     id: 'apply-form',
     heading: '셀렉터스 신청하기',
-    content: '카카오 알림톡 수신 동의 (선택)',
+    content: '카카오 알림톡 수신 동의 (필수)',
+  },
+  {
+    path: '#/apply/status',
+    id: 'apply-status',
+    heading: '신청 완료',
+    content: '심사가 끝나면 결과를 안내해 드릴게요.',
   },
   {
     path: '#/campaigns',
@@ -91,6 +90,12 @@ const screenExpectations = [
     content: '구매 전환 수',
   },
   {
+    path: '#/settlement/info',
+    id: 'settlement-info',
+    heading: '정산 정보 입력',
+    content: '정산 정보를 입력해 주세요',
+  },
+  {
     path: '#/settlement',
     id: 'settlement',
     heading: '정산 내역',
@@ -145,16 +150,33 @@ function ShopContinuityProbe() {
   )
 }
 
+beforeEach(() => {
+  vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ data: { id: 1 } }), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  }))
+})
+
 afterEach(() => {
   cleanup()
+  localStorage.clear()
+  sessionStorage.clear()
   window.location.hash = ''
   vi.restoreAllMocks()
 })
 
-describe('Selectors client screen catalog', () => {
+describe('Selectors client routes', () => {
   it.each(screenExpectations)(
     'renders the unique heading and representative content for $path',
     ({ path, id, heading, content }) => {
+      if (path === '#/apply/form') {
+        localStorage.setItem('selectors-auth', JSON.stringify({
+          accessToken: 'test.jwt',
+          tokenType: 'Bearer',
+          role: 'USER',
+          loginId: 'selector-user',
+        }))
+      }
       window.location.hash = path
 
       render(<App />)
@@ -169,21 +191,19 @@ describe('Selectors client screen catalog', () => {
     },
   )
 
-  it('links the catalog to every other registered screen', () => {
-    window.location.hash = '#/screens'
+  it('links each main work area without a screen catalog', () => {
+    window.location.hash = '#/campaigns'
 
     render(<App />)
 
-    const catalog = screen.getByRole('main')
-    const links = within(catalog).getAllByRole('link')
-    const expectedPaths = screenRegistry
-      .filter(({ id }) => id !== 'catalog')
-      .map(({ path }) => path)
-
-    expect(links).toHaveLength(expectedPaths.length)
-    expect(links.map((link) => link.getAttribute('href'))).toEqual(expectedPaths)
-    expect(within(catalog).queryByRole('link', { name: /group-editor-product-picker/i })).toBeNull()
-    expect(links.some((link) => link.getAttribute('href') === '#/shop/groups/edit')).toBe(false)
+    const navigation = screen.getByRole('navigation', { name: '주요 기능' })
+    expect(within(navigation).getAllByRole('link').map((link) => link.getAttribute('href'))).toEqual([
+      '#/campaigns',
+      '#/shop/groups',
+      '#/performance',
+      '#/settlement/info',
+    ])
+    expect(document.querySelector('[data-screen-id="catalog"]')).toBeNull()
   })
 
   it.each(editorRoutes)(
@@ -236,7 +256,7 @@ describe('Selectors client screen catalog', () => {
     expect(container.querySelector('#group-name')).toBeNull()
   })
 
-  it('redirects the legacy editor alias without resetting shop state', () => {
+  it('redirects an unknown legacy route to login without resetting shop state', () => {
     window.location.hash = '#/shop/groups'
     render(<App shopProbe={<ShopContinuityProbe />} />)
     fireEvent.click(screen.getByRole('button', { name: '테스트 그룹 이름 변경' }))
@@ -246,13 +266,10 @@ describe('Selectors client screen catalog', () => {
     window.location.hash = '#/shop/groups/edit'
     fireEvent(window, new HashChangeEvent('hashchange'))
 
-    expect(window.location.hash).toBe('#/shop/groups/new')
+    expect(window.location.hash).toBe('#/login')
     expect(screen.getByRole('status', { name: '상품 그룹 1 이름' }).textContent).toBe('별칭 유지')
     expect(replaceState).toHaveBeenCalledTimes(1)
 
-    fireEvent(window, new HashChangeEvent('hashchange'))
-
-    expect(replaceState).toHaveBeenCalledTimes(1)
     expect(document.querySelectorAll('.route-announcement')).toHaveLength(1)
   })
 })

@@ -1,11 +1,11 @@
 import { useRef, useState } from 'react'
 
 import { ArrowRightIcon, ShareIcon } from '../../components/Icons'
-import PanelHeader from '../../components/PanelHeader'
-import ShareShopSheet from '../../shop/ShareShopSheet'
-import ShopGroupSection from '../../shop/ShopGroupSection'
-import { useShopDemo } from '../../shop/ShopDemoContext'
-import ShopStatus from '../../shop/ShopStatus'
+import ScreenHeader from '../../components/ScreenHeader'
+import ShareShopSheet from './ShareShopSheet'
+import ShopGroupSection from './ShopGroupSection'
+import { useShopDemo } from './ShopDemoContext'
+import ShopStatus from './ShopStatus'
 
 const initialGroupCount = 6
 const disclosure = '셀렉터스샵에서 상품을 구매하는 경우, 상품 구매로 발생한 수익의 일부가 셀렉터스에게 제공됩니다.'
@@ -19,7 +19,7 @@ export default function PublicShopScreen() {
 
   return (
     <div className="panel-page">
-      <PanelHeader
+      <ScreenHeader
         action={(
           <button
             aria-label="셀렉터스샵 공유"
@@ -31,7 +31,7 @@ export default function PublicShopScreen() {
             <ShareIcon size={22} />
           </button>
         )}
-        backHref="#/screens"
+        backHref="#/shop/groups"
         title="셀렉터스샵"
       />
       <div className="screen-scroll public-shop-screen">

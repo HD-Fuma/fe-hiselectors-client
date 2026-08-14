@@ -1,14 +1,14 @@
-import BottomAction from '../../components/BottomAction'
+import BottomActionBar from '../../components/BottomActionBar'
 import { CopyIcon } from '../../components/Icons'
-import PanelHeader from '../../components/PanelHeader'
-import { useShopDemo } from '../../shop/ShopDemoContext'
+import ScreenHeader from '../../components/ScreenHeader'
+import { useShopDemo } from './ShopDemoContext'
 
 export default function ShopGroupsScreen() {
   const { getProducts, state } = useShopDemo()
 
   return (
     <div className="panel-page">
-      <PanelHeader backHref="#/screens" title="상품 그룹" />
+      <ScreenHeader title="상품 그룹" />
       <div className="screen-scroll shop-groups-screen">
         <section className="shop-link-card">
           <span>내 셀렉터스샵</span>
@@ -48,7 +48,7 @@ export default function ShopGroupsScreen() {
           ))}
         </div>
       </div>
-      <BottomAction href="#/shop/groups/new" label="상품 그룹 만들기" />
+      <BottomActionBar href="#/shop/groups/new" label="상품 그룹 만들기" />
     </div>
   )
 }

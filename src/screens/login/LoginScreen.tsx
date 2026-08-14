@@ -1,8 +1,8 @@
 import { useState } from 'react'
 
-import { API_BASE_URL, persistAuthSession, redirectToMainScreen } from '../auth'
-import { EyeIcon, LoginProviderIcon } from '../components/Icons'
-import PanelHeader from '../components/PanelHeader'
+import { API_BASE_URL, persistAuthSession, redirectToMainScreen } from '../../auth'
+import { EyeIcon, LoginProviderIcon } from '../../components/Icons'
+import ScreenHeader from '../../components/ScreenHeader'
 
 const simpleLoginMethods = [
   ['휴대폰 인증 로그인', 'phone'],
@@ -21,6 +21,34 @@ type AuthTokenResponse = {
   name?: string
   username?: string
   memberName?: string
+}
+
+function extractAuthPayload(body: unknown): AuthTokenResponse {
+  if (typeof body !== 'object' || body === null) {
+    throw new Error('로그인 응답 형식이 올바르지 않습니다.')
+  }
+
+  const envelope = body as { data?: unknown }
+  const candidate = 'data' in envelope ? envelope.data : body
+
+  if (typeof candidate !== 'object' || candidate === null) {
+    throw new Error('로그인 응답 형식이 올바르지 않습니다.')
+  }
+
+  const payload = candidate as Partial<AuthTokenResponse>
+  if (typeof payload.accessToken !== 'string' || !payload.accessToken.trim()) {
+    throw new Error('로그인 응답에 인증 토큰이 없습니다.')
+  }
+
+  return {
+    accessToken: payload.accessToken,
+    tokenType: payload.tokenType || 'Bearer',
+    role: payload.role || 'USER',
+    userName: payload.userName,
+    name: payload.name,
+    username: payload.username,
+    memberName: payload.memberName,
+  }
 }
 
 function extractErrorMessage(payload: string): string {
@@ -85,8 +113,7 @@ export default function LoginScreen() {
         throw new Error(extractErrorMessage(rawMessage))
       }
 
-      const envelope = (await response.json()) as { data: AuthTokenResponse }
-      const payload = envelope.data
+      const payload = extractAuthPayload(await response.json())
       const authState = {
         ...payload,
         loginId: trimmedLoginId,
@@ -121,7 +148,7 @@ export default function LoginScreen() {
 
   return (
     <>
-      <PanelHeader backHref="#/screens" title="로그인" />
+      <ScreenHeader title="로그인" />
       <div className="screen-scroll login-screen">
         <section className="login-member-section" aria-labelledby="member-login-heading">
           <h2 id="member-login-heading">H.Point 통합회원 로그인</h2>
@@ -164,7 +191,7 @@ export default function LoginScreen() {
             </div>
           </form>
           <div className="login-link-row">
-            <button type="button">통합회원 가입하기</button>
+            <a href="#/apply">셀렉터스 지원하기</a>
             <button type="button">아이디/비밀번호 찾기</button>
           </div>
         </section>

@@ -1,6 +1,6 @@
-import { ArrowRightIcon, ChartIcon, ChevronDownIcon } from '../components/Icons'
-import PanelHeader from '../components/PanelHeader'
-import { shopProducts } from './productData'
+import { ArrowRightIcon, ChartIcon, ChevronDownIcon } from '../../components/Icons'
+import ScreenHeader from '../../components/ScreenHeader'
+import { shopProducts } from '../shop/shopData'
 
 const summaryMetrics = [
   { label: '누적 클릭 수', value: '12,840', unit: '회', change: '+18.2%' },
@@ -18,7 +18,7 @@ const topProducts = [
 export function PerformanceSummaryScreen() {
   return (
     <>
-      <PanelHeader backHref="#/screens" title="성과 요약" />
+      <ScreenHeader title="성과 요약" />
       <div className="screen-scroll performance-screen">
         <div className="period-row">
           <div><span>조회 기간</span><strong>2026.08.01 - 2026.08.31</strong></div>
@@ -81,7 +81,7 @@ const productRows = [
 export function ProductPerformanceScreen() {
   return (
     <>
-      <PanelHeader backHref="#/performance" title="상품별 성과" />
+      <ScreenHeader backHref="#/performance" title="상품별 성과" />
       <div className="screen-scroll product-performance-screen">
         <div className="period-row product-period-row">
           <div><span>조회 기간</span><strong>2026년 8월</strong></div>

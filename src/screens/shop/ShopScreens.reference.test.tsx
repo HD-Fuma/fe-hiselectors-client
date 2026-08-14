@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 // @ts-expect-error The app intentionally has no Node type dependency; Vitest runs this file in Node.
 import { readFileSync } from 'node:fs'
 
-import App from '../App'
+import App from '../../App'
 
 const workspaceRoot = (globalThis as typeof globalThis & {
   process: { cwd(): string }
@@ -43,25 +43,24 @@ afterEach(() => {
   window.location.hash = ''
 })
 
-describe('HiHi aside and public shop reference contract', () => {
-  it('uses the exact HiHi aside labels and installation copy', () => {
+describe('service sidebar and public shop reference contract', () => {
+  it('uses the service sidebar labels and installation copy', () => {
     window.location.hash = '#/shop/RC000003200T'
     render(<App />)
 
-    const aside = screen.getByRole('complementary', { name: 'HiHi 바로가기' })
+    const aside = screen.getByRole('complementary', { name: '서비스 바로가기' })
     const asideQueries = within(aside)
     expect(asideQueries.getByText('검색어를 입력해 보세요.')).toBeTruthy()
     ;['더현대 기프트', '라이브', '이벤트', '예약/웨이팅', '콘텐츠', '아이콘샵'].forEach((label) => {
       expect(asideQueries.getByRole('link', { name: label })).toBeTruthy()
     })
     expect(asideQueries.getByText('앱 설치하고')).toBeTruthy()
-    expect(asideQueries.getByText('다양한 더현대Hi 만나러 가기!')).toBeTruthy()
-    expect(asideQueries.queryByText('HiHi 앱에서 더 편하게')).toBeNull()
+    expect(asideQueries.getByText('다양한 서비스를 만나보세요!')).toBeTruthy()
   })
 
   it('locks the supplied 963px aside geometry', () => {
-    expect(compactGlobalCss).toMatch(/\.hihi-aside \{[^}]*padding: 0;/)
-    expect(compactGlobalCss).toMatch(/\.hihi-logo \{[^}]*width: 180px;[^}]*height: 71px;[^}]*margin: 139px auto 39px;/)
+    expect(compactGlobalCss).toMatch(/\.service-sidebar \{[^}]*padding: 0;/)
+    expect(compactGlobalCss).toMatch(/\.service-logo \{[^}]*width: 180px;[^}]*height: 71px;[^}]*margin: 139px auto 39px;/)
     expect(compactGlobalCss).toMatch(/\.aside-search \{[^}]*width: 422px;[^}]*height: 52px;[^}]*margin: 0 auto 35px;/)
     expect(compactGlobalCss).toMatch(/\.aside-tile-grid \{[^}]*width: 422px;[^}]*margin: 0 auto;/)
     expect(compactGlobalCss).toMatch(/\.aside-tile \{[^}]*height: 80px;/)
@@ -99,7 +98,7 @@ describe('HiHi aside and public shop reference contract', () => {
   })
 
   it('locks the reference shop geometry', () => {
-    expect(compactGlobalCss).toMatch(/\.panel-header \{[^}]*flex: 0 0 52px;[^}]*height: 52px;[^}]*padding: 0 16px;/)
+    expect(compactGlobalCss).toMatch(/\.screen-header \{[^}]*flex: 0 0 52px;[^}]*height: 52px;[^}]*padding: 0 16px;/)
     expect(compactShopCss).toMatch(/\.public-shop-screen \{[^}]*padding: 0 16px;/)
     expect(compactShopCss).toMatch(/\.selector-profile \{[^}]*align-items: flex-start;[^}]*gap: 16px;[^}]*padding: 16px 0 24px;/)
     expect(compactShopCss).toMatch(/\.selector-profile-thumb \{[^}]*position: relative;[^}]*width: 74px;[^}]*height: 79px;/)

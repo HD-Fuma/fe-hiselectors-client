@@ -5,8 +5,8 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 
 import App from '../../App'
-import { useShopDemo } from '../../shop/ShopDemoContext'
-import { initialShopGroups, shopCampaigns } from '../../shop/shopData'
+import { useShopDemo } from './ShopDemoContext'
+import { initialShopGroups, shopCampaigns } from './shopData'
 
 const workspaceRoot = (globalThis as typeof globalThis & {
   process: { cwd(): string }

@@ -1,5 +1,5 @@
-import { ChevronDownIcon } from '../components/Icons'
-import PanelHeader from '../components/PanelHeader'
+import { ChevronDownIcon } from '../../components/Icons'
+import ScreenHeader from '../../components/ScreenHeader'
 
 const settlementRows = [
   { month: '2026년 7월', period: '2026.07.01 - 2026.07.31', amount: '986,400원', status: '지급 완료', paidAt: '2026.08.20 지급' },
@@ -10,7 +10,10 @@ const settlementRows = [
 export default function SettlementScreen() {
   return (
     <>
-      <PanelHeader backHref="#/screens" title="정산 내역" />
+      <ScreenHeader
+        action={<a className="panel-text-action" href="#/settlement/info">정보 수정</a>}
+        title="정산 내역"
+      />
       <div className="screen-scroll settlement-screen">
         <section className="settlement-summary">
           <span>8월 예상 정산 금액</span>
