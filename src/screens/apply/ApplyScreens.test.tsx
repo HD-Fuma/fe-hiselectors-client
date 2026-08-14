@@ -202,7 +202,7 @@ describe('apply flow', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Instagram 계정 연결하기' }))
 
       expect(fetchSpy).toHaveBeenCalledWith(
-        'http://localhost:8080/api/instagram/oauth/authorize',
+        'http://127.0.0.1:8080/api/instagram/oauth/authorize',
         expect.objectContaining({ method: 'GET' }),
       )
       await waitFor(() => expect(assignSpy).toHaveBeenCalledTimes(1))
@@ -235,7 +235,7 @@ describe('apply flow', () => {
     expect(window.location.hash).toBe('#/apply/form')
     expect(sessionStorage.getItem('oauthProvider')).toBeNull()
     expect(fetchSpy).toHaveBeenCalledWith(
-      'http://localhost:8080/api/instagram/oauth/authorize',
+      'http://127.0.0.1:8080/api/instagram/oauth/authorize',
       expect.objectContaining({ method: 'GET' }),
     )
   })
@@ -249,7 +249,7 @@ describe('apply flow', () => {
     await verifyOAuth('instagram', 'abc123', 'state-1')
 
     expect(fetchSpy).toHaveBeenCalledWith(
-      'http://localhost:8080/api/instagram/oauth/verify',
+      'http://127.0.0.1:8080/api/instagram/oauth/verify',
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({ code: 'abc123', state: 'state-1' }),

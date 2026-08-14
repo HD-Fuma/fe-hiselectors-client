@@ -73,6 +73,14 @@ function extractErrorMessage(payload: string): string {
   return payload
 }
 
+function getLoginRequestError(error: unknown): string {
+  if (error instanceof TypeError && /fetch|network|load failed/i.test(error.message)) {
+    return "로컬 백엔드에 연결할 수 없습니다. 주소창 왼쪽의 사이트 설정에서 '로컬 네트워크 접근'을 허용하고 백엔드가 실행 중인지 확인해주세요."
+  }
+
+  return error instanceof Error ? error.message : '로그인 요청 중 오류가 발생했습니다.'
+}
+
 export default function LoginScreen() {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false)
   const [loginId, setLoginId] = useState('')
@@ -138,8 +146,7 @@ export default function LoginScreen() {
         redirectToMainScreen()
       }
     } catch (error) {
-      const nextError = error instanceof Error ? error.message : '로그인 요청 중 오류가 발생했습니다.'
-      setErrorMessage(nextError)
+      setErrorMessage(getLoginRequestError(error))
       setShowErrorModal(true)
     } finally {
       setIsSubmitting(false)
