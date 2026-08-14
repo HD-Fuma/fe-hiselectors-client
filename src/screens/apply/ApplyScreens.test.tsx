@@ -47,6 +47,7 @@ afterEach(() => {
   window.location.hash = ''
   localStorage.clear()
   sessionStorage.clear()
+  window.history.replaceState(window.history.state, '', window.location.pathname)
   vi.restoreAllMocks()
 })
 
@@ -80,6 +81,44 @@ describe('apply flow', () => {
       ).toBeTruthy()
     })
     expect(window.location.hash).toBe('#/apply')
+  })
+
+  it('allows an explicit local OAuth test URL without an active cohort', async () => {
+    authenticate()
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({ data: null }),
+    )
+    window.history.replaceState(
+      window.history.state,
+      '',
+      `${window.location.pathname}?applyTest=1#/apply/form`,
+    )
+
+    render(<App />)
+
+    await waitFor(() => expect(fetchSpy).toHaveBeenCalled())
+    expect(screen.getByRole('heading', { level: 1, name: '셀렉터스 신청하기' })).toBeTruthy()
+    expect(screen.getByRole('combobox', { name: '대표 SNS' })).toBeTruthy()
+    expect(
+      screen.queryByRole('dialog', { name: '현재 모집 중인 기수가 없어 지원할 수 없습니다.' }),
+    ).toBeNull()
+  })
+
+  it('shows login instead of a blank form when the local test URL has no session', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse({ data: null }))
+    window.history.replaceState(
+      window.history.state,
+      '',
+      `${window.location.pathname}?applyTest=1#/apply/form`,
+    )
+
+    render(<App />)
+
+    expect(await screen.findByRole('dialog', { name: '로그인이 필요합니다' })).toBeTruthy()
+    expect(sessionStorage.getItem('postLoginRedirect')).toBe('#/apply/form')
+    expect(
+      screen.queryByRole('dialog', { name: '현재 모집 중인 기수가 없어 지원할 수 없습니다.' }),
+    ).toBeNull()
   })
 
   it('stores the post-login destination when an active application requires login', async () => {

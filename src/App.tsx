@@ -17,6 +17,12 @@ function hasPendingOAuthCallback(): boolean {
   return Boolean(params.get('code') && params.get('state'))
 }
 
+function isLocalApplyTestMode(): boolean {
+  return import.meta.env.DEV
+    && ['127.0.0.1', 'localhost'].includes(window.location.hostname)
+    && new URLSearchParams(window.location.search).get('applyTest') === '1'
+}
+
 function selectCurrentRoute() {
   let requestedHash = window.location.hash
   if (hasPendingOAuthCallback()) {
@@ -40,6 +46,7 @@ function RoutedApp({ shopProbe }: AppProps) {
   const [showNoCohortModal, setShowNoCohortModal] = useState(false)
   const [hasActiveCohort, setHasActiveCohort] = useState(false)
   const [isCohortStatusLoaded, setIsCohortStatusLoaded] = useState(false)
+  const localApplyTestMode = isLocalApplyTestMode()
 
   useEffect(() => {
     if (route.id !== 'apply-intro' && route.id !== 'apply-form') {
@@ -137,7 +144,7 @@ function RoutedApp({ shopProbe }: AppProps) {
         return
       }
 
-      if (isCohortStatusLoaded && !hasActiveCohort) {
+      if (!localApplyTestMode && isCohortStatusLoaded && !hasActiveCohort) {
         event.preventDefault()
         setShowNoCohortModal(true)
         return
@@ -173,16 +180,29 @@ function RoutedApp({ shopProbe }: AppProps) {
       window.removeEventListener('auth:changed', handleAuthChanged)
       window.removeEventListener('storage', handleAuthChanged)
     }
-  }, [hasActiveCohort, isCohortStatusLoaded])
+  }, [hasActiveCohort, isCohortStatusLoaded, localApplyTestMode])
 
   const currentRouteId = route.id
+
+  useEffect(() => {
+    if (currentRouteId !== 'apply-form' || hasValidUserSession(readAuthSession())) {
+      return
+    }
+
+    sessionStorage.setItem('postLoginRedirect', '#/apply/form')
+    setShowAuthGateModal(true)
+  }, [currentRouteId])
 
   useEffect(() => {
     if (!isCohortStatusLoaded) {
       return
     }
-    setShowNoCohortModal(!hasActiveCohort && currentRouteId === 'apply-form')
-  }, [currentRouteId, hasActiveCohort, isCohortStatusLoaded])
+    const shouldShowCohortModal = hasValidUserSession(readAuthSession())
+      && !localApplyTestMode
+      && !hasActiveCohort
+      && currentRouteId === 'apply-form'
+    setShowNoCohortModal(shouldShowCohortModal)
+  }, [currentRouteId, hasActiveCohort, isCohortStatusLoaded, localApplyTestMode])
 
   useEffect(() => {
     document.title = `${route.title} | Selectors Client`
