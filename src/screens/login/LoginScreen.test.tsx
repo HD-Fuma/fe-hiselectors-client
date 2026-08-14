@@ -86,9 +86,10 @@ describe('The Hyundai login reference contract', () => {
     fireEvent.click(screen.getByRole('button', { name: '로그인' }))
 
     expect(fetchSpy).toHaveBeenCalledWith(
-      'http://localhost:8080/api/auth/user/login',
+      'http://127.0.0.1:8080/api/auth/user/login',
       expect.objectContaining({
         method: 'POST',
+        targetAddressSpace: 'local',
         headers: expect.objectContaining({
           'Content-Type': 'application/json',
         }),
@@ -122,6 +123,20 @@ describe('The Hyundai login reference contract', () => {
     const dialog = await screen.findByRole('dialog', { name: '로그인 실패' })
     expect(dialog).toBeTruthy()
     expect(within(dialog).getByText('아이디 또는 비밀번호가 올바르지 않습니다.')).toBeTruthy()
+  })
+
+  it('explains how to allow local API access when the browser blocks fetch', async () => {
+    window.location.hash = '#/login'
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('Failed to fetch'))
+
+    render(<App />)
+    fireEvent.change(screen.getByLabelText('아이디'), { target: { value: 'hiuser1' } })
+    fireEvent.change(screen.getByLabelText('비밀번호'), { target: { value: '0000' } })
+    fireEvent.click(screen.getByRole('button', { name: '로그인' }))
+
+    const dialog = await screen.findByRole('dialog', { name: '로그인 실패' })
+    expect(within(dialog).getByText(/로컬 네트워크 접근/)).toBeTruthy()
+    expect(within(dialog).queryByText('Failed to fetch')).toBeNull()
   })
 
   it('returns to the requested application form after login', async () => {
