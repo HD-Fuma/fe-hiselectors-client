@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-import { persistAuthSession, redirectToMainScreen } from '../auth'
+import { API_BASE_URL, persistAuthSession, redirectToMainScreen } from '../auth'
 import { EyeIcon, LoginProviderIcon } from '../components/Icons'
 import PanelHeader from '../components/PanelHeader'
 
@@ -17,6 +17,10 @@ type AuthTokenResponse = {
   accessToken: string
   tokenType: string
   role: string
+  userName?: string
+  name?: string
+  username?: string
+  memberName?: string
 }
 
 function extractErrorMessage(payload: string): string {
@@ -65,7 +69,7 @@ export default function LoginScreen() {
     setIsSubmitting(true)
 
     try {
-      const response = await fetch('http://localhost:8080/api/auth/user/login', {
+      const response = await fetch(`${API_BASE_URL}/api/auth/user/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -81,17 +85,31 @@ export default function LoginScreen() {
         throw new Error(extractErrorMessage(rawMessage))
       }
 
-      const payload = (await response.json()) as AuthTokenResponse
+      const envelope = (await response.json()) as { data: AuthTokenResponse }
+      const payload = envelope.data
       const authState = {
         ...payload,
         loginId: trimmedLoginId,
+        userName:
+          payload.userName ||
+          payload.name ||
+          payload.username ||
+          payload.memberName ||
+          trimmedLoginId,
         issuedAt: Date.now(),
       }
 
       persistAuthSession(authState)
       window.dispatchEvent(new CustomEvent('auth:changed', { detail: authState }))
       setPassword('')
-      redirectToMainScreen()
+
+      const postLoginRedirect = sessionStorage.getItem('postLoginRedirect')
+      if (postLoginRedirect) {
+        sessionStorage.removeItem('postLoginRedirect')
+        window.location.hash = postLoginRedirect
+      } else {
+        redirectToMainScreen()
+      }
     } catch (error) {
       const nextError = error instanceof Error ? error.message : '로그인 요청 중 오류가 발생했습니다.'
       setErrorMessage(nextError)
