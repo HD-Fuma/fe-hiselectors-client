@@ -56,7 +56,7 @@ describe('public selectors shop', () => {
     const { container } = render(<App />)
 
     expect(screen.getByRole('heading', { level: 1, name: '셀렉터스샵' })).toBeTruthy()
-    expect(screen.getByRole('link', { name: '뒤로 가기' })).toBeTruthy()
+    expect(screen.getByRole('link', { name: '뒤로 가기' }).getAttribute('href')).toBe('#/campaigns')
     expect(screen.getByRole('button', { name: '셀렉터스샵 공유' })).toBeTruthy()
 
     const badge = screen.getByAltText('인플루언서 뱃지')

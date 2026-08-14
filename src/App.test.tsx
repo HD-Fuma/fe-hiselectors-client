@@ -198,7 +198,7 @@ describe('Selectors client routes', () => {
 
     const navigation = screen.getByRole('navigation', { name: '주요 기능' })
     expect(within(navigation).getAllByRole('link').map((link) => link.getAttribute('href'))).toEqual([
-      '#/shop/groups',
+      '#/shop/RC000003200T',
       '#/campaigns',
       '#/performance',
       '#/settlement/info',
@@ -206,6 +206,21 @@ describe('Selectors client routes', () => {
     expect(within(navigation).getByRole('link', { name: '캠페인' }).getAttribute('aria-current')).toBe('page')
     expect(navigation.previousElementSibling?.classList.contains('screen-header')).toBe(true)
     expect(document.querySelector('[data-screen-id="catalog"]')).toBeNull()
+  })
+
+  it('opens the public shop from navigation without requiring login', () => {
+    window.location.hash = '#/campaigns'
+    render(<App />)
+
+    const shopLink = screen.getByRole('link', { name: '샵' })
+    expect(shopLink.getAttribute('href')).toBe('#/shop/RC000003200T')
+    window.location.hash = shopLink.getAttribute('href') ?? ''
+    fireEvent(window, new HashChangeEvent('hashchange'))
+
+    expect(window.location.hash).toBe('#/shop/RC000003200T')
+    expect(screen.getByRole('main').getAttribute('data-screen-id')).toBe('public-shop')
+    expect(screen.getByRole('heading', { level: 1, name: '셀렉터스샵' })).toBeTruthy()
+    expect(screen.queryByRole('dialog', { name: '로그인이 필요합니다' })).toBeNull()
   })
 
   it.each(editorRoutes)(

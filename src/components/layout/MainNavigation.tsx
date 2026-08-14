@@ -1,7 +1,7 @@
 export type AppSection = 'shop' | 'campaigns' | 'performance' | 'settlement'
 
 const mainNavigation = [
-  { section: 'shop', href: '#/shop/groups', label: '샵' },
+  { section: 'shop', href: '#/shop/RC000003200T', label: '샵' },
   { section: 'campaigns', href: '#/campaigns', label: '캠페인' },
   { section: 'performance', href: '#/performance', label: '성과' },
   { section: 'settlement', href: '#/settlement/info', label: '정산' },

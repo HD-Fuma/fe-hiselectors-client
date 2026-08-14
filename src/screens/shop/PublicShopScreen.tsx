@@ -32,7 +32,7 @@ export default function PublicShopScreen() {
             <ShareIcon size={22} />
           </button>
         )}
-        backHref="#/shop/groups"
+        backHref="#/campaigns"
         title="셀렉터스샵"
       />
       <div className="screen-scroll public-shop-screen">
