@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-import { API_BASE_URL, apiFetch, persistAuthSession, redirectToMainScreen } from '../../auth'
+import { API_BASE_URL, persistAuthSession, redirectToMainScreen } from '../../auth'
 import { EyeIcon, LoginProviderIcon } from '../../components/Icons'
 import ScreenHeader from '../../components/ScreenHeader'
 
@@ -105,7 +105,7 @@ export default function LoginScreen() {
     setIsSubmitting(true)
 
     try {
-      const response = await apiFetch(`${API_BASE_URL}/api/auth/user/login`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/user/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

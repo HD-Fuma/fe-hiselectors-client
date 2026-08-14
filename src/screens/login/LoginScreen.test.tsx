@@ -89,7 +89,6 @@ describe('The Hyundai login reference contract', () => {
       'http://127.0.0.1:8080/api/auth/user/login',
       expect.objectContaining({
         method: 'POST',
-        targetAddressSpace: 'local',
         headers: expect.objectContaining({
           'Content-Type': 'application/json',
         }),

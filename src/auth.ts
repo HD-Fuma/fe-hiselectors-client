@@ -1,34 +1,5 @@
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8080'
 
-type LocalNetworkRequestInit = RequestInit & {
-  targetAddressSpace?: 'local'
-}
-
-function isLoopbackRequest(input: RequestInfo | URL): boolean {
-  const requestUrl = typeof input === 'string'
-    ? input
-    : input instanceof URL
-      ? input.href
-      : input.url
-
-  try {
-    const hostname = new URL(requestUrl, window.location.href).hostname
-    return ['127.0.0.1', '[::1]', 'localhost'].includes(hostname)
-  } catch {
-    return false
-  }
-}
-
-export async function apiFetch(input: RequestInfo | URL, init: RequestInit = {}) {
-  const requestInit: LocalNetworkRequestInit = { ...init }
-
-  if (isLoopbackRequest(input)) {
-    requestInit.targetAddressSpace = 'local'
-  }
-
-  return fetch(input, requestInit)
-}
-
 export type AuthSession = {
   accessToken: string
   tokenType: string
@@ -134,7 +105,7 @@ export async function authFetch(input: RequestInfo | URL, init: RequestInit = {}
     headers.set('Authorization', `${session.tokenType || 'Bearer'} ${session.accessToken}`)
   }
 
-  return apiFetch(input, {
+  return fetch(input, {
     ...init,
     headers,
   })
