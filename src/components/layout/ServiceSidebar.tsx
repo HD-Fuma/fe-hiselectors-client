@@ -7,7 +7,7 @@ const asideTiles = [
   { label: '이벤트', image: 'https://image.thehyundai.com/images/aside/img_aside_event.png?SF=webp&AO=1' },
   { label: '예약/웨이팅', image: 'https://image.thehyundai.com/images/aside/img_aside_waiting.png?SF=webp&AO=1' },
   { label: '콘텐츠', image: 'https://image.thehyundai.com/images/aside/img_aside_content.png?SF=webp&AO=1' },
-  { label: '아이콘샵', image: 'https://image.thehyundai.com/images/aside/img_aside_mespace.png?SF=webp&AO=1' },
+  { label: '셀렉터스', image: 'https://image.thehyundai.com/images/aside/img_aside_mespace.png?SF=webp&AO=1' },
 ] as const
 
 export default function ServiceSidebar() {

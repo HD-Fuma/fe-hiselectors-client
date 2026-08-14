@@ -51,7 +51,7 @@ describe('service sidebar and public shop reference contract', () => {
     const aside = screen.getByRole('complementary', { name: '서비스 바로가기' })
     const asideQueries = within(aside)
     expect(asideQueries.getByText('검색어를 입력해 보세요.')).toBeTruthy()
-    ;['더현대 기프트', '라이브', '이벤트', '예약/웨이팅', '콘텐츠', '아이콘샵'].forEach((label) => {
+    ;['더현대 기프트', '라이브', '이벤트', '예약/웨이팅', '콘텐츠', '셀렉터스'].forEach((label) => {
       expect(asideQueries.getByRole('link', { name: label })).toBeTruthy()
     })
     expect(asideQueries.getByText('앱 설치하고')).toBeTruthy()
