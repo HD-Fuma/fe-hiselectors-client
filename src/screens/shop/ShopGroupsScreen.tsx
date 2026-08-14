@@ -1,6 +1,7 @@
 import BottomActionBar from '../../components/BottomActionBar'
 import { CopyIcon } from '../../components/Icons'
 import ScreenHeader from '../../components/ScreenHeader'
+import MainNavigation from '../../components/layout/MainNavigation'
 import { useShopDemo } from './ShopDemoContext'
 
 export default function ShopGroupsScreen() {
@@ -9,6 +10,7 @@ export default function ShopGroupsScreen() {
   return (
     <div className="panel-page">
       <ScreenHeader title="상품 그룹" />
+      <MainNavigation current="shop" />
       <div className="screen-scroll shop-groups-screen">
         <section className="shop-link-card">
           <span>내 셀렉터스샵</span>

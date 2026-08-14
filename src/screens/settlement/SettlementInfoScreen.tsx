@@ -2,6 +2,7 @@ import { useRef, useState, type FormEvent } from 'react'
 
 import BottomActionBar from '../../components/BottomActionBar'
 import ScreenHeader from '../../components/ScreenHeader'
+import MainNavigation from '../../components/layout/MainNavigation'
 
 const settlementTypes = [
   { label: '개인', value: 'personal' },
@@ -24,6 +25,7 @@ export default function SettlementInfoScreen() {
   return (
     <div className="panel-page">
       <ScreenHeader backHref="#/performance" title="정산 정보 입력" />
+      <MainNavigation current="settlement" />
       <div className="screen-scroll settlement-info-screen">
         <section className="settlement-info-intro">
           <h2>정산 정보를 입력해 주세요</h2>

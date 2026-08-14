@@ -198,11 +198,13 @@ describe('Selectors client routes', () => {
 
     const navigation = screen.getByRole('navigation', { name: '주요 기능' })
     expect(within(navigation).getAllByRole('link').map((link) => link.getAttribute('href'))).toEqual([
-      '#/campaigns',
       '#/shop/groups',
+      '#/campaigns',
       '#/performance',
       '#/settlement/info',
     ])
+    expect(within(navigation).getByRole('link', { name: '캠페인' }).getAttribute('aria-current')).toBe('page')
+    expect(navigation.previousElementSibling?.classList.contains('screen-header')).toBe(true)
     expect(document.querySelector('[data-screen-id="catalog"]')).toBeNull()
   })
 

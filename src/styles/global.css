@@ -324,26 +324,40 @@ ol {
   background: var(--white);
 }
 
-.primary-navigation {
+.main-navigation {
+  position: sticky;
+  z-index: 9;
+  top: 52px;
   display: grid;
-  flex: 0 0 58px;
+  flex: 0 0 50px;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  border-top: 1px solid var(--line-soft);
+  border-bottom: 1px solid var(--line-soft);
   background: var(--white);
 }
 
-.primary-navigation a {
+.main-navigation a {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--gray-500);
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 500;
 }
 
-.primary-navigation a[aria-current='page'] {
+.main-navigation a[aria-current='page'] {
   color: var(--black);
-  box-shadow: inset 0 2px var(--black);
+  font-weight: 700;
+}
+
+.main-navigation a[aria-current='page']::after {
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 2px;
+  background: var(--black);
+  content: '';
 }
 
 .primary-action {

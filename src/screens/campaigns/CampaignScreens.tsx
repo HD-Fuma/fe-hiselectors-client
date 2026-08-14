@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 
 import { ArrowRightIcon } from '../../components/Icons'
 import ScreenHeader from '../../components/ScreenHeader'
+import MainNavigation from '../../components/layout/MainNavigation'
 import CampaignQuickAddSheet from '../shop/CampaignQuickAddSheet'
 import { useShopDemo } from '../shop/ShopDemoContext'
 import { shopProducts } from '../shop/shopData'
@@ -35,6 +36,7 @@ export function CampaignListScreen() {
   return (
     <>
       <ScreenHeader title="캠페인" />
+      <MainNavigation current="campaigns" />
       <div className="screen-scroll campaigns-screen">
         <div className="screen-lead">
           <h2>지금 소개하기 좋은 캠페인</h2>

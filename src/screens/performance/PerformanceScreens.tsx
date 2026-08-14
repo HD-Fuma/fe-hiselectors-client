@@ -1,5 +1,6 @@
 import { ArrowRightIcon, ChartIcon, ChevronDownIcon } from '../../components/Icons'
 import ScreenHeader from '../../components/ScreenHeader'
+import MainNavigation from '../../components/layout/MainNavigation'
 import { shopProducts } from '../shop/shopData'
 
 const summaryMetrics = [
@@ -19,6 +20,7 @@ export function PerformanceSummaryScreen() {
   return (
     <>
       <ScreenHeader title="성과 요약" />
+      <MainNavigation current="performance" />
       <div className="screen-scroll performance-screen">
         <div className="period-row">
           <div><span>조회 기간</span><strong>2026.08.01 - 2026.08.31</strong></div>

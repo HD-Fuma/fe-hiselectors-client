@@ -200,8 +200,6 @@ function RoutedApp({ shopProbe }: AppProps) {
     <>
       <AppShell
         screenId={route.id}
-        section={'section' in route ? route.section : undefined}
-        showNavigation={'showNavigation' in route && route.showNavigation}
       >
         <p aria-atomic="true" aria-live="polite" className="sr-only route-announcement">
           {route.title} 화면
