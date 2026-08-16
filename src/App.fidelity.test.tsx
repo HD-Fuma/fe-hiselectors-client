@@ -1,5 +1,5 @@
 import { cleanup, render, screen, within } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 // @ts-expect-error Vitest runs this file in Node; the app intentionally omits @types/node.
 import { existsSync, readFileSync } from 'node:fs'
 
@@ -17,6 +17,7 @@ afterEach(() => {
   localStorage.clear()
   sessionStorage.clear()
   window.location.hash = ''
+  vi.restoreAllMocks()
 })
 
 describe('reference typography and packaged font', () => {
@@ -128,7 +129,7 @@ describe('shared panel and campaign fidelity', () => {
     expect(within(campaignProducts).getByText('[더현대Hi 단독] Cale ribbed half sleeve KN (Ivory)')).toBeTruthy()
   })
 
-  it('retains aggregate, product-level, and settlement commission reporting', () => {
+  it('retains aggregate, product-level, and settlement commission reporting', async () => {
     window.location.hash = '#/performance'
     render(<App />)
     const aggregateCommission = screen.getByText('예상 정산 수수료').closest('.metric-card') as HTMLElement
@@ -143,10 +144,35 @@ describe('shared panel and campaign fidelity', () => {
     expect(within(productTable).getByRole('cell', { name: '예상 수수료 324,800원' })).toBeTruthy()
 
     cleanup()
+    vi.spyOn(globalThis, 'fetch').mockImplementation((input) => Promise.resolve(
+      String(input).includes('/histories')
+        ? new Response(JSON.stringify({ data: { selectedYear: 2026, availableYears: [2026], histories: [] } }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+        : new Response(JSON.stringify({ data: {
+          settlementId: 1,
+          selectorsId: 1,
+          selectorsCode: 'SELECTORS-1',
+          selectorsNickname: '셀렉터스',
+          settlementMonth: '2026-07',
+          confirmedPurchaseCount: 386,
+          totalSales: 42_820_000,
+          commissionRate: 3,
+          estimatedCommission: 1_284_600,
+          status: 'CALCULATING',
+          settlementSourceCode: 'DAILY_BATCH',
+          calculatedAt: '2026-08-10T00:00:00',
+          updatedAt: '2026-08-10T00:00:00',
+        } }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+    ))
     window.location.hash = '#/settlement'
     render(<App />)
-    const settlementSummary = screen.getByText('8월 예상 정산 금액').closest('.settlement-summary') as HTMLElement
-    expect(within(settlementSummary).getByText('8월 예상 정산 금액')).toBeTruthy()
+    const settlementSummary = (await screen.findByText('2026년 7월 예상 정산 금액')).closest('.settlement-summary') as HTMLElement
+    expect(within(settlementSummary).getByText('2026년 7월 예상 정산 금액')).toBeTruthy()
     expect(within(settlementSummary).getByText('1,284,600')).toBeTruthy()
     expect(within(settlementSummary).getByText('원')).toBeTruthy()
   })
