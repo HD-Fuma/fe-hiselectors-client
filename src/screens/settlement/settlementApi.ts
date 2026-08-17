@@ -31,6 +31,12 @@ export type SettlementHistories = {
   histories: SettlementEstimate[]
 }
 
+export type SettlementAccount = {
+  bankName: string
+  accountNumber: string
+  accountHolder: string
+}
+
 export class SettlementApiError extends Error {
   readonly status: number
   readonly code?: string
@@ -118,10 +124,29 @@ export async function getSettlementHistories(year: number): Promise<SettlementHi
   return histories
 }
 
+export async function getSettlementAccount(): Promise<SettlementAccount> {
+  const account = await request<SettlementAccount>('/api/settlements/account')
+  if (
+    !account
+    || typeof account.bankName !== 'string'
+    || typeof account.accountNumber !== 'string'
+    || typeof account.accountHolder !== 'string'
+  ) {
+    throw new Error('정산 정보 조회 응답 형식이 올바르지 않습니다.')
+  }
+  return account
+}
+
 export function isSettlementNotCalculated(error: unknown): boolean {
   return error instanceof SettlementApiError
     && error.status === 404
     && error.code === 'SETTLEMENT_NOT_CALCULATED'
+}
+
+export function isSettlementAccountNotRegistered(error: unknown): boolean {
+  return error instanceof SettlementApiError
+    && error.status === 404
+    && error.code === 'RESOURCE_NOT_FOUND'
 }
 
 export function getSettlementErrorMessage(error: unknown): string {

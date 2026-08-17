@@ -201,7 +201,7 @@ describe('Selectors client routes', () => {
       '#/shop/RC000003200T',
       '#/campaigns',
       '#/performance',
-      '#/settlement/info',
+      '#/settlement/check',
     ])
     expect(within(navigation).getByRole('link', { name: '캠페인' }).getAttribute('aria-current')).toBe('page')
     expect(navigation.previousElementSibling?.classList.contains('screen-header')).toBe(true)
