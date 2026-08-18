@@ -4,6 +4,7 @@ import { ApplyFormScreen, ApplyIntroScreen, ApplyStatusScreen } from './screens/
 import { CampaignDetailScreen, CampaignListScreen } from './screens/campaigns/CampaignScreens'
 import LoginScreen from './screens/login/LoginScreen'
 import { PerformanceSummaryScreen, ProductPerformanceScreen } from './screens/performance/PerformanceScreens'
+import SettlementEntryScreen from './screens/settlement/SettlementEntryScreen'
 import SettlementInfoScreen from './screens/settlement/SettlementInfoScreen'
 import SettlementScreen from './screens/settlement/SettlementScreen'
 import {
@@ -88,6 +89,12 @@ export const routes = [
     path: '#/performance/products',
     title: '상품별 성과',
     Screen: ProductPerformanceScreen,
+  },
+  {
+    id: 'settlement-entry',
+    path: '#/settlement/check',
+    title: '정산',
+    Screen: SettlementEntryScreen,
   },
   {
     id: 'settlement-info',
