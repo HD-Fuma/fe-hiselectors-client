@@ -83,6 +83,25 @@ function getLoginRequestError(error: unknown): string {
   return error instanceof Error ? error.message : '로그인 요청 중 오류가 발생했습니다.'
 }
 
+async function isSelectorsMember(accessToken: string, tokenType: string): Promise<boolean> {
+  const response = await fetch(`${API_BASE_URL}/api/product-groups/me/shop`, {
+    headers: {
+      Authorization: `${tokenType || 'Bearer'} ${accessToken}`,
+    },
+  })
+
+  if (response.ok) {
+    return true
+  }
+
+  if (response.status === 403 || response.status === 404) {
+    return false
+  }
+
+  const rawMessage = await response.text()
+  throw new Error(extractErrorMessage(rawMessage))
+}
+
 export default function LoginScreen() {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false)
   const [loginId, setLoginId] = useState('')
@@ -135,16 +154,20 @@ export default function LoginScreen() {
           trimmedLoginId,
         issuedAt: Date.now(),
       }
+      const selectorsMember = await isSelectorsMember(payload.accessToken, payload.tokenType)
 
       persistAuthSession(authState)
       window.dispatchEvent(new CustomEvent('auth:changed', { detail: authState }))
       setPassword('')
 
       const postLoginRedirect = sessionStorage.getItem('postLoginRedirect')
-      if (postLoginRedirect) {
+      if (!selectorsMember && postLoginRedirect) {
         sessionStorage.removeItem('postLoginRedirect')
         window.location.hash = postLoginRedirect
+      } else if (!selectorsMember) {
+        window.location.hash = '#/apply'
       } else {
+        sessionStorage.removeItem('postLoginRedirect')
         redirectToMainScreen()
       }
     } catch (error) {

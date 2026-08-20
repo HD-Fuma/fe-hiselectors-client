@@ -6,7 +6,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
 
 import App from '../../App'
-import { logout } from '../../auth'
 
 const workspaceRoot = (globalThis as typeof globalThis & {
   process: { cwd(): string }
@@ -97,6 +96,15 @@ describe('The Hyundai login reference contract', () => {
     )
 
     await vi.waitFor(() => {
+      expect(fetchSpy).toHaveBeenCalledWith(
+        'http://127.0.0.1:8080/api/product-groups/me/shop',
+        {
+          headers: { Authorization: 'Bearer test.jwt' },
+        },
+      )
+    })
+
+    await vi.waitFor(() => {
       expect(JSON.parse(localStorage.getItem('selectors-auth') ?? '{}')).toMatchObject({
         accessToken: 'test.jwt',
         role: 'USER',
@@ -138,6 +146,36 @@ describe('The Hyundai login reference contract', () => {
     expect(within(dialog).queryByText('Failed to fetch')).toBeNull()
   })
 
+  it('sends a user without selectors membership to the application page', async () => {
+    window.location.hash = '#/login'
+    vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        data: { accessToken: 'user.jwt', tokenType: 'Bearer', role: 'USER' },
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        message: '셀렉터스를 찾을 수 없습니다.',
+      }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      }))
+
+    render(<App />)
+    fireEvent.change(screen.getByLabelText('아이디'), { target: { value: 'regular-user' } })
+    fireEvent.change(screen.getByLabelText('비밀번호'), { target: { value: 'demo-pass' } })
+    fireEvent.click(screen.getByRole('button', { name: '로그인' }))
+
+    await vi.waitFor(() => {
+      expect(window.location.hash).toBe('#/apply')
+      expect(JSON.parse(localStorage.getItem('selectors-auth') ?? '{}')).toMatchObject({
+        accessToken: 'user.jwt',
+        role: 'USER',
+      })
+    })
+  })
+
   it('returns to the requested application form after login', async () => {
     sessionStorage.setItem('postLoginRedirect', '#/apply/form')
     window.location.hash = '#/login'
@@ -147,6 +185,11 @@ describe('The Hyundai login reference contract', () => {
           status: 200,
           headers: { 'Content-Type': 'application/json' },
         })
+        : String(input).endsWith('/api/product-groups/me/shop')
+          ? new Response(JSON.stringify({ message: '셀렉터스를 찾을 수 없습니다.' }), {
+            status: 404,
+            headers: { 'Content-Type': 'application/json' },
+          })
         : new Response(JSON.stringify({
           data: { accessToken: 'test.jwt', tokenType: 'Bearer', role: 'USER' },
         }), {
@@ -168,13 +211,13 @@ describe('The Hyundai login reference contract', () => {
 
   it('clears the auth session and redirects to login on logout', () => {
     localStorage.setItem('selectors-auth', JSON.stringify({ accessToken: 'keep.me', role: 'USER' }))
-    window.location.hash = '#/campaigns'
+    window.location.hash = '#/home'
 
     render(<App />)
 
-    expect(screen.queryByRole('button', { name: '로그아웃' })).toBeNull()
-
-    logout()
+    const logoutButton = screen.getByRole('button', { name: '로그아웃' })
+    expect(logoutButton.textContent).toBe('로그아웃')
+    fireEvent.click(logoutButton)
 
     expect(localStorage.getItem('selectors-auth')).toBeNull()
     expect(window.location.hash).toBe('#/login')
