@@ -4,9 +4,11 @@ export type OAuthProvider = 'instagram' | 'facebook' | 'youtube'
 
 export type OAuthVerificationResult = {
   verified: boolean
+  verificationToken: string
   username?: string
   accountId?: string
-  followerCount?: number
+  followerCount?: number | null
+  contentCount?: number | null
   channelId?: string
   channelTitle?: string
 }
@@ -106,6 +108,13 @@ export async function verifyOAuth(provider: OAuthProvider, code: string, state: 
   const result = unwrapPayload(await response.json())
   if (typeof result !== 'object' || result === null) {
     throw new Error('OAuth 인증 결과 형식이 올바르지 않습니다.')
+  }
+
+  const verificationResult = result as Record<string, unknown>
+  if (verificationResult.verified === true && (
+    typeof verificationResult.verificationToken !== 'string' || !verificationResult.verificationToken.trim()
+  )) {
+    throw new Error('OAuth 인증 토큰을 응답에서 찾을 수 없습니다.')
   }
 
   return result as OAuthVerificationResult
