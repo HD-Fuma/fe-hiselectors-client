@@ -1,5 +1,6 @@
 export type SelectorProfile = {
   readonly name: string
+  readonly avatarImage?: string
   readonly meSpaceLabel: string
   readonly badgeAlt: string
   readonly badgeImage: string
@@ -34,6 +35,7 @@ export type ShopGroup = {
 
 export const selectorProfile = {
   name: 'byunjjii',
+  avatarImage: '',
   meSpaceLabel: 'byunjjii의 ME스페이스',
   badgeAlt: '인플루언서 뱃지',
   badgeImage: 'https://image.thehyundai.com/images/badge/badge_manager_large.png?SF=webp&AO=1',

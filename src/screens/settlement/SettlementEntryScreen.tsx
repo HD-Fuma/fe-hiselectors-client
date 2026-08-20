@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 
 import ScreenHeader from '../../components/ScreenHeader'
-import MainNavigation from '../../components/layout/MainNavigation'
 import {
   getSettlementAccount,
   getSettlementErrorMessage,
@@ -31,8 +30,7 @@ export default function SettlementEntryScreen() {
 
   return (
     <>
-      <ScreenHeader backHref="#/performance" title="정산" />
-      <MainNavigation current="settlement" />
+      <ScreenHeader backHref="#/home" title="정산" />
       <div className="screen-scroll settlement-screen">
         {error ? (
           <div className="settlement-content-feedback settlement-content-error" role="alert">

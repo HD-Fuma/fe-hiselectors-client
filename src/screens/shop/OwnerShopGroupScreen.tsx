@@ -27,6 +27,7 @@ export default function OwnerShopGroupScreen() {
   const headerShareTriggerRef = useRef<HTMLButtonElement>(null)
   const menuTriggerRef = useRef<HTMLButtonElement>(null)
   const group = getGroup(getGroupId())
+  const isOwnerView = sessionStorage.getItem('selectors-shop-view-mode') === 'owner'
 
   if (!group) {
     return <MissingShopGroup title="셀렉터스샵" />
@@ -35,7 +36,7 @@ export default function OwnerShopGroupScreen() {
   return (
     <div className="panel-page">
       <ScreenHeader
-        action={(
+        action={isOwnerView ? (
           <button
             aria-label="상품 그룹 공유"
             className="icon-button"
@@ -48,7 +49,7 @@ export default function OwnerShopGroupScreen() {
           >
             <ShareIcon size={22} />
           </button>
-        )}
+        ) : undefined}
         backHref={shopPath}
         title="셀렉터스샵"
       />
@@ -56,7 +57,10 @@ export default function OwnerShopGroupScreen() {
         <ShopGroupSection
           description={campaigns.find(({ id }) => id === group.campaignId)?.name}
           group={group}
-          ownerAction={(
+          getProductShareUrl={isOwnerView
+            ? (productId) => `https://hi.thehyundai.com/sellectors/manage/shop/RC000003200T/products/${productId}`
+            : undefined}
+          ownerAction={isOwnerView ? (
             <ShopGroupMenu
               groupId={group.id}
               onDelete={() => setDeleteOpen(true)}
@@ -67,12 +71,12 @@ export default function OwnerShopGroupScreen() {
               }}
               triggerRef={menuTriggerRef}
             />
-          )}
+          ) : undefined}
         />
         <p className="shop-disclosure">{disclosure}</p>
         <ShopStatus status={state.status} />
       </div>
-      {shareOpen ? (
+      {isOwnerView && shareOpen ? (
         <ShareShopSheet
           invokerRef={activeShareInvokerRef}
           onClose={() => setShareOpen(false)}
@@ -80,7 +84,7 @@ export default function OwnerShopGroupScreen() {
           url={`https://hi.thehyundai.com/sellectors/manage/shop/RC000003200T/${group.id}`}
         />
       ) : null}
-      {renameOpen ? (
+      {isOwnerView && renameOpen ? (
         <RenameGroupDialog
           groupName={group.name}
           invokerRef={menuTriggerRef}
@@ -91,7 +95,7 @@ export default function OwnerShopGroupScreen() {
           }}
         />
       ) : null}
-      {deleteOpen ? (
+      {isOwnerView && deleteOpen ? (
         <DeleteGroupDialog
           groupName={group.name}
           invokerRef={menuTriggerRef}

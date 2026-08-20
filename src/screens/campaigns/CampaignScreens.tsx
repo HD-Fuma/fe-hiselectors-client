@@ -2,7 +2,6 @@ import { useRef, useState } from 'react'
 
 import { ArrowRightIcon } from '../../components/Icons'
 import ScreenHeader from '../../components/ScreenHeader'
-import MainNavigation from '../../components/layout/MainNavigation'
 import CampaignQuickAddSheet from '../shop/CampaignQuickAddSheet'
 import { useShopDemo } from '../shop/ShopDemoContext'
 import { shopProducts } from '../shop/shopData'
@@ -35,8 +34,7 @@ const campaigns = [
 export function CampaignListScreen() {
   return (
     <>
-      <ScreenHeader title="캠페인" />
-      <MainNavigation current="campaigns" />
+      <ScreenHeader backHref="#/home" title="캠페인" />
       <div className="screen-scroll campaigns-screen">
         <div className="screen-lead">
           <h2>지금 소개하기 좋은 캠페인</h2>
@@ -129,7 +127,7 @@ export function CampaignDetailScreen() {
       <ShopStatus status={shop.state.status} />
       {isQuickAddOpen ? (
         <CampaignQuickAddSheet
-          groups={shop.state.groups}
+          groups={shop.state.groups.filter(({ campaignId }) => campaignId === 'season-pick')}
           invokerRef={quickAddTriggerRef}
           onAddToGroup={(groupId, productIds) => {
             shop.addProductsToGroup(groupId, productIds)
