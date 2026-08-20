@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
+import { redirectToLoginScreen } from '../../auth'
 import ScreenHeader from '../../components/ScreenHeader'
 import MainNavigation from '../../components/layout/MainNavigation'
 import {
@@ -7,6 +8,7 @@ import {
   getSettlementEstimate,
   getSettlementHistories,
   isSettlementNotCalculated,
+  isSettlementUnauthorized,
   type SettlementEstimate,
   type SettlementStatus,
 } from './settlementApi'
@@ -102,8 +104,8 @@ export default function SettlementScreen() {
   const [availableYears, setAvailableYears] = useState<number[]>([])
   const [isSummaryLoading, setIsSummaryLoading] = useState(true)
   const [isHistoryLoading, setIsHistoryLoading] = useState(true)
-  const [summaryError, setSummaryError] = useState<string | null>(null)
-  const [historyError, setHistoryError] = useState<string | null>(null)
+  const [summaryError, setSummaryError] = useState<unknown>(null)
+  const [historyError, setHistoryError] = useState<unknown>(null)
 
   const loadSummary = useCallback(async () => {
     setIsSummaryLoading(true)
@@ -114,7 +116,7 @@ export default function SettlementScreen() {
       if (isSettlementNotCalculated(error)) {
         setEstimate(null)
       } else {
-        setSummaryError(getSettlementErrorMessage(error))
+        setSummaryError(error)
       }
     } finally {
       setIsSummaryLoading(false)
@@ -129,7 +131,7 @@ export default function SettlementScreen() {
       setHistories(result.histories)
       setAvailableYears(result.availableYears)
     } catch (error) {
-      setHistoryError(getSettlementErrorMessage(error))
+      setHistoryError(error)
     } finally {
       setIsHistoryLoading(false)
     }
@@ -162,13 +164,24 @@ export default function SettlementScreen() {
           {isSummaryLoading ? <p className="settlement-feedback">정산 정보를 불러오는 중입니다.</p> : null}
           {!isSummaryLoading && summaryError ? (
             <div className="settlement-feedback settlement-feedback-error" role="alert">
-              <p>{summaryError}</p>
-              <button onClick={() => void loadSummary()} type="button">다시 시도</button>
+              <p>{getSettlementErrorMessage(summaryError)}</p>
+              <button
+                onClick={() => {
+                  if (isSettlementUnauthorized(summaryError)) {
+                    redirectToLoginScreen()
+                    return
+                  }
+                  void loadSummary()
+                }}
+                type="button"
+              >
+                {isSettlementUnauthorized(summaryError) ? '로그인하기' : '재요청'}
+              </button>
             </div>
           ) : null}
           {!isSummaryLoading && !summaryError && estimate ? (
             <>
-              <span>{formatSettlementMonth(estimate.activityMonth)} 예상 정산 금액</span>
+              <span>{formatSettlementMonth(estimate.activityMonth)} 활동 예상 수수료</span>
               <strong>{formatNumber(estimate.settlementAmount)}<small>원</small></strong>
               <div>
                 <span>구매 확정 {formatNumber(estimate.confirmedPurchaseCount)}건</span>
@@ -196,8 +209,19 @@ export default function SettlementScreen() {
         {isHistoryLoading ? <p className="settlement-content-feedback">정산 이력을 불러오는 중입니다.</p> : null}
         {!isHistoryLoading && historyError ? (
           <div className="settlement-content-feedback settlement-content-error" role="alert">
-            <p>{historyError}</p>
-            <button onClick={() => void loadHistories(selectedYear)} type="button">다시 시도</button>
+            <p>{getSettlementErrorMessage(historyError)}</p>
+            <button
+              onClick={() => {
+                if (isSettlementUnauthorized(historyError)) {
+                  redirectToLoginScreen()
+                  return
+                }
+                void loadHistories(selectedYear)
+              }}
+              type="button"
+            >
+              {isSettlementUnauthorized(historyError) ? '로그인하기' : '재요청'}
+            </button>
           </div>
         ) : null}
         {!isHistoryLoading && !historyError && histories.length === 0 ? (

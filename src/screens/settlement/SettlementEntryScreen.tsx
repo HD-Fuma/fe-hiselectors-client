@@ -1,15 +1,17 @@
 import { useCallback, useEffect, useState } from 'react'
 
+import { redirectToLoginScreen } from '../../auth'
 import ScreenHeader from '../../components/ScreenHeader'
 import MainNavigation from '../../components/layout/MainNavigation'
 import {
   getSettlementAccount,
   getSettlementErrorMessage,
   isSettlementAccountNotRegistered,
+  isSettlementUnauthorized,
 } from './settlementApi'
 
 export default function SettlementEntryScreen() {
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<unknown>(null)
 
   const checkSettlementAccount = useCallback(async () => {
     setError(null)
@@ -21,7 +23,7 @@ export default function SettlementEntryScreen() {
         window.location.hash = '#/settlement/info'
         return
       }
-      setError(getSettlementErrorMessage(requestError))
+      setError(requestError)
     }
   }, [])
 
@@ -36,8 +38,19 @@ export default function SettlementEntryScreen() {
       <div className="screen-scroll settlement-screen">
         {error ? (
           <div className="settlement-content-feedback settlement-content-error" role="alert">
-            <p>{error}</p>
-            <button onClick={() => void checkSettlementAccount()} type="button">다시 시도</button>
+            <p>{getSettlementErrorMessage(error)}</p>
+            <button
+              onClick={() => {
+                if (isSettlementUnauthorized(error)) {
+                  redirectToLoginScreen()
+                  return
+                }
+                void checkSettlementAccount()
+              }}
+              type="button"
+            >
+              {isSettlementUnauthorized(error) ? '로그인하기' : '재요청'}
+            </button>
           </div>
         ) : (
           <p aria-live="polite" className="settlement-content-feedback">정산 정보를 확인하는 중입니다.</p>

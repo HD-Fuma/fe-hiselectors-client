@@ -76,8 +76,12 @@ function extractMessage(payload: unknown, fallback: string): string {
   return fallback
 }
 
-async function request<T>(path: string): Promise<T> {
-  const response = await authFetch(`${API_BASE_URL}${path}`)
+async function request<T>(
+  path: string,
+  init?: RequestInit,
+  fallback = '정산 정보를 불러오지 못했습니다.',
+): Promise<T> {
+  const response = await authFetch(`${API_BASE_URL}${path}`, init)
   const payload = parsePayload(await response.text())
 
   if (!response.ok) {
@@ -87,7 +91,7 @@ async function request<T>(path: string): Promise<T> {
     throw new SettlementApiError(
       response.status === 401
         ? '로그인이 필요합니다.'
-        : extractMessage(payload, '정산 정보를 불러오지 못했습니다.'),
+        : extractMessage(payload, fallback),
       response.status,
       envelope?.code,
     )
@@ -124,17 +128,49 @@ export async function getSettlementHistories(year: number): Promise<SettlementHi
   return histories
 }
 
+function isSettlementAccount(value: unknown): value is SettlementAccount {
+  return typeof value === 'object'
+    && value !== null
+    && typeof (value as SettlementAccount).bankName === 'string'
+    && typeof (value as SettlementAccount).accountNumber === 'string'
+    && typeof (value as SettlementAccount).accountHolder === 'string'
+}
+
+function normalizeSettlementAccount(account: SettlementAccount): SettlementAccount {
+  return {
+    bankName: account.bankName.trim(),
+    accountNumber: account.accountNumber.trim(),
+    accountHolder: account.accountHolder.trim(),
+  }
+}
+
 export async function getSettlementAccount(): Promise<SettlementAccount> {
   const account = await request<SettlementAccount>('/api/settlements/account')
-  if (
-    !account
-    || typeof account.bankName !== 'string'
-    || typeof account.accountNumber !== 'string'
-    || typeof account.accountHolder !== 'string'
-  ) {
+  if (!isSettlementAccount(account)) {
     throw new Error('정산 정보 조회 응답 형식이 올바르지 않습니다.')
   }
   return account
+}
+
+export async function upsertSettlementAccount(account: SettlementAccount): Promise<SettlementAccount> {
+  const payload = normalizeSettlementAccount(account)
+  const saved = await request<SettlementAccount | null>(
+    '/api/settlements/account',
+    {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    },
+    '정산 정보를 저장하지 못했습니다.',
+  )
+
+  if (saved == null) {
+    return payload
+  }
+  if (!isSettlementAccount(saved)) {
+    throw new Error('정산 정보 저장 응답 형식이 올바르지 않습니다.')
+  }
+  return saved
 }
 
 export function isSettlementNotCalculated(error: unknown): boolean {
@@ -144,9 +180,11 @@ export function isSettlementNotCalculated(error: unknown): boolean {
 }
 
 export function isSettlementAccountNotRegistered(error: unknown): boolean {
-  return error instanceof SettlementApiError
-    && error.status === 404
-    && error.code === 'RESOURCE_NOT_FOUND'
+  return error instanceof SettlementApiError && error.status === 404
+}
+
+export function isSettlementUnauthorized(error: unknown): boolean {
+  return error instanceof SettlementApiError && error.status === 401
 }
 
 export function getSettlementErrorMessage(error: unknown): string {

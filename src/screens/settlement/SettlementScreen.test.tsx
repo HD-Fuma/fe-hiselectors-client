@@ -48,6 +48,7 @@ function setSession() {
 afterEach(() => {
   cleanup()
   localStorage.clear()
+  window.location.hash = ''
   vi.restoreAllMocks()
 })
 
@@ -71,7 +72,7 @@ describe('SettlementScreen', () => {
 
     render(<SettlementScreen />)
 
-    expect(await screen.findByText('2026년 7월 예상 정산 금액')).toBeTruthy()
+    expect(await screen.findByText('2026년 7월 활동 예상 수수료')).toBeTruthy()
     expect(screen.getByText('구매 확정 386건')).toBeTruthy()
     expect(screen.getByText('정산 예정일 2026.09.20')).toBeTruthy()
     expect(screen.getByText('지급 완료')).toBeTruthy()
@@ -100,7 +101,7 @@ describe('SettlementScreen', () => {
     })
 
     render(<SettlementScreen />)
-    await screen.findByText('2026년 7월 예상 정산 금액')
+    await screen.findByText('2026년 7월 활동 예상 수수료')
     fireEvent.change(screen.getByLabelText('정산 이력 연도'), { target: { value: '2025' } })
 
     expect(await screen.findByText('2025년 12월')).toBeTruthy()
@@ -119,6 +120,16 @@ describe('SettlementScreen', () => {
 
     expect(await screen.findByText('아직 계산된 정산 내역이 없습니다.')).toBeTruthy()
     expect(screen.getByText('선택한 연도에 정산 내역이 없습니다.')).toBeTruthy()
+  })
+
+  it('sends unauthorized retries to the login screen', async () => {
+    setSession()
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(json({ message: 'Unauthorized' }, 401))
+
+    render(<SettlementScreen />)
+    fireEvent.click((await screen.findAllByRole('button', { name: '로그인하기' }))[0])
+
+    expect(window.location.hash).toBe('#/login')
   })
 
   it('calculates settlement and payment dates across year boundaries', () => {
