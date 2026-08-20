@@ -13,9 +13,29 @@ const authSession = {
 
 const verifiedInstagram = {
   provider: 'instagram',
-  accountId: 'creator-id',
+  accountId: 'creator-name',
+  verificationToken: 'instagram-verification-token',
   followerCount: 123,
+  contentCount: 42,
   label: 'creator-name',
+}
+
+const instagramOAuthResult = {
+  verified: true,
+  verificationToken: 'instagram-verification-token',
+  accountId: '17841400000000000',
+  username: 'creator-name',
+  followerCount: 123,
+  contentCount: 42,
+}
+
+const youtubeOAuthResult = {
+  verified: true,
+  verificationToken: 'youtube-verification-token',
+  channelId: 'UC-channel-id',
+  channelTitle: 'creator-channel',
+  followerCount: 456,
+  contentCount: 17,
 }
 
 function jsonResponse(data: unknown, status = 200) {
@@ -242,11 +262,11 @@ describe('apply flow', () => {
 
   it('verifies OAuth with code and state in the POST body', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      jsonResponse({ data: { verified: true, ...verifiedInstagram } }),
+      jsonResponse({ data: instagramOAuthResult }),
     )
     const { verifyOAuth } = await import('../../oauth')
 
-    await verifyOAuth('instagram', 'abc123', 'state-1')
+    const verified = await verifyOAuth('instagram', 'abc123', 'state-1')
 
     expect(fetchSpy).toHaveBeenCalledWith(
       'https://api.hiselectors.shop/api/instagram/oauth/verify',
@@ -255,6 +275,49 @@ describe('apply flow', () => {
         body: JSON.stringify({ code: 'abc123', state: 'state-1' }),
       }),
     )
+    expect(verified.contentCount).toBe(42)
+    expect(verified.verificationToken).toBe('instagram-verification-token')
+  })
+
+  it.each([
+    {
+      provider: 'instagram',
+      oauthResult: { verified: true, accountId: '17841400000000000' },
+      message: 'Instagram 사용자명을 인증 결과에서 찾을 수 없습니다.',
+    },
+    {
+      provider: 'youtube',
+      oauthResult: { verified: true, channelTitle: 'creator-channel' },
+      message: 'YouTube 채널 ID를 인증 결과에서 찾을 수 없습니다.',
+    },
+  ])('rejects a $provider callback without its canonical identifier', async ({
+    message,
+    oauthResult,
+    provider,
+  }) => {
+    authenticate()
+    sessionStorage.setItem('oauthProvider', provider)
+    window.history.replaceState(
+      window.history.state,
+      '',
+      `${window.location.pathname}?code=abc123&state=state-1#/apply/form`,
+    )
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = requestUrl(input)
+      if (url.endsWith('/api/generations/active')) {
+        return jsonResponse({ data: { id: 1 } })
+      }
+      if (url.endsWith(`/api/${provider}/oauth/verify`)) {
+        return jsonResponse({ data: oauthResult })
+      }
+      throw new Error(`Unexpected request: ${url}`)
+    })
+
+    render(<App />)
+
+    const dialog = await screen.findByRole('dialog', { name: '계정 연결 실패' })
+    expect(within(dialog).getByText(message)).toBeTruthy()
+    expect(sessionStorage.getItem('oauthVerified')).toBeNull()
   })
 
   it('posts the verified application and moves to status only after success', async () => {
@@ -291,12 +354,126 @@ describe('apply flow', () => {
       body: JSON.stringify({
         snsCode: 'INSTAGRAM',
         snsAccountId: 'creator-name',
+        verificationToken: 'instagram-verification-token',
         followerCount: 123,
+        contentCount: 42,
         privacyAgreed: true,
         alarmAgreed: true,
       }),
     })
     expect((applicationCall?.[1]?.headers as Headers).get('Authorization')).toBe('Bearer demo.jwt')
+  })
+
+  it.each([
+    {
+      name: 'YouTube callback',
+      provider: 'youtube',
+      oauthResult: youtubeOAuthResult,
+      snsCode: 'YOUTUBE',
+      accountId: 'UC-channel-id',
+      verificationToken: 'youtube-verification-token',
+      followerCount: 456,
+      contentCount: 17,
+    },
+    {
+      name: 'Instagram callback without contentCount',
+      provider: 'instagram',
+      oauthResult: {
+        verified: true,
+        verificationToken: 'instagram-verification-token',
+        accountId: '17841400000000000',
+        username: 'legacy.creator',
+        followerCount: null,
+      },
+      snsCode: 'INSTAGRAM',
+      accountId: 'legacy.creator',
+      verificationToken: 'instagram-verification-token',
+      followerCount: null,
+      contentCount: null,
+    },
+  ])('posts canonical account data after $name', async ({
+    accountId,
+    contentCount,
+    followerCount,
+    oauthResult,
+    provider,
+    snsCode,
+    verificationToken,
+  }) => {
+    authenticate()
+    sessionStorage.setItem('oauthProvider', provider)
+    window.history.replaceState(
+      window.history.state,
+      '',
+      `${window.location.pathname}?code=abc123&state=state-1#/apply/form`,
+    )
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = requestUrl(input)
+      if (url.endsWith('/api/generations/active')) {
+        return jsonResponse({ data: { id: 1 } })
+      }
+      if (url.endsWith(`/api/${provider}/oauth/verify`)) {
+        return jsonResponse({ data: oauthResult })
+      }
+      if (url.endsWith('/api/applications')) {
+        return jsonResponse({ data: { applicationId: 10 } })
+      }
+      throw new Error(`Unexpected request: ${url}`)
+    })
+    render(<App />)
+
+    await screen.findByRole('button', { name: '인증 완료' })
+    expect(JSON.parse(sessionStorage.getItem('oauthVerified') ?? 'null')).toMatchObject({
+      accountId,
+      verificationToken,
+    })
+    screen.getAllByRole('checkbox').forEach((checkbox) => fireEvent.click(checkbox))
+    fireEvent.click(screen.getByRole('button', { name: '셀렉터스 신청하기' }))
+
+    await waitFor(() => expect(window.location.hash).toBe('#/apply/status'))
+    const applicationCall = fetchSpy.mock.calls.find(([input]) => (
+      requestUrl(input).endsWith('/api/applications')
+    ))
+    expect(applicationCall?.[1]).toMatchObject({
+      method: 'POST',
+      body: JSON.stringify({
+        snsCode,
+        snsAccountId: accountId,
+        verificationToken,
+        followerCount,
+        contentCount,
+        privacyAgreed: true,
+        alarmAgreed: true,
+      }),
+    })
+  })
+
+  it('blocks a legacy verified session without a token and asks for SNS reauthentication', async () => {
+    authenticate()
+    sessionStorage.setItem('oauthVerified', JSON.stringify({
+      ...verifiedInstagram,
+      verificationToken: undefined,
+    }))
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = requestUrl(input)
+      if (url.endsWith('/api/generations/active')) {
+        return jsonResponse({ data: { id: 1 } })
+      }
+      throw new Error(`Unexpected request: ${url}`)
+    })
+    window.location.hash = '#/apply/form'
+    render(<App />)
+
+    screen.getAllByRole('checkbox').forEach((checkbox) => fireEvent.click(checkbox))
+    fireEvent.click(screen.getByRole('button', { name: '셀렉터스 신청하기' }))
+
+    const dialog = await screen.findByRole('dialog', { name: '제출 실패' })
+    expect(within(dialog).getByText('SNS 계정을 다시 인증해 주세요.')).toBeTruthy()
+    expect(fetchSpy.mock.calls.some(([input]) => requestUrl(input).endsWith('/api/applications'))).toBe(false)
+    expect(screen.queryByRole('dialog', { name: '로그인이 필요합니다' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Instagram 계정 연결하기' })).toHaveProperty('disabled', false)
+    expect(sessionStorage.getItem('oauthVerified')).toBeNull()
+    expect(window.location.hash).toBe('#/apply/form')
   })
 
   it.each([

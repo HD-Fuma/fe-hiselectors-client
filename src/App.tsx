@@ -108,11 +108,21 @@ function RoutedApp({ shopProbe }: AppProps) {
       try {
         const verified = await verifyOAuth(provider, code, state)
         if (verified.verified) {
+          const accountId = provider === 'instagram'
+            ? verified.username?.trim()
+            : verified.channelId?.trim()
+          if (!accountId) {
+            throw new Error(provider === 'instagram'
+              ? 'Instagram 사용자명을 인증 결과에서 찾을 수 없습니다.'
+              : 'YouTube 채널 ID를 인증 결과에서 찾을 수 없습니다.')
+          }
           const nextVerifiedState = {
             provider,
-            accountId: provider === 'instagram' ? (verified.accountId ?? verified.username ?? '') : (verified.channelId ?? verified.channelTitle ?? ''),
+            accountId,
+            verificationToken: verified.verificationToken,
             followerCount: verified.followerCount ?? null,
-            label: provider === 'instagram' ? (verified.username ?? 'Instagram') : (verified.channelTitle ?? 'YouTube'),
+            contentCount: verified.contentCount ?? null,
+            label: provider === 'instagram' ? accountId : (verified.channelTitle?.trim() || 'YouTube'),
           }
 
           sessionStorage.setItem('oauthVerified', JSON.stringify(nextVerifiedState))

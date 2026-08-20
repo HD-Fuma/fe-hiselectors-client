@@ -4,9 +4,11 @@ export type OAuthProvider = 'instagram' | 'facebook' | 'youtube'
 
 export type OAuthVerificationResult = {
   verified: boolean
+  verificationToken: string
   username?: string
   accountId?: string
-  followerCount?: number
+  followerCount?: number | null
+  contentCount?: number | null
   channelId?: string
   channelTitle?: string
 }

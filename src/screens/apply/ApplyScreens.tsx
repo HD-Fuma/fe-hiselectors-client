@@ -80,7 +80,9 @@ const snsChannels = [
 type ConnectedAccount = {
   provider: Exclude<OAuthProvider, 'facebook'>
   accountId: string
+  verificationToken?: string
   followerCount: number | null
+  contentCount?: number | null
   label: string
 }
 
@@ -270,8 +272,16 @@ export function ApplyFormScreen() {
   }
 
   const handleSubmit = async () => {
-    if (!selectedChannel || !session || !isUserSessionValid) {
+    if (!selectedChannel || !connectedAccount || !session || !isUserSessionValid) {
       redirectToLoginScreen()
+      return
+    }
+
+    if (!connectedAccount.verificationToken?.trim()) {
+      setConnectedAccount(null)
+      setOauthStatus('')
+      sessionStorage.removeItem('oauthVerified')
+      setSubmitError('SNS 계정을 다시 인증해 주세요.')
       return
     }
 
@@ -279,11 +289,13 @@ export function ApplyFormScreen() {
     setSubmitError('')
 
     try {
-      const snsCode = connectedAccount?.provider === 'instagram' ? 'INSTAGRAM' : connectedAccount?.provider === 'youtube' ? 'YOUTUBE' : selectedChannel.provider === 'instagram' ? 'INSTAGRAM' : 'YOUTUBE'
+      const snsCode = connectedAccount.provider === 'instagram' ? 'INSTAGRAM' : 'YOUTUBE'
       const payload = {
         snsCode,
-        snsAccountId: connectedAccount?.label || session.loginId || selectedChannel.label,
-        followerCount: connectedAccount?.followerCount ?? 0,
+        snsAccountId: connectedAccount.accountId,
+        verificationToken: connectedAccount.verificationToken,
+        followerCount: connectedAccount.followerCount ?? null,
+        contentCount: connectedAccount.contentCount ?? null,
         privacyAgreed,
         alarmAgreed: hasAlimtalkConsent || alarmAgreed,
       }
