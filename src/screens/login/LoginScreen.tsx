@@ -4,6 +4,7 @@ import {
   API_BASE_URL,
   fetchSelectorAccessLevel,
   persistAuthSession,
+  SelectorAccessRequestError,
   type SelectorAccessLevel,
 } from '../../auth'
 import { EyeIcon, LoginProviderIcon } from '../../components/Icons'
@@ -133,6 +134,9 @@ export default function LoginScreen() {
       try {
         selectorAccessLevel = await fetchSelectorAccessLevel(payload.accessToken, payload.tokenType)
       } catch (error) {
+        if (error instanceof SelectorAccessRequestError && [401, 403].includes(error.status)) {
+          throw error
+        }
         console.warn('셀렉터스 권한을 확인하지 못해 일반 회원으로 로그인합니다.', error)
       }
       const authState = {

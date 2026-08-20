@@ -171,7 +171,6 @@ export function selectRouteByHash(hash: string): AppRoute {
 
 export function canAccessRoute(route: AppRoute, session: AuthSession | null): boolean {
   if (route.access === 'public') return true
-  if (hasValidUserSession(session) && session?.role === 'USER' && session.selectorAccessLevel === undefined) return true
   if (route.access === 'applicant') return !hasValidUserSession(session) || session?.selectorAccessLevel === 'NONE'
   if (route.access === 'current') return canManageSelectorOperations(session)
   if (route.access === 'settlement-history') return canViewSettlementHistory(session)
@@ -180,6 +179,7 @@ export function canAccessRoute(route: AppRoute, session: AuthSession | null): bo
 
 export function getRouteRedirect(route: AppRoute, session: AuthSession | null): HashPath | null {
   if (canAccessRoute(route, session)) return null
+  if (hasValidUserSession(session) && session?.role === 'USER' && session.selectorAccessLevel === undefined) return null
   if (!hasValidUserSession(session)) return '#/login'
   if (session?.selectorAccessLevel === 'NONE') return '#/apply'
   return '#/home'

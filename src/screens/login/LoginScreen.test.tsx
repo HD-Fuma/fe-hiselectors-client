@@ -301,6 +301,28 @@ describe('The Hyundai login reference contract', () => {
     expect(screen.queryByRole('dialog', { name: '로그인 실패' })).toBeNull()
   })
 
+  it.each([401, 403])('does not keep a login session when the access check returns %s', async (status) => {
+    window.location.hash = '#/login'
+    vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        data: { accessToken: 'rejected.jwt', tokenType: 'Bearer', role: 'USER' },
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }))
+      .mockResolvedValueOnce(new Response(null, { status }))
+
+    render(<App />)
+    fireEvent.change(screen.getByLabelText('아이디'), { target: { value: 'selector-user' } })
+    fireEvent.change(screen.getByLabelText('비밀번호'), { target: { value: 'demo-pass' } })
+    fireEvent.click(screen.getByRole('button', { name: '로그인' }))
+
+    const dialog = await screen.findByRole('dialog', { name: '로그인 실패' })
+    expect(within(dialog).getByText('셀렉터스 권한 정보를 확인하지 못했습니다.')).toBeTruthy()
+    expect(localStorage.getItem('selectors-auth')).toBeNull()
+    expect(window.location.hash).toBe('#/login')
+  })
+
   it('falls back to NONE when the access response is invalid', async () => {
     window.location.hash = '#/login'
     vi.spyOn(console, 'warn').mockImplementation(() => undefined)

@@ -9,6 +9,7 @@ const authSession = {
   tokenType: 'Bearer',
   role: 'USER',
   loginId: 'demo-user',
+  selectorAccessLevel: 'NONE',
 }
 
 const verifiedInstagram = {

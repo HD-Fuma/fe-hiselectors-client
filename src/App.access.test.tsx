@@ -19,25 +19,33 @@ afterEach(() => {
 })
 
 describe('selector access refresh', () => {
-  it('keeps a legacy protected deep link until access is resolved', async () => {
+  it('keeps a legacy protected deep link without mounting it until access is resolved', async () => {
     localStorage.setItem('selectors-auth', JSON.stringify({
       accessToken: 'legacy.jwt', tokenType: 'Bearer', role: 'USER', loginId: 'legacy-user',
     }))
     window.location.hash = '#/campaigns'
-    vi.spyOn(globalThis, 'fetch').mockImplementation((input) => Promise.resolve(
+    let resolveAccess!: (response: Response) => void
+    const accessResponse = new Promise<Response>((resolve) => { resolveAccess = resolve })
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation((input) => (
       String(input).endsWith('/api/me/selector-access')
-        ? json({ data: { accessLevel: 'CURRENT' } })
-        : json({ data: [] }),
+        ? accessResponse
+        : Promise.resolve(json({ data: [] }))
     ))
 
     render(<App />)
 
     expect(window.location.hash).toBe('#/campaigns')
+    expect(screen.getByRole('status').textContent).toBe('권한을 확인하고 있습니다.')
+    expect(screen.queryByRole('heading', { level: 1, name: '캠페인' })).toBeNull()
+    expect(fetchSpy.mock.calls.filter(([input]) => !String(input).endsWith('/api/me/selector-access'))).toHaveLength(0)
+
+    resolveAccess(json({ data: { accessLevel: 'CURRENT' } }))
     await vi.waitFor(() => {
       expect(window.location.hash).toBe('#/campaigns')
       expect(JSON.parse(localStorage.getItem('selectors-auth') ?? '{}')).toMatchObject({
         selectorAccessLevel: 'CURRENT',
       })
+      expect(screen.getByRole('heading', { level: 1, name: '캠페인' })).toBeTruthy()
     })
   })
 
@@ -206,5 +214,45 @@ describe('selector access refresh', () => {
     await vi.waitFor(() => expect(window.location.search).toBe(''))
     expect(window.location.hash).toBe('#/home')
     window.removeEventListener('hashchange', countHashChange)
+  })
+
+  it('keeps a legacy applicant OAuth callback on the form while NONE access resolves', async () => {
+    localStorage.setItem('selectors-auth', JSON.stringify({
+      accessToken: 'legacy.jwt', tokenType: 'Bearer', role: 'USER', loginId: 'legacy-user',
+    }))
+    sessionStorage.setItem('oauthProvider', 'instagram')
+    window.history.replaceState({}, '', '/?code=oauth-code&state=oauth-state')
+    let resolveAccess!: (response: Response) => void
+    const accessResponse = new Promise<Response>((resolve) => { resolveAccess = resolve })
+    vi.spyOn(globalThis, 'fetch').mockImplementation((input) => {
+      const url = String(input)
+      if (url.endsWith('/api/me/selector-access')) return accessResponse
+      if (url.endsWith('/api/instagram/oauth/verify')) {
+        return Promise.resolve(json({
+          data: {
+            verified: true,
+            verificationToken: 'verification-token',
+            username: 'creator',
+          },
+        }))
+      }
+      if (url.endsWith('/api/generations/active')) return Promise.resolve(json({ data: { id: 1 } }))
+      return Promise.resolve(json({ data: [] }))
+    })
+
+    render(<App />)
+
+    expect(window.location.hash).toBe('#/apply/form')
+    expect(screen.getByRole('status').textContent).toBe('권한을 확인하고 있습니다.')
+    resolveAccess(json({ data: { accessLevel: 'NONE' } }))
+
+    await vi.waitFor(() => {
+      expect(window.location.search).toBe('')
+      expect(window.location.hash).toBe('#/apply/form')
+      expect(JSON.parse(localStorage.getItem('selectors-auth') ?? '{}')).toMatchObject({
+        selectorAccessLevel: 'NONE',
+      })
+      expect(screen.getByRole('heading', { level: 1, name: '셀렉터스 신청하기' })).toBeTruthy()
+    })
   })
 })

@@ -53,7 +53,8 @@ function selectCurrentRoute() {
     }
   } else if (oauthHash) {
     const isApplicant = !hasValidUserSession(session)
-      || (session?.role === 'USER' && session.selectorAccessLevel === 'NONE')
+      || (session?.role === 'USER'
+        && (session.selectorAccessLevel === undefined || session.selectorAccessLevel === 'NONE'))
     if (isApplicant) {
       requestedHash = '#/apply/form'
       if (window.location.hash !== requestedHash) {
@@ -87,6 +88,7 @@ function selectCurrentRoute() {
 
 function RoutedApp({ shopProbe }: AppProps) {
   const [route, setRoute] = useState(selectCurrentRoute)
+  const [authSession, setAuthSession] = useState(readAuthSession)
   const [showAuthGateModal, setShowAuthGateModal] = useState(false)
   const [showNoCohortModal, setShowNoCohortModal] = useState(false)
   const [hasActiveCohort, setHasActiveCohort] = useState(false)
@@ -286,6 +288,7 @@ function RoutedApp({ shopProbe }: AppProps) {
     }
 
     const handleAuthChanged = () => {
+      setAuthSession(readAuthSession())
       setShowAuthGateModal(false)
       setShowNoCohortModal(false)
       setRoute(selectCurrentRoute())
@@ -339,6 +342,9 @@ function RoutedApp({ shopProbe }: AppProps) {
   }, [route])
 
   const { Screen } = route
+  const isSelectorAccessPending = route.access !== 'public'
+    && authSession?.role === 'USER'
+    && authSession.selectorAccessLevel === undefined
 
   const handleGoToLogin = () => {
     setShowAuthGateModal(false)
@@ -350,10 +356,16 @@ function RoutedApp({ shopProbe }: AppProps) {
       <AppShell
         screenId={route.id}
       >
-        <p aria-atomic="true" aria-live="polite" className="sr-only route-announcement">
-          {route.title} 화면
-        </p>
-        <Screen />
+        {isSelectorAccessPending ? (
+          <p aria-live="polite" role="status">권한을 확인하고 있습니다.</p>
+        ) : (
+          <>
+            <p aria-atomic="true" aria-live="polite" className="sr-only route-announcement">
+              {route.title} 화면
+            </p>
+            <Screen />
+          </>
+        )}
       </AppShell>
       {showNoCohortModal ? (
         <div aria-modal="true" className="auth-gate-backdrop" role="dialog" aria-labelledby="cohort-closed-title">
