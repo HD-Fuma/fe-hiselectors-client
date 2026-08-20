@@ -4,6 +4,7 @@ import { ApplyFormScreen, ApplyIntroScreen, ApplyStatusScreen } from './screens/
 import { CampaignDetailScreen, CampaignListScreen } from './screens/campaigns/CampaignScreens'
 import LoginScreen from './screens/login/LoginScreen'
 import HomeScreen from './screens/home/HomeScreen'
+import MemberInfoScreen from './screens/mypage/MemberInfoScreen'
 import { PerformanceSummaryScreen, ProductPerformanceScreen } from './screens/performance/PerformanceScreens'
 import SettlementEntryScreen from './screens/settlement/SettlementEntryScreen'
 import SettlementInfoScreen from './screens/settlement/SettlementInfoScreen'
@@ -30,6 +31,7 @@ type RouteDefinition = {
 export const routes = [
   { id: 'login', path: '#/login', title: '로그인', Screen: LoginScreen },
   { id: 'home', path: '#/home', title: '셀렉터스', Screen: HomeScreen },
+  { id: 'member-info', path: '#/mypage/member', title: '회원정보 변경', Screen: MemberInfoScreen },
   { id: 'apply-intro', path: '#/apply', title: '셀렉터스 신청하기', Screen: ApplyIntroScreen },
   { id: 'apply-form', path: '#/apply/form', title: '셀렉터스 신청하기', Screen: ApplyFormScreen },
   { id: 'apply-status', path: '#/apply/status', title: '신청 완료', Screen: ApplyStatusScreen },

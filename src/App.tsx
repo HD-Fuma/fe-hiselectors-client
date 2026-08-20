@@ -11,6 +11,7 @@ import {
 import { routeMatchesHash, selectRouteByHash } from './routes'
 import { ShopDemoProvider } from './screens/shop/ShopDemoContext'
 import { verifyOAuth } from './oauth'
+import { KAKAO_OAUTH_PENDING_KEY, MEMBER_INFO_PATH } from './screens/mypage/kakaoApi'
 import './styles/global.css'
 import './styles/shop.css'
 
@@ -23,10 +24,18 @@ function hasPendingOAuthCallback(): boolean {
   return Boolean(params.get('code') && params.get('state'))
 }
 
+function pendingOAuthHash() {
+  if (!hasPendingOAuthCallback()) {
+    return null
+  }
+  return sessionStorage.getItem(KAKAO_OAUTH_PENDING_KEY) ? MEMBER_INFO_PATH : '#/apply/form'
+}
+
 function selectCurrentRoute() {
   let requestedHash = window.location.hash
-  if (hasPendingOAuthCallback()) {
-    requestedHash = '#/apply/form'
+  const oauthHash = pendingOAuthHash()
+  if (oauthHash) {
+    requestedHash = oauthHash
     if (window.location.hash !== requestedHash) {
       window.location.hash = requestedHash
     }
@@ -34,7 +43,10 @@ function selectCurrentRoute() {
 
   const route = selectRouteByHash(requestedHash)
   if (!routeMatchesHash(route, window.location.hash)) {
-    window.history.replaceState(window.history.state, '', route.path)
+    const nextUrl = hasPendingOAuthCallback()
+      ? `${window.location.pathname}${window.location.search}${route.path}`
+      : route.path
+    window.history.replaceState(window.history.state, '', nextUrl)
   }
 
   return route
@@ -90,6 +102,10 @@ function RoutedApp({ shopProbe }: AppProps) {
 
       const clearOAuthQueryParams = () => {
         window.history.replaceState(window.history.state, '', window.location.pathname + window.location.hash)
+      }
+
+      if (sessionStorage.getItem(KAKAO_OAUTH_PENDING_KEY)) {
+        return
       }
 
       const provider = sessionStorage.getItem('oauthProvider') as 'instagram' | 'youtube' | null
