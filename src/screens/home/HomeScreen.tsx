@@ -1,3 +1,4 @@
+import { logout } from '../../auth'
 import { ArrowRightIcon, CartIcon, ChartIcon, CoinIcon, GiftIcon } from '../../components/Icons'
 import ScreenHeader from '../../components/ScreenHeader'
 import { useShopDemo } from '../shop/ShopDemoContext'
@@ -28,8 +29,13 @@ export default function HomeScreen() {
     ...staticHomeMenus,
   ]
   return (
-    <div className="panel-page">
-      <ScreenHeader title="셀렉터스" />
+    <div className="panel-page selectors-home-page">
+      <ScreenHeader
+        action={(
+          <button className="logout-button" onClick={logout} type="button">로그아웃</button>
+        )}
+        title="셀렉터스"
+      />
       <div className="screen-scroll selectors-home-screen">
         <section
           aria-busy={isProductGroupLoading || undefined}
