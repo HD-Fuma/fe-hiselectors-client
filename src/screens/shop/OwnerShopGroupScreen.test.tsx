@@ -37,7 +37,9 @@ let shareDescriptor: PropertyDescriptor | undefined
 let navigatorMocksInstalled = false
 
 beforeEach(() => {
-  localStorage.setItem('selectors-auth', JSON.stringify({ accessToken: 'owner.token', role: 'USER' }))
+  localStorage.setItem('selectors-auth', JSON.stringify({
+    accessToken: 'owner.token', role: 'USER', selectorAccessLevel: 'CURRENT',
+  }))
   sessionStorage.setItem('selectors-shop-view-mode', 'owner')
 })
 
@@ -278,8 +280,7 @@ describe('owner selectors shop group', () => {
     expect(writeText).toHaveBeenCalledTimes(2)
     expect(writeText).toHaveBeenCalledWith(groupShareUrl)
     expect(nativeShare).not.toHaveBeenCalled()
-    expect(fetchSpy).toHaveBeenCalledTimes(1)
-    expect(String(fetchSpy.mock.calls[0]?.[0])).toContain('/api/view-logs')
+    expect(fetchSpy.mock.calls.filter(([input]) => String(input).includes('/api/view-logs'))).toHaveLength(1)
   })
 
   it('keeps a retained shop status above the share overlay', () => {

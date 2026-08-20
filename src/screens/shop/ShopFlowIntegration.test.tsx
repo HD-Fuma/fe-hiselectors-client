@@ -49,7 +49,9 @@ afterEach(() => {
 })
 
 beforeEach(() => {
-  localStorage.setItem('selectors-auth', JSON.stringify({ accessToken: 'test.jwt', role: 'USER' }))
+  localStorage.setItem('selectors-auth', JSON.stringify({
+    accessToken: 'test.jwt', role: 'USER', selectorAccessLevel: 'CURRENT',
+  }))
 })
 
 describe('campaign quick-add integration', () => {

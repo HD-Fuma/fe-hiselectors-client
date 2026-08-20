@@ -1,6 +1,11 @@
 import { useState } from 'react'
 
-import { API_BASE_URL, persistAuthSession, redirectToMainScreen } from '../../auth'
+import {
+  API_BASE_URL,
+  fetchSelectorAccessLevel,
+  persistAuthSession,
+  type SelectorAccessLevel,
+} from '../../auth'
 import { EyeIcon, LoginProviderIcon } from '../../components/Icons'
 import ScreenHeader from '../../components/ScreenHeader'
 
@@ -83,32 +88,6 @@ function getLoginRequestError(error: unknown): string {
   return error instanceof Error ? error.message : '로그인 요청 중 오류가 발생했습니다.'
 }
 
-async function isSelectorsMember(accessToken: string, tokenType: string): Promise<boolean | null> {
-  let response: Response
-
-  try {
-    response = await fetch(`${API_BASE_URL}/api/product-groups/me/shop`, {
-      headers: {
-        Authorization: `${tokenType || 'Bearer'} ${accessToken}`,
-      },
-    })
-  } catch (error) {
-    console.warn('셀렉터스 회원 여부를 확인하지 못했습니다.', error)
-    return null
-  }
-
-  if (response.ok) {
-    return true
-  }
-
-  if (response.status === 403 || response.status === 404) {
-    return false
-  }
-
-  console.warn(`셀렉터스 회원 여부 확인에 실패했습니다. (${response.status})`)
-  return null
-}
-
 export default function LoginScreen() {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false)
   const [loginId, setLoginId] = useState('')
@@ -150,9 +129,16 @@ export default function LoginScreen() {
       }
 
       const payload = extractAuthPayload(await response.json())
+      let selectorAccessLevel: SelectorAccessLevel = 'NONE'
+      try {
+        selectorAccessLevel = await fetchSelectorAccessLevel(payload.accessToken, payload.tokenType)
+      } catch (error) {
+        console.warn('셀렉터스 권한을 확인하지 못해 일반 회원으로 로그인합니다.', error)
+      }
       const authState = {
         ...payload,
         loginId: trimmedLoginId,
+        selectorAccessLevel,
         userName:
           payload.userName ||
           payload.name ||
@@ -162,29 +148,26 @@ export default function LoginScreen() {
         issuedAt: Date.now(),
       }
       persistAuthSession(authState)
-      window.dispatchEvent(new CustomEvent('auth:changed', { detail: authState }))
       setPassword('')
 
-      const selectorsMember = await isSelectorsMember(payload.accessToken, payload.tokenType)
       const postLoginRedirect = sessionStorage.getItem('postLoginRedirect')
       const isPublicProductRedirect = postLoginRedirect?.startsWith('/product/') ?? false
-      const canUseRequestedRoute = postLoginRedirect
-        && (isPublicProductRedirect || selectorsMember !== false || postLoginRedirect.startsWith('#/apply'))
 
       sessionStorage.removeItem('postLoginRedirect')
 
-      if (canUseRequestedRoute) {
+      if (postLoginRedirect) {
         if (isPublicProductRedirect) {
           window.history.replaceState(window.history.state, '', postLoginRedirect)
           window.dispatchEvent(new PopStateEvent('popstate'))
         } else {
           window.location.hash = postLoginRedirect
         }
-      } else if (selectorsMember === false) {
+      } else if (selectorAccessLevel === 'NONE') {
         window.location.hash = '#/apply'
       } else {
-        redirectToMainScreen()
+        window.location.hash = '#/home'
       }
+      window.dispatchEvent(new CustomEvent('auth:changed', { detail: authState }))
     } catch (error) {
       setErrorMessage(getLoginRequestError(error))
       setShowErrorModal(true)

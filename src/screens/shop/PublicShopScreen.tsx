@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 
 import { ArrowRightIcon, ShareIcon } from '../../components/Icons'
 import ScreenHeader from '../../components/ScreenHeader'
-import { hasValidUserSession, readAuthSession } from '../../auth'
+import { canManageSelectorOperations, readAuthSession } from '../../auth'
 import ShareShopSheet from './ShareShopSheet'
 import ShopGroupSection from './ShopGroupSection'
 import { useShopDemo } from './ShopDemoContext'
@@ -19,7 +19,7 @@ type ShopViewMode = 'public' | 'owner'
 function getInitialViewMode(): ShopViewMode {
   const wantsOwnerView = sessionStorage.getItem(viewModeStorageKey) === 'owner'
   const session = readAuthSession()
-  if (wantsOwnerView && hasValidUserSession(session) && session?.role === 'USER') return 'owner'
+  if (wantsOwnerView && canManageSelectorOperations(session)) return 'owner'
 
   if (wantsOwnerView) sessionStorage.setItem(viewModeStorageKey, 'public')
   return 'public'
@@ -34,8 +34,7 @@ export default function PublicShopScreen() {
   const [viewMode, setViewMode] = useState<ShopViewMode>(getInitialViewMode)
   const shareTriggerRef = useRef<HTMLButtonElement>(null)
   const session = readAuthSession()
-  const hasUserSession = hasValidUserSession(session) && session?.role === 'USER'
-  const canUseOwnerView = hasUserSession
+  const canUseOwnerView = canManageSelectorOperations(session)
     && Boolean(ownedSelectorsCode)
     && ownedSelectorsCode === selectorsCode
   const isOwner = canUseOwnerView && viewMode === 'owner'

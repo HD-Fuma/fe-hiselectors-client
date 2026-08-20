@@ -139,7 +139,9 @@ describe('service sidebar and public shop reference contract', () => {
   })
 
   it('uses the live upload-style share icon at the accessible 22px header placement', () => {
-    localStorage.setItem('selectors-auth', JSON.stringify({ accessToken: 'owner.token', role: 'USER' }))
+    localStorage.setItem('selectors-auth', JSON.stringify({
+      accessToken: 'owner.token', role: 'USER', selectorAccessLevel: 'CURRENT',
+    }))
     window.location.hash = '#/shop/RC000003200T'
     render(<App />)
 

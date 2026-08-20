@@ -60,6 +60,9 @@ describe('quality regression contracts', () => {
   })
 
   it('preserves accessible mobile metric labels while visually compacting the table', () => {
+    localStorage.setItem('selectors-auth', JSON.stringify({
+      accessToken: 'test.jwt', role: 'USER', selectorAccessLevel: 'CURRENT',
+    }))
     window.location.hash = '#/performance/products'
     render(<App />)
 
@@ -73,6 +76,9 @@ describe('quality regression contracts', () => {
   })
 
   it('does not expose a fake search landmark without a search control', () => {
+    localStorage.setItem('selectors-auth', JSON.stringify({
+      accessToken: 'test.jwt', role: 'USER', selectorAccessLevel: 'CURRENT',
+    }))
     window.location.hash = '#/campaigns'
     render(<App />)
 

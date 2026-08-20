@@ -1,4 +1,10 @@
-import { logout } from '../../auth'
+import {
+  canManageSelectorOperations,
+  canViewSelectorShop,
+  getSelectorAccessLevel,
+  logout,
+  readAuthSession,
+} from '../../auth'
 import { ArrowRightIcon, CartIcon, ChartIcon, CoinIcon, GiftIcon, PersonIcon } from '../../components/Icons'
 import ScreenHeader from '../../components/ScreenHeader'
 import { useShopDemo } from '../shop/ShopDemoContext'
@@ -11,23 +17,37 @@ const staticHomeMenus = [
   { href: '#/mypage/member', label: '회원정보 변경', description: '회원정보와 카카오 메시지 연결을 관리해요.', Icon: PersonIcon },
 ] as const
 
+const settlementHistoryMenu = {
+  href: '#/settlement',
+  label: '정산 내역',
+  description: '이전 활동의 정산 내역을 확인해요.',
+  Icon: CoinIcon,
+} as const
+
 export default function HomeScreen() {
+  const session = readAuthSession()
+  const accessLevel = getSelectorAccessLevel(session)
+  const canManage = canManageSelectorOperations(session)
+  const canViewShop = canViewSelectorShop(session)
   const { isProductGroupLoading, ownedProfileMeta, productGroupError, profile, selectorsCode } = useShopDemo()
   const shopHref = selectorsCode ? buildPublicShopHash(selectorsCode) : null
   const generationName = ownedProfileMeta.generationName?.trim() || '기수 정보 없음'
-  const userName = ownedProfileMeta.userName?.trim() || '이름 정보 없음'
+  const userName = ownedProfileMeta.userName?.trim() || session?.userName?.trim() || '이름 정보 없음'
   const savedSnsId = ownedProfileMeta.snsId?.trim()
   const snsId = savedSnsId || 'SNS ID 없음'
   const homeMenus = [
-    {
+    ...(canViewShop ? [{
       href: shopHref,
       label: '셀렉터스 샵',
       description: isProductGroupLoading
         ? '내 셀렉터스 샵을 불러오는 중이에요.'
-        : productGroupError || '나만의 상품 그룹과 공유 링크를 관리해요.',
+        : productGroupError || (canManage
+          ? '나만의 상품 그룹과 공유 링크를 관리해요.'
+          : '이전 기수의 셀렉터스 샵을 조회해요.'),
       Icon: CartIcon,
-    },
-    ...staticHomeMenus,
+    }] : []),
+    ...(canManage ? staticHomeMenus : []),
+    ...(accessLevel === 'PREVIOUS' || accessLevel === 'BLACKLIST' ? [settlementHistoryMenu] : []),
   ]
   return (
     <div className="panel-page selectors-home-page">

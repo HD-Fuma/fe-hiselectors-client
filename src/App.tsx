@@ -4,11 +4,13 @@ import AppShell from './components/layout/AppShell'
 import {
   API_BASE_URL,
   authFetch,
+  fetchSelectorAccessLevel,
   hasValidUserSession,
   isLocalApplyTestMode,
+  persistAuthSession,
   readAuthSession,
 } from './auth'
-import { routeMatchesHash, selectRouteByHash } from './routes'
+import { getRouteRedirect, routeMatchesHash, selectRouteByHash } from './routes'
 import { ShopDemoProvider } from './screens/shop/ShopDemoContext'
 import { verifyOAuth } from './oauth'
 import { KAKAO_OAUTH_PENDING_KEY, MEMBER_INFO_PATH } from './screens/mypage/kakaoApi'
@@ -49,6 +51,17 @@ function selectCurrentRoute() {
   }
 
   const route = selectRouteByHash(requestedHash)
+  const session = readAuthSession()
+  const routeRedirect = getRouteRedirect(route, session)
+  if (routeRedirect && routeRedirect !== requestedHash) {
+    if (!hasValidUserSession(session)) {
+      sessionStorage.setItem('postLoginRedirect', requestedHash)
+    }
+    window.history.replaceState(window.history.state, '', routeRedirect)
+    window.setTimeout(() => window.dispatchEvent(new HashChangeEvent('hashchange')), 0)
+    return selectRouteByHash(routeRedirect)
+  }
+
   if (!routeMatchesHash(route, window.location.hash)) {
     const nextUrl = hasPendingOAuthCallback()
       ? `${window.location.pathname}${window.location.search}${route.path}`
@@ -66,6 +79,49 @@ function RoutedApp({ shopProbe }: AppProps) {
   const [hasActiveCohort, setHasActiveCohort] = useState(false)
   const [isCohortStatusLoaded, setIsCohortStatusLoaded] = useState(false)
   const localApplyTestMode = isLocalApplyTestMode()
+
+  useEffect(() => {
+    let disposed = false
+    let inFlight: Promise<void> | null = null
+
+    const refreshSelectorAccess = () => {
+      const session = readAuthSession()
+      if (inFlight || !hasValidUserSession(session) || session?.role !== 'USER') return
+
+      const accessToken = session.accessToken
+      inFlight = fetchSelectorAccessLevel(accessToken, session.tokenType)
+        .then((selectorAccessLevel) => {
+          if (disposed) return
+          const latestSession = readAuthSession()
+          if (!latestSession || latestSession.accessToken !== accessToken || latestSession.role !== 'USER') return
+
+          const accessChanged = latestSession.selectorAccessLevel !== selectorAccessLevel
+          const nextSession = { ...latestSession, selectorAccessLevel }
+          persistAuthSession(nextSession)
+          if (accessChanged) {
+            window.dispatchEvent(new CustomEvent('auth:changed', { detail: nextSession }))
+          }
+        })
+        .catch(() => undefined)
+        .finally(() => {
+          inFlight = null
+        })
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') refreshSelectorAccess()
+    }
+
+    refreshSelectorAccess()
+    window.addEventListener('focus', refreshSelectorAccess)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      disposed = true
+      window.removeEventListener('focus', refreshSelectorAccess)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [])
 
   useEffect(() => {
     if (route.id !== 'apply-intro' && route.id !== 'apply-form') {

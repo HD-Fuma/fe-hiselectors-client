@@ -69,6 +69,7 @@ describe('reference typography and packaged font', () => {
       tokenType: 'Bearer',
       role: 'USER',
       loginId: 'selector-user',
+      selectorAccessLevel: 'NONE',
     }))
     window.location.hash = '#/apply/form'
     render(<App />)
@@ -112,7 +113,9 @@ describe('shared panel and campaign fidelity', () => {
   })
 
   it('removes only the campaign activity-commission claim', () => {
-    localStorage.setItem('selectors-auth', JSON.stringify({ accessToken: 'test.jwt', role: 'USER' }))
+    localStorage.setItem('selectors-auth', JSON.stringify({
+      accessToken: 'test.jwt', role: 'USER', selectorAccessLevel: 'CURRENT',
+    }))
     window.location.hash = '#/campaigns/season-pick'
     render(<App />)
 
@@ -131,6 +134,9 @@ describe('shared panel and campaign fidelity', () => {
   })
 
   it('retains aggregate, product-level, and settlement commission reporting', async () => {
+    localStorage.setItem('selectors-auth', JSON.stringify({
+      accessToken: 'test.jwt', role: 'USER', selectorAccessLevel: 'CURRENT',
+    }))
     window.location.hash = '#/performance'
     render(<App />)
     const aggregateCommission = screen.getByText('예상 정산 수수료').closest('.metric-card') as HTMLElement

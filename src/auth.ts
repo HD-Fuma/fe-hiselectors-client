@@ -1,16 +1,24 @@
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://api.hiselectors.shop'
 
+export type SelectorAccessLevel = 'CURRENT' | 'PREVIOUS' | 'NONE' | 'BLACKLIST'
+
 export type AuthSession = {
   accessToken: string
   tokenType: string
   role: string
   loginId: string
+  selectorAccessLevel: SelectorAccessLevel
   userName?: string
   alimtalk?: string
   issuedAt?: number
 }
 
 const AUTH_STORAGE_KEY = 'selectors-auth'
+const selectorAccessLevels = new Set<SelectorAccessLevel>(['CURRENT', 'PREVIOUS', 'NONE', 'BLACKLIST'])
+
+function isSelectorAccessLevel(value: unknown): value is SelectorAccessLevel {
+  return typeof value === 'string' && selectorAccessLevels.has(value as SelectorAccessLevel)
+}
 
 function isJwtExpired(token: string): boolean {
   const payload = token.split('.')[1]
@@ -65,6 +73,9 @@ export function readAuthSession(): AuthSession | null {
       tokenType: parsed.tokenType || 'Bearer',
       role: parsed.role || 'USER',
       loginId: parsed.loginId || '',
+      selectorAccessLevel: isSelectorAccessLevel(parsed.selectorAccessLevel)
+        ? parsed.selectorAccessLevel
+        : 'NONE',
       userName,
       alimtalk: parsed.alimtalk,
       issuedAt: parsed.issuedAt,
@@ -76,6 +87,53 @@ export function readAuthSession(): AuthSession | null {
 
 export function hasValidUserSession(session: AuthSession | null): boolean {
   return Boolean(session && session.accessToken && session.role)
+}
+
+export function getSelectorAccessLevel(session: AuthSession | null): SelectorAccessLevel {
+  return hasValidUserSession(session) && session?.role === 'USER'
+    ? session.selectorAccessLevel
+    : 'NONE'
+}
+
+export function canManageSelectorOperations(session: AuthSession | null): boolean {
+  return getSelectorAccessLevel(session) === 'CURRENT'
+}
+
+export function canViewSelectorShop(session: AuthSession | null): boolean {
+  const accessLevel = getSelectorAccessLevel(session)
+  return accessLevel === 'CURRENT' || accessLevel === 'PREVIOUS'
+}
+
+export function canViewSettlementHistory(session: AuthSession | null): boolean {
+  return getSelectorAccessLevel(session) !== 'NONE'
+}
+
+export async function fetchSelectorAccessLevel(
+  accessToken: string,
+  tokenType: string,
+): Promise<SelectorAccessLevel> {
+  const response = await fetch(`${API_BASE_URL}/api/me/selector-access`, {
+    headers: {
+      Authorization: `${tokenType || 'Bearer'} ${accessToken}`,
+    },
+  })
+
+  if (!response.ok) {
+    throw new Error('셀렉터스 권한 정보를 확인하지 못했습니다.')
+  }
+
+  const body = await response.json() as unknown
+  const envelope = typeof body === 'object' && body !== null ? body as { data?: unknown } : null
+  const candidate = envelope && 'data' in envelope ? envelope.data : body
+  const accessLevel = typeof candidate === 'object' && candidate !== null
+    ? (candidate as { accessLevel?: unknown }).accessLevel
+    : undefined
+
+  if (!isSelectorAccessLevel(accessLevel)) {
+    throw new Error('셀렉터스 권한 응답 형식이 올바르지 않습니다.')
+  }
+
+  return accessLevel
 }
 
 export function isLocalApplyTestMode(): boolean {

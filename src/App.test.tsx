@@ -163,6 +163,10 @@ function ShopContinuityProbe() {
 }
 
 beforeEach(() => {
+  localStorage.setItem('selectors-auth', JSON.stringify({
+    accessToken: 'test.jwt', tokenType: 'Bearer', role: 'USER', loginId: 'selector-user',
+    selectorAccessLevel: 'CURRENT',
+  }))
   vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ data: { id: 1 } }), {
     status: 200,
     headers: { 'Content-Type': 'application/json' },
@@ -181,12 +185,13 @@ describe('Selectors client routes', () => {
   it.each(screenExpectations)(
     'renders the unique heading and representative content for $path',
     ({ path, id, heading, content }) => {
-      if (path === '#/apply/form' || path === '#/mypage/member' || path.startsWith('#/campaigns') || path.startsWith('#/shop/groups')) {
+      if (path.startsWith('#/apply')) {
         localStorage.setItem('selectors-auth', JSON.stringify({
           accessToken: 'test.jwt',
           tokenType: 'Bearer',
           role: 'USER',
           loginId: 'selector-user',
+          selectorAccessLevel: 'NONE',
         }))
       }
       window.location.hash = path
@@ -217,6 +222,21 @@ describe('Selectors client routes', () => {
       '#/mypage/member',
     ])
     expect(document.querySelector('[data-screen-id="catalog"]')).toBeNull()
+  })
+
+  it.each([
+    ['PREVIOUS', ['#/shop/RC000003200T', '#/settlement']],
+    ['BLACKLIST', ['#/settlement']],
+  ] as const)('shows only %s home actions', (selectorAccessLevel, expectedHrefs) => {
+    localStorage.setItem('selectors-auth', JSON.stringify({
+      accessToken: 'test.jwt', role: 'USER', selectorAccessLevel,
+    }))
+    window.location.hash = '#/home'
+
+    render(<App />)
+
+    const navigation = screen.getByRole('navigation', { name: '셀렉터스 메뉴' })
+    expect(within(navigation).getAllByRole('link').map((link) => link.getAttribute('href'))).toEqual(expectedHrefs)
   })
 
   it('opens the public shop from navigation without requiring login', () => {

@@ -111,6 +111,7 @@ describe('public selectors shop', () => {
     localStorage.setItem('selectors-auth', JSON.stringify({
       accessToken: 'owner.token',
       role: 'USER',
+      selectorAccessLevel: 'CURRENT',
     }))
     window.location.hash = shopHash
 
@@ -123,8 +124,24 @@ describe('public selectors shop', () => {
     )
   })
 
+  it('keeps a previous generation shop read-only', () => {
+    localStorage.setItem('selectors-auth', JSON.stringify({
+      accessToken: 'owner.token', role: 'USER', selectorAccessLevel: 'PREVIOUS',
+    }))
+    sessionStorage.setItem('selectors-shop-view-mode', 'owner')
+    window.location.hash = shopHash
+
+    render(<App />)
+
+    expect(screen.getByRole('heading', { level: 1, name: '셀렉터스샵' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: '관리자' })).toBeNull()
+    expect(screen.queryByRole('link', { name: '관리하기' })).toBeNull()
+  })
+
   it('announces only actual shop statuses', () => {
-    localStorage.setItem('selectors-auth', JSON.stringify({ accessToken: 'owner.token', role: 'USER' }))
+    localStorage.setItem('selectors-auth', JSON.stringify({
+      accessToken: 'owner.token', role: 'USER', selectorAccessLevel: 'CURRENT',
+    }))
     window.location.hash = shopHash
     render(<App shopProbe={<SetShopStatusControl />} />)
 
@@ -171,7 +188,9 @@ describe('public selectors shop', () => {
   })
 
   it('shares through a local-only accessible sheet and restores the trigger on Escape', async () => {
-    localStorage.setItem('selectors-auth', JSON.stringify({ accessToken: 'owner.token', role: 'USER' }))
+    localStorage.setItem('selectors-auth', JSON.stringify({
+      accessToken: 'owner.token', role: 'USER', selectorAccessLevel: 'CURRENT',
+    }))
     const writeText = vi.fn()
     const nativeShare = vi.fn()
     const fetchSpy = vi.fn()
@@ -212,8 +231,7 @@ describe('public selectors shop', () => {
     fireEvent.click(screen.getByRole('button', { name: '확인' }))
     expect(writeText).toHaveBeenCalledWith(shareUrl)
     expect(nativeShare).not.toHaveBeenCalled()
-    expect(fetchSpy).toHaveBeenCalledTimes(1)
-    expect(String(fetchSpy.mock.calls[0]?.[0])).toContain('/api/view-logs')
+    expect(fetchSpy.mock.calls.filter(([input]) => String(input).includes('/api/view-logs'))).toHaveLength(1)
 
     fireEvent.keyDown(dialog, { key: 'Escape' })
 

@@ -21,7 +21,7 @@ import {
   type ShopProduct,
 } from './shopData'
 import { getCampaignDetail, getCampaigns } from '../campaigns/campaignApi'
-import { hasValidUserSession, readAuthSession } from '../../auth'
+import { canManageSelectorOperations, canViewSelectorShop, readAuthSession } from '../../auth'
 import {
   addProductGroupItems,
   createProductGroup,
@@ -104,9 +104,12 @@ function deduplicate(productIds: readonly string[]): string[] {
   return [...new Set(productIds)]
 }
 
-function hasSelectorUserSession(): boolean {
-  const session = readAuthSession()
-  return hasValidUserSession(session) && session?.role === 'USER'
+function canViewOwnedSelectorShop(): boolean {
+  return canViewSelectorShop(readAuthSession())
+}
+
+function canManageOwnedSelectorShop(): boolean {
+  return canManageSelectorOperations(readAuthSession())
 }
 
 export function createInitialShopDemoState(): ShopDemoState {
@@ -305,6 +308,19 @@ function ApiShopProvider({ children }: { children: ReactNode }) {
     const refreshAuth = () => {
       setOwnedSelectorsCode(null)
       setOwnedProfileMeta(emptyOwnedProfileMeta)
+      if (!canViewOwnedSelectorShop()) {
+        shopDataRequestRef.current += 1
+        ownedIdentityRequestRef.current += 1
+        setSelectorsCode(null)
+        setProducts([])
+        setProductGroupError(null)
+        setIsProductGroupLoading(false)
+        dispatch({ type: 'hydrateGroups', groups: [] })
+        dispatch({
+          type: 'hydrateProfile',
+          profile: { ...selectorProfile, name: '', avatarImage: '', meSpaceLabel: '' },
+        })
+      }
       setAuthRevision((current) => current + 1)
     }
     window.addEventListener('auth:changed', refreshAuth)
@@ -371,16 +387,17 @@ function ApiShopProvider({ children }: { children: ReactNode }) {
     const requestId = ++shopDataRequestRef.current
     const isCurrentRequest = () => !cancelled && shopDataRequestRef.current === requestId
 
-    if (!publicSelectorsCode && !needsOwnedGroups) {
+    if (!publicSelectorsCode && (!needsOwnedGroups || !canViewOwnedSelectorShop())) {
       setIsProductGroupLoading(false)
+      setProductGroupError(null)
       return () => { cancelled = true }
     }
 
     setIsProductGroupLoading(true)
     setProductGroupError(null)
     dispatch({ type: 'hydrateGroups', groups: [] })
-    const isOwnedRequest = !publicSelectorsCode && hasSelectorUserSession()
-    const isSelectorSession = hasSelectorUserSession()
+    const isOwnedRequest = !publicSelectorsCode && canViewOwnedSelectorShop()
+    const isSelectorSession = canViewOwnedSelectorShop()
     if (isOwnedRequest) {
       setOwnedSelectorsCode(null)
       setOwnedProfileMeta(emptyOwnedProfileMeta)
@@ -442,7 +459,7 @@ function ApiShopProvider({ children }: { children: ReactNode }) {
     const requestId = ++ownedIdentityRequestRef.current
     const isCurrentRequest = () => !cancelled && ownedIdentityRequestRef.current === requestId
 
-    const hasUserSession = hasSelectorUserSession()
+    const hasUserSession = canViewOwnedSelectorShop()
     if (!publicSelectorsCode || !hasUserSession) {
       if (!hasUserSession) {
         setOwnedSelectorsCode(null)
@@ -478,6 +495,11 @@ function ApiShopProvider({ children }: { children: ReactNode }) {
     setIsCampaignCatalogLoading(true)
     setCampaignCatalogError(null)
     setCampaigns([])
+
+    if (!canManageOwnedSelectorShop()) {
+      setIsCampaignCatalogLoading(false)
+      return () => { cancelled = true }
+    }
 
     getCampaigns()
       .then(async (summaries) => {
@@ -554,32 +576,32 @@ function ApiShopProvider({ children }: { children: ReactNode }) {
   }, [products])
   const renameGroup = useCallback(async (groupId: string, name: string) => {
     const group = state.groups.find(({ id }) => id === groupId)
-    if (!hasSelectorUserSession()) throw new Error('상품 그룹 관리는 셀렉터스 로그인이 필요합니다.')
+    if (!canManageOwnedSelectorShop()) throw new Error('현재 기수 셀렉터스만 상품 그룹을 관리할 수 있습니다.')
     if (!group?.campaignId) throw new Error('상품 그룹의 캠페인 정보를 찾을 수 없습니다.')
     applyApiGroup(await updateProductGroup(groupId, {
       campaignId: Number(group.campaignId), title: name, productIds: group.productIds.map(Number),
     }))
   }, [applyApiGroup, state.groups])
   const updateGroupProducts = useCallback(async (groupId: string, input: GroupInput) => {
-    if (!hasSelectorUserSession()) throw new Error('상품 그룹 관리는 셀렉터스 로그인이 필요합니다.')
+    if (!canManageOwnedSelectorShop()) throw new Error('현재 기수 셀렉터스만 상품 그룹을 관리할 수 있습니다.')
     if (!input.campaignId) throw new Error('캠페인을 선택해 주세요.')
     applyApiGroup(await updateProductGroup(groupId, {
       campaignId: Number(input.campaignId), title: input.name, productIds: input.productIds.map(Number),
     }))
   }, [applyApiGroup])
   const createGroup = useCallback(async (input: GroupInput) => {
-    if (!hasSelectorUserSession()) throw new Error('상품 그룹 관리는 셀렉터스 로그인이 필요합니다.')
+    if (!canManageOwnedSelectorShop()) throw new Error('현재 기수 셀렉터스만 상품 그룹을 관리할 수 있습니다.')
     if (!input.campaignId) throw new Error('캠페인을 선택해 주세요.')
     applyApiGroup(await createProductGroup({
       campaignId: Number(input.campaignId), title: input.name, productIds: input.productIds.map(Number),
     }))
   }, [applyApiGroup])
   const addProductsToGroup = useCallback(async (groupId: string, productIds: string[]) => {
-    if (!hasSelectorUserSession()) throw new Error('상품 그룹 관리는 셀렉터스 로그인이 필요합니다.')
+    if (!canManageOwnedSelectorShop()) throw new Error('현재 기수 셀렉터스만 상품 그룹을 관리할 수 있습니다.')
     applyApiGroup(await addProductGroupItems(groupId, productIds.map(Number)))
   }, [applyApiGroup])
   const deleteGroup = useCallback(async (groupId: string) => {
-    if (!hasSelectorUserSession()) throw new Error('상품 그룹 관리는 셀렉터스 로그인이 필요합니다.')
+    if (!canManageOwnedSelectorShop()) throw new Error('현재 기수 셀렉터스만 상품 그룹을 관리할 수 있습니다.')
     await deleteProductGroup(groupId)
     dispatch({ type: 'deleteGroup', groupId })
   }, [])
@@ -658,7 +680,7 @@ function DemoShopProvider({ children }: { children: ReactNode }) {
   )
   const session = readAuthSession()
   const selectorsCode = parsePublicShopHash(window.location.hash)?.selectorsCode ?? 'RC000003200T'
-  const ownedSelectorsCode = hasValidUserSession(session) && session?.role === 'USER'
+  const ownedSelectorsCode = canViewSelectorShop(session)
     ? 'RC000003200T'
     : null
   const getGroup = useCallback(
