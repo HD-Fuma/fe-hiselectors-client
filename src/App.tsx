@@ -24,6 +24,13 @@ function hasPendingOAuthCallback(): boolean {
 }
 
 function selectCurrentRoute() {
+  const productPathMatch = window.location.pathname.match(/\/product\/([^/]+)\/?$/)
+  if (!window.location.hash
+    && productPathMatch
+    && new URLSearchParams(window.location.search).has('ptrsRefCd')) {
+    return selectRouteByHash(`#/product/${productPathMatch[1]}`)
+  }
+
   let requestedHash = window.location.hash
   if (hasPendingOAuthCallback()) {
     requestedHash = '#/apply/form'
@@ -168,6 +175,7 @@ function RoutedApp({ shopProbe }: AppProps) {
     }
 
     window.addEventListener('hashchange', handleHashChange)
+    window.addEventListener('popstate', handleHashChange)
     document.addEventListener('click', handleApplyGateClick, true)
     window.addEventListener('auth:required', handleAuthRequired)
     window.addEventListener('auth:changed', handleAuthChanged)
@@ -175,6 +183,7 @@ function RoutedApp({ shopProbe }: AppProps) {
 
     return () => {
       window.removeEventListener('hashchange', handleHashChange)
+      window.removeEventListener('popstate', handleHashChange)
       document.removeEventListener('click', handleApplyGateClick, true)
       window.removeEventListener('auth:required', handleAuthRequired)
       window.removeEventListener('auth:changed', handleAuthChanged)

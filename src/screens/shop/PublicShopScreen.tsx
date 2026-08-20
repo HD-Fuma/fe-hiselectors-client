@@ -8,6 +8,7 @@ import ShopGroupSection from './ShopGroupSection'
 import { useShopDemo } from './ShopDemoContext'
 import ShopStatus from './ShopStatus'
 import OwnerGroupControls from './OwnerGroupControls'
+import { useShopViewLog } from './useShopViewLog'
 import { buildPublicShopHash, getPublicProductShareUrl, getPublicShopShareUrl, parsePublicShopHash } from './shopRoute'
 
 const initialGroupCount = 6
@@ -38,6 +39,7 @@ export default function PublicShopScreen() {
     && Boolean(ownedSelectorsCode)
     && ownedSelectorsCode === selectorsCode
   const isOwner = canUseOwnerView && viewMode === 'owner'
+  useShopViewLog(selectorsCode, 'SHOP', undefined, Boolean(selectorsCode) && !isProductGroupLoading && !productGroupError)
 
   useEffect(() => {
     if (canUseOwnerView) return

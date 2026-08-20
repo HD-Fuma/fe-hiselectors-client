@@ -278,7 +278,8 @@ describe('owner selectors shop group', () => {
     expect(writeText).toHaveBeenCalledTimes(2)
     expect(writeText).toHaveBeenCalledWith(groupShareUrl)
     expect(nativeShare).not.toHaveBeenCalled()
-    expect(fetchSpy).not.toHaveBeenCalled()
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    expect(String(fetchSpy.mock.calls[0]?.[0])).toContain('/api/view-logs')
   })
 
   it('keeps a retained shop status above the share overlay', () => {

@@ -167,13 +167,19 @@ export default function LoginScreen() {
 
       const selectorsMember = await isSelectorsMember(payload.accessToken, payload.tokenType)
       const postLoginRedirect = sessionStorage.getItem('postLoginRedirect')
+      const isPublicProductRedirect = postLoginRedirect?.startsWith('/product/') ?? false
       const canUseRequestedRoute = postLoginRedirect
-        && (selectorsMember !== false || postLoginRedirect.startsWith('#/apply'))
+        && (isPublicProductRedirect || selectorsMember !== false || postLoginRedirect.startsWith('#/apply'))
 
       sessionStorage.removeItem('postLoginRedirect')
 
       if (canUseRequestedRoute) {
-        window.location.hash = postLoginRedirect
+        if (isPublicProductRedirect) {
+          window.history.replaceState(window.history.state, '', postLoginRedirect)
+          window.dispatchEvent(new PopStateEvent('popstate'))
+        } else {
+          window.location.hash = postLoginRedirect
+        }
       } else if (selectorsMember === false) {
         window.location.hash = '#/apply'
       } else {
