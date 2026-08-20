@@ -91,7 +91,7 @@ describe('reference shell contract', () => {
   it('locks the reference panel, header, login, and action geometry', () => {
     expect(compactCss).toMatch(/\.app-shell \{[^}]*grid-template-columns: 552px 552px;/)
     expect(compactCss).toMatch(/\.client-panel \{[^}]*width: 552px;/)
-    expect(compactCss).toMatch(/\.screen-header \{[^}]*grid-template-columns: 32px minmax\(0, 1fr\) 32px;[^}]*padding: 0 16px;/)
+    expect(compactCss).toMatch(/\.screen-header \{[^}]*grid-template-columns: 36px minmax\(0, 1fr\) 32px;[^}]*padding: 0 16px 0 12px;/)
     expect(compactCss).toMatch(/\.screen-header h1 \{[^}]*text-align: left;/)
     expect(compactCss).toMatch(/\.screen-header h1:focus \{[^}]*outline: none;/)
     expect(compactCss).toMatch(/\.client-panel \{[^}]*border: 1px solid var\(--line\);[^}]*box-shadow: none;/)
