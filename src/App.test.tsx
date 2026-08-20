@@ -36,9 +36,9 @@ const screenExpectations = [
     content: '진행 중',
   },
   {
-    path: '#/campaigns/detail',
+    path: '#/campaigns/season-pick',
     id: 'campaign-detail',
-    heading: '시즌 픽 캠페인',
+    heading: '여름의 결을 고르는 시즌 픽',
     content: '캠페인 상품',
   },
   {
@@ -56,8 +56,8 @@ const screenExpectations = [
   {
     path: '#/shop/groups',
     id: 'shop-groups',
-    heading: '상품 그룹',
-    content: '생성 순서대로 셀렉터스샵에 노출됩니다.',
+    heading: '셀렉터스 샵 관리하기',
+    content: '한 그룹에는 하나의 캠페인 상품만 담을 수 있어요.',
   },
   {
     path: '#/shop/groups/new',
@@ -72,7 +72,7 @@ const screenExpectations = [
     content: '캠페인 상품 선택',
   },
   {
-    path: '#/shop/groups/new/season-pick',
+    path: '#/shop/groups/new/campaign/season-pick',
     id: 'group-campaign-create',
     heading: '상품 그룹 만들기',
     content: '캠페인 상품 선택',
@@ -119,11 +119,11 @@ const editorRoutes = [
     backHref: '#/shop/RC000003200T/1',
   },
   {
-    path: '#/shop/groups/new/season-pick',
+    path: '#/shop/groups/new/campaign/season-pick',
     mode: 'campaign-create',
     groupId: '',
     initialCampaign: 'season-pick',
-    backHref: '#/campaigns/detail',
+    backHref: '#/campaigns/season-pick',
   },
 ] as const
 
@@ -169,7 +169,7 @@ describe('Selectors client routes', () => {
   it.each(screenExpectations)(
     'renders the unique heading and representative content for $path',
     ({ path, id, heading, content }) => {
-      if (path === '#/apply/form') {
+      if (path === '#/apply/form' || path.startsWith('#/campaigns') || path.startsWith('#/shop/groups')) {
         localStorage.setItem('selectors-auth', JSON.stringify({
           accessToken: 'test.jwt',
           tokenType: 'Bearer',
@@ -192,27 +192,25 @@ describe('Selectors client routes', () => {
   )
 
   it('links each main work area without a screen catalog', () => {
-    window.location.hash = '#/campaigns'
+    window.location.hash = '#/home'
 
     render(<App />)
 
-    const navigation = screen.getByRole('navigation', { name: '주요 기능' })
+    const navigation = screen.getByRole('navigation', { name: '셀렉터스 메뉴' })
     expect(within(navigation).getAllByRole('link').map((link) => link.getAttribute('href'))).toEqual([
       '#/shop/RC000003200T',
       '#/campaigns',
       '#/performance',
       '#/settlement/check',
     ])
-    expect(within(navigation).getByRole('link', { name: '캠페인' }).getAttribute('aria-current')).toBe('page')
-    expect(navigation.previousElementSibling?.classList.contains('screen-header')).toBe(true)
     expect(document.querySelector('[data-screen-id="catalog"]')).toBeNull()
   })
 
   it('opens the public shop from navigation without requiring login', () => {
-    window.location.hash = '#/campaigns'
+    window.location.hash = '#/home'
     render(<App />)
 
-    const shopLink = screen.getByRole('link', { name: '샵' })
+    const shopLink = screen.getByRole('link', { name: /셀렉터스 샵/ })
     expect(shopLink.getAttribute('href')).toBe('#/shop/RC000003200T')
     window.location.hash = shopLink.getAttribute('href') ?? ''
     fireEvent(window, new HashChangeEvent('hashchange'))

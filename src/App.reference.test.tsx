@@ -65,6 +65,7 @@ describe('reference shell contract', () => {
     cleanup()
     window.location.hash = '#/shop/groups/new'
     const editor = render(<App />)
+    fireEvent.change(screen.getByLabelText('캠페인 선택'), { target: { value: 'season-pick' } })
     const productCheck = editor.container.querySelector<HTMLInputElement>('.picker-row input')
     expect(productCheck?.nextElementSibling?.classList.contains('product-check')).toBe(true)
     expect(compactCss).toContain('input:focus-visible + .custom-check')

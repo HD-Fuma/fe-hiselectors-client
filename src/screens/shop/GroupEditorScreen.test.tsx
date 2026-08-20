@@ -121,7 +121,7 @@ describe('group editor', () => {
         saveDisabled: false,
       },
       {
-        path: '#/shop/groups/new/season-pick',
+        path: '#/shop/groups/new/campaign/season-pick',
         mode: 'campaign-create',
         groupId: '',
         initialCampaign: 'season-pick',
@@ -129,7 +129,7 @@ describe('group editor', () => {
         name: '',
         campaignId: 'season-pick',
         selectedCount: 0,
-        backHref: '#/campaigns/detail',
+        backHref: '#/campaigns/season-pick',
         saveDisabled: true,
       },
     ] as const
@@ -171,27 +171,22 @@ describe('group editor', () => {
     }
   })
 
-  it('preserves off-filter selection', () => {
+  it('clears selection when the campaign changes', () => {
     const knitName = '[더현대Hi 단독] Cale ribbed half sleeve KN (Ivory)'
     const earringName = earringNames[0]
     window.location.hash = '#/shop/groups/new'
     const { unmount } = render(<App />)
 
-    fireEvent.click(screen.getByRole('checkbox', { name: knitName }))
-    fireEvent.click(screen.getByRole('checkbox', { name: earringName }))
-    expect(screen.getByText('2개 선택')).toBeTruthy()
-
     const campaign = screen.getByRole('combobox', { name: '캠페인 선택' })
+    fireEvent.change(campaign, { target: { value: 'season-pick' } })
+    fireEvent.click(screen.getByRole('checkbox', { name: knitName }))
+    expect(screen.getByText('1개 선택')).toBeTruthy()
+
     fireEvent.change(campaign, { target: { value: 'fragrance-note' } })
 
-    expect(screen.getByText('2개 선택')).toBeTruthy()
+    expect(screen.getByText('0개 선택')).toBeTruthy()
     expect(screen.queryByRole('checkbox', { name: knitName })).toBeNull()
     expect(screen.queryByRole('checkbox', { name: earringName })).toBeNull()
-
-    fireEvent.change(campaign, { target: { value: '' } })
-
-    expect((screen.getByRole('checkbox', { name: knitName }) as HTMLInputElement).checked).toBe(true)
-    expect((screen.getByRole('checkbox', { name: earringName }) as HTMLInputElement).checked).toBe(true)
 
     unmount()
     render(
@@ -225,6 +220,9 @@ describe('group editor', () => {
     expect(save.disabled).toBe(true)
 
     fireEvent.change(input, { target: { value: '새 그룹' } })
+    fireEvent.change(screen.getByRole('combobox', { name: '캠페인 선택' }), {
+      target: { value: 'season-pick' },
+    })
 
     expect(screen.getByRole('alert').textContent).toBe('상품을 1개 이상 선택해 주세요.')
     expect(input.getAttribute('aria-describedby')).toBe('group-name-count')
@@ -245,6 +243,9 @@ describe('group editor', () => {
     fireEvent.change(screen.getByRole('textbox', { name: '상품 그룹 이름' }), {
       target: { value: ' 새 그룹 ' },
     })
+    fireEvent.change(screen.getByRole('combobox', { name: '캠페인 선택' }), {
+      target: { value: 'season-pick' },
+    })
     fireEvent.click(screen.getByRole('checkbox', { name: productName }))
     fireEvent.click(screen.getByRole('button', { name: '상품 그룹 저장하기' }))
 
@@ -255,15 +256,14 @@ describe('group editor', () => {
       id: 'demo-14',
       name: '새 그룹',
       createdAt: '2026.08.04',
-      campaignId: null,
+      campaignId: 'season-pick',
       productIds: ['knit-ivory'],
     })
     expect(screen.getByRole('status', { name: '빠른 추가 드래프트' }).textContent).toBe('null')
-    expect(screen.getByText('상품 그룹을 만들었어요.').getAttribute('role')).toBe('status')
   })
 
   it('updates an existing group', async () => {
-    const knitName = '[더현대Hi 단독] Cale ribbed half sleeve KN (Soft blue)'
+    const jewelryName = '샴페인 풀문 (Y) 빅 보울 귀걸이 HL2E53215YBXXX'
     window.location.hash = '#/shop/groups/1/edit'
     render(<App shopProbe={<GroupSaveProbe />} />)
 
@@ -274,10 +274,7 @@ describe('group editor', () => {
     for (const earringName of earringNames) {
       fireEvent.click(screen.getByRole('checkbox', { name: earringName }))
     }
-    fireEvent.change(screen.getByRole('combobox', { name: '캠페인 선택' }), {
-      target: { value: 'season-pick' },
-    })
-    fireEvent.click(screen.getByRole('checkbox', { name: knitName }))
+    fireEvent.click(screen.getByRole('checkbox', { name: jewelryName }))
     fireEvent.click(screen.getByRole('button', { name: '상품 그룹 저장하기' }))
 
     await waitFor(() => expect(window.location.hash).toBe('#/shop/RC000003200T/1'))
@@ -287,22 +284,21 @@ describe('group editor', () => {
       id: '1',
       name: '시즌 스타일',
       createdAt: '2026.08.04',
-      campaignId: 'season-pick',
-      productIds: ['knit-blue'],
+      campaignId: 'jewelry-focus',
+      productIds: ['jewelry-fullmoon'],
     })
     const group = screen.getByRole('region', { name: '시즌 스타일' })
     expect(within(group).getByRole('heading', { level: 2, name: '시즌 스타일' })).toBeTruthy()
     expect(within(group).getAllByRole('article')).toHaveLength(1)
-    expect(within(group).getByText(knitName)).toBeTruthy()
+    expect(within(group).getByText(jewelryName)).toBeTruthy()
     expect(screen.getByRole('status', { name: '빠른 추가 드래프트' }).textContent).toBe('null')
-    expect(screen.getByText('상품 그룹을 수정했어요.').getAttribute('role')).toBe('status')
   })
 
   it('Back clears draft and follows each mode destination', async () => {
     const cases = [
       ['#/shop/groups/new', '#/shop/groups'],
       ['#/shop/groups/1/edit', '#/shop/RC000003200T/1'],
-      ['#/shop/groups/new/season-pick', '#/campaigns/detail'],
+      ['#/shop/groups/new/campaign/season-pick', '#/campaigns/season-pick'],
     ] as const
 
     for (const [path, destination] of cases) {
