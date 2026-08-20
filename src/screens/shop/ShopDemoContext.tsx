@@ -11,7 +11,10 @@ import {
 } from 'react'
 
 import {
+  initialShopGroups,
+  selectorProducts,
   selectorProfile,
+  shopCampaigns,
   type SelectorProfile,
   type ShopCampaign,
   type ShopGroup,
@@ -108,8 +111,11 @@ function hasSelectorUserSession(): boolean {
 
 export function createInitialShopDemoState(): ShopDemoState {
   return {
-    profile: { ...selectorProfile, name: '', avatarImage: '', meSpaceLabel: '' },
-    groups: [],
+    profile: { ...selectorProfile },
+    groups: initialShopGroups.map((group) => ({
+      ...group,
+      productIds: [...group.productIds],
+    })),
     status: null,
     quickAddDraft: null,
     nextGroupSerial: 14,
@@ -256,11 +262,19 @@ const emptyOwnedProfileMeta: OwnedShopProfileMeta = {
   snsId: null,
 }
 
-export function ShopDemoProvider({ children }: { children: ReactNode }) {
+function createApiShopState(): ShopDemoState {
+  return {
+    ...createInitialShopDemoState(),
+    profile: { ...selectorProfile, name: '', avatarImage: '', meSpaceLabel: '' },
+    groups: [],
+  }
+}
+
+function ApiShopProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(
     shopDemoReducer,
     undefined,
-    createInitialShopDemoState,
+    createApiShopState,
   )
   const [campaigns, setCampaigns] = useState<readonly ShopCampaign[]>([])
   const [products, setProducts] = useState<readonly ShopProduct[]>([])
@@ -632,6 +646,101 @@ export function ShopDemoProvider({ children }: { children: ReactNode }) {
       {children}
     </ShopDemoContext.Provider>
   )
+}
+
+function DemoShopProvider({ children }: { children: ReactNode }) {
+  const [state, dispatch] = useReducer(
+    shopDemoReducer,
+    undefined,
+    createInitialShopDemoState,
+  )
+  const session = readAuthSession()
+  const selectorsCode = parsePublicShopHash(window.location.hash)?.selectorsCode ?? 'RC000003200T'
+  const ownedSelectorsCode = hasValidUserSession(session) && session?.role === 'USER'
+    ? 'RC000003200T'
+    : null
+  const getGroup = useCallback(
+    (groupId: string) => state.groups.find(({ id }) => id === groupId),
+    [state.groups],
+  )
+  const getProducts = useCallback((productIds: readonly string[]) => productIds.flatMap((productId) => {
+    const product = selectorProducts.find(({ id }) => id === productId)
+    return product ? [product] : []
+  }), [])
+  const renameGroup = useCallback(async (groupId: string, name: string) => {
+    dispatch({ type: 'renameGroup', groupId, name })
+  }, [])
+  const updateGroupProducts = useCallback(async (groupId: string, input: GroupInput) => {
+    dispatch({ type: 'updateGroupProducts', groupId, input })
+  }, [])
+  const createGroup = useCallback(async (input: GroupInput) => {
+    dispatch({ type: 'createGroup', input })
+  }, [])
+  const addProductsToGroup = useCallback(async (groupId: string, productIds: string[]) => {
+    dispatch({ type: 'addProductsToGroup', groupId, productIds })
+  }, [])
+  const deleteGroup = useCallback(async (groupId: string) => {
+    dispatch({ type: 'deleteGroup', groupId })
+  }, [])
+  const setQuickAddDraft = useCallback((draft: QuickAddDraft) => {
+    dispatch({ type: 'setQuickAddDraft', draft })
+  }, [])
+  const clearQuickAddDraft = useCallback(() => {
+    dispatch({ type: 'clearQuickAddDraft' })
+  }, [])
+  const setStatus = useCallback((status: string | null) => {
+    dispatch({ type: 'setStatus', status })
+  }, [])
+  const updateProfile = useCallback((name: string, avatarImage: string) => {
+    dispatch({ type: 'updateProfile', name, avatarImage })
+  }, [])
+  const value = useMemo<ShopDemoContextValue>(() => ({
+    state,
+    profile: state.profile,
+    selectorsCode,
+    ownedSelectorsCode,
+    ownedProfileMeta: emptyOwnedProfileMeta,
+    products: selectorProducts,
+    campaigns: shopCampaigns,
+    isCampaignCatalogLoading: false,
+    campaignCatalogError: null,
+    isProductGroupLoading: false,
+    productGroupError: null,
+    getGroup,
+    getProducts,
+    renameGroup,
+    updateGroupProducts,
+    createGroup,
+    addProductsToGroup,
+    deleteGroup,
+    setQuickAddDraft,
+    clearQuickAddDraft,
+    setStatus,
+    updateProfile,
+  }), [
+    state,
+    selectorsCode,
+    ownedSelectorsCode,
+    getGroup,
+    getProducts,
+    renameGroup,
+    updateGroupProducts,
+    createGroup,
+    addProductsToGroup,
+    deleteGroup,
+    setQuickAddDraft,
+    clearQuickAddDraft,
+    setStatus,
+    updateProfile,
+  ])
+
+  return <ShopDemoContext.Provider value={value}>{children}</ShopDemoContext.Provider>
+}
+
+export function ShopDemoProvider({ children }: { children: ReactNode }) {
+  return import.meta.env.MODE === 'test'
+    ? <DemoShopProvider>{children}</DemoShopProvider>
+    : <ApiShopProvider>{children}</ApiShopProvider>
 }
 
 export function useShopDemo(): ShopDemoContextValue {

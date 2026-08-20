@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 // @ts-expect-error The app intentionally has no Node type dependency; Vitest runs this file in Node.
 import { readFileSync } from 'node:fs'
 
@@ -8,7 +8,7 @@ import { useShopDemo } from './ShopDemoContext'
 
 const ownerHash = '#/shop/RC000003200T/1'
 const disclosure = '셀렉터스샵에서 상품을 구매하는 경우, 상품 구매로 발생한 수익의 일부가 셀렉터스에게 제공됩니다.'
-const groupShareUrl = 'https://hi.thehyundai.com/sellectors/manage/shop/RC000003200T/1'
+const groupShareUrl = 'http://localhost:3000/#/shop/RC000003200T/1'
 const workspaceRoot = (globalThis as typeof globalThis & {
   process: { cwd(): string }
 }).process.cwd()
@@ -36,6 +36,11 @@ let clipboardDescriptor: PropertyDescriptor | undefined
 let shareDescriptor: PropertyDescriptor | undefined
 let navigatorMocksInstalled = false
 
+beforeEach(() => {
+  localStorage.setItem('selectors-auth', JSON.stringify({ accessToken: 'owner.token', role: 'USER' }))
+  sessionStorage.setItem('selectors-shop-view-mode', 'owner')
+})
+
 function SetShopStatusControl() {
   const { setStatus } = useShopDemo()
 
@@ -49,6 +54,8 @@ function SetShopStatusControl() {
 afterEach(() => {
   cleanup()
   window.location.hash = ''
+  localStorage.clear()
+  sessionStorage.clear()
   vi.unstubAllGlobals()
   vi.restoreAllMocks()
 
@@ -214,7 +221,7 @@ describe('owner selectors shop group', () => {
     await waitFor(() => expect(window.location.hash).toBe('#/shop/groups/1/edit'))
   })
 
-  it('shares from both owner entry points', () => {
+  it('shares from both owner entry points', async () => {
     const writeText = vi.fn()
     const nativeShare = vi.fn()
     const fetchSpy = vi.fn()
@@ -233,7 +240,7 @@ describe('owner selectors shop group', () => {
     window.location.hash = ownerHash
     render(<App />)
 
-    const assertShareSheet = () => {
+    const assertShareSheet = async () => {
       const dialog = screen.getByRole('dialog', { name: '상품 그룹 공유' })
       expect(screen.getAllByRole('dialog')).toHaveLength(1)
       expect(within(dialog).getByRole('heading', { name: '상품 그룹 공유' })).toBeTruthy()
@@ -241,14 +248,17 @@ describe('owner selectors shop group', () => {
       expect(urlField.value).toBe(groupShareUrl)
       expect(urlField.readOnly).toBe(true)
       fireEvent.click(within(dialog).getByRole('button', { name: '링크 복사' }))
-      expect(within(dialog).getByRole('status').textContent).toBe('링크를 복사했어요.')
+      await waitFor(() => {
+        expect(screen.getByRole('alertdialog', { name: '알림' }).textContent).toContain('링크를 복사했어요.')
+      })
+      fireEvent.click(screen.getByRole('button', { name: '확인' }))
       return dialog
     }
 
     const headerTrigger = screen.getByRole('button', { name: '상품 그룹 공유' })
     headerTrigger.focus()
     fireEvent.click(headerTrigger)
-    const headerDialog = assertShareSheet()
+    const headerDialog = await assertShareSheet()
 
     fireEvent.keyDown(headerDialog, { key: 'Escape' })
 
@@ -260,23 +270,24 @@ describe('owner selectors shop group', () => {
     fireEvent.click(screen.getByRole('menuitem', { name: '그룹 공유' }))
 
     expect(screen.queryByRole('menu')).toBeNull()
-    const menuDialog = assertShareSheet()
+    const menuDialog = await assertShareSheet()
     fireEvent.keyDown(menuDialog, { key: 'Escape' })
 
     expect(screen.queryByRole('dialog', { name: '상품 그룹 공유' })).toBeNull()
     expect(document.activeElement).toBe(menuTrigger)
-    expect(writeText).not.toHaveBeenCalled()
+    expect(writeText).toHaveBeenCalledTimes(2)
+    expect(writeText).toHaveBeenCalledWith(groupShareUrl)
     expect(nativeShare).not.toHaveBeenCalled()
     expect(fetchSpy).not.toHaveBeenCalled()
   })
 
-  it('keeps the share overlay above a retained shop status', () => {
+  it('keeps a retained shop status above the share overlay', () => {
     window.location.hash = ownerHash
     const { container } = render(<App shopProbe={<SetShopStatusControl />} />)
 
     fireEvent.click(screen.getByRole('button', { name: '테스트 상태 설정' }))
-    const status = screen.getByRole('status')
-    expect(status.textContent).toBe('상품을 그룹에 담았어요.')
+    const status = screen.getByRole('alertdialog', { name: '알림' })
+    expect(status.textContent).toContain('상품을 그룹에 담았어요.')
 
     fireEvent.click(screen.getByRole('button', { name: '상품 그룹 공유' }))
 
@@ -288,15 +299,15 @@ describe('owner selectors shop group', () => {
       throw new Error('Expected the share backdrop')
     }
 
-    const statusLayer = Number(compactShopCss.match(/\.shop-status \{[^}]*z-index: (\d+);/)?.[1])
+    const statusLayer = Number(compactShopCss.match(/\.group-dialog-backdrop\.shop-status-backdrop \{[^}]*z-index: (\d+);/)?.[1])
     const shareLayer = Number(compactShopCss.match(/\.share-shop-backdrop \{[^}]*z-index: (\d+);/)?.[1])
     const dialogLayer = Number(compactShopCss.match(/\.group-dialog-backdrop \{[^}]*z-index: (\d+);/)?.[1])
-    expect(statusLayer).toBe(40)
-    expect(shareLayer).toBeGreaterThan(statusLayer)
-    expect(dialogLayer).toBeGreaterThan(statusLayer)
+    expect(statusLayer).toBe(90)
+    expect(statusLayer).toBeGreaterThan(shareLayer)
+    expect(statusLayer).toBeGreaterThan(dialogLayer)
   })
 
-  it('renames with accessible validation', () => {
+  it('renames with accessible validation', async () => {
     window.location.hash = ownerHash
     render(<App />)
 
@@ -341,7 +352,7 @@ describe('owner selectors shop group', () => {
     fireEvent.change(reopenedInput, { target: { value: '새 귀걸이 ' } })
     fireEvent.click(within(reopenedDialog).getByRole('button', { name: '저장' }))
 
-    expect(screen.queryByRole('dialog')).toBeNull()
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
     expect(screen.getByRole('heading', { level: 2, name: '새 귀걸이' })).toBeTruthy()
   })
 
@@ -387,7 +398,7 @@ describe('owner selectors shop group', () => {
       expect(window.location.hash).toBe('#/shop/RC000003200T')
       expect(screen.getByRole('main').getAttribute('data-screen-id')).toBe('public-shop')
     })
-    expect(screen.getByRole('status').textContent).toBe('상품 그룹을 삭제했어요.')
+    expect(screen.getByRole('alertdialog', { name: '알림' }).textContent).toContain('상품 그룹을 삭제했어요.')
 
     window.location.hash = ownerHash
     fireEvent(window, new HashChangeEvent('hashchange'))
@@ -418,7 +429,7 @@ describe('owner selectors shop group', () => {
     window.location.hash = '#/shop/groups'
     const { container } = render(<App />)
 
-    expect(screen.getByRole('heading', { level: 1, name: '상품 그룹' })).toBeTruthy()
+    expect(screen.getByRole('heading', { level: 1, name: '셀렉터스 샵 관리하기' })).toBeTruthy()
     expect(screen.getByText('13개').textContent).toBe('13개')
     const cards = [...container.querySelectorAll<HTMLElement>('.group-card')]
     expect(cards).toHaveLength(13)

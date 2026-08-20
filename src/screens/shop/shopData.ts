@@ -179,6 +179,11 @@ export const shopCampaigns = [
   {
     id: 'season-pick',
     name: '여름의 결을 고르는 시즌 픽',
+    description: '여름의 결을 고르는 시즌 픽',
+    startDate: '2026-08-01',
+    endDate: '2026-08-31',
+    status: 'ACTIVE',
+    brands: ['TIME'],
     productIds: ['knit-ivory', 'knit-blue', 'knit-midnight', 'cologne-blackberry'],
   },
   {

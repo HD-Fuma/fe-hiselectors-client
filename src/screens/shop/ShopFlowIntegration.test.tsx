@@ -1,6 +1,6 @@
 import { StrictMode } from 'react'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 // @ts-expect-error Vitest runs this file in Node; the app intentionally omits @types/node.
 import { readFileSync } from 'node:fs'
 
@@ -25,12 +25,12 @@ const seasonProductNames = [
 
 function ShopFlowStateProbe() {
   const { state } = useShopDemo()
-  const styleGroup = state.groups.find(({ name }) => name === '스타일 셀렉션')
+  const seasonGroup = state.groups.find(({ name }) => name === '여름의 결')
 
   return (
     <>
-      <output aria-label="스타일 셀렉션 상품">
-        {JSON.stringify(styleGroup?.productIds ?? null)}
+      <output aria-label="여름의 결 상품">
+        {JSON.stringify(seasonGroup?.productIds ?? null)}
       </output>
       <output aria-label="빠른 추가 드래프트">
         {JSON.stringify(state.quickAddDraft)}
@@ -42,24 +42,19 @@ function ShopFlowStateProbe() {
   )
 }
 
-function SetCampaignStatusControl() {
-  const { setStatus } = useShopDemo()
-
-  return (
-    <button onClick={() => setStatus('상품을 그룹에 담았어요.')} type="button">
-      테스트 상태 설정
-    </button>
-  )
-}
-
 afterEach(() => {
   cleanup()
   window.location.hash = ''
+  localStorage.clear()
+})
+
+beforeEach(() => {
+  localStorage.setItem('selectors-auth', JSON.stringify({ accessToken: 'test.jwt', role: 'USER' }))
 })
 
 describe('campaign quick-add integration', () => {
   it('opens with four and prevents zero', () => {
-    window.location.hash = '#/campaigns/detail'
+    window.location.hash = '#/campaigns/season-pick'
     render(<App />)
 
     const trigger = screen.getByRole('button', { name: '상품 그룹에 담기' })
@@ -83,11 +78,11 @@ describe('campaign quick-add integration', () => {
       'cologne-blackberry',
     ])
 
-    const groupButtons = initialShopGroups.map(({ name }) => (
+    const seasonGroups = initialShopGroups.filter(({ campaignId }) => campaignId === 'season-pick')
+    const groupButtons = seasonGroups.map(({ name }) => (
       within(dialog).getByRole('button', { name })
     ))
-    expect(groupButtons).toHaveLength(13)
-    expect(within(dialog).getByRole('button', { name: '스타일 셀렉션' })).toBeTruthy()
+    expect(groupButtons).toHaveLength(3)
     expect(within(dialog).getByRole('button', { name: '새 상품 그룹 만들기' })).toBeTruthy()
 
     for (const checkbox of checkboxes.slice(0, 3)) {
@@ -106,25 +101,26 @@ describe('campaign quick-add integration', () => {
     expect(document.activeElement).toBe(trigger)
   })
 
-  it('adds deduplicated products to existing group', () => {
-    window.location.hash = '#/campaigns/detail'
+  it('adds deduplicated products to an existing campaign group', async () => {
+    window.location.hash = '#/campaigns/season-pick'
     render(<App shopProbe={<ShopFlowStateProbe />} />)
 
     expect(JSON.parse(
-      screen.getByRole('status', { name: '스타일 셀렉션 상품' }).textContent ?? 'null',
-    )).toEqual(['knit-ivory', 'earring-essence'])
+      screen.getByRole('status', { name: '여름의 결 상품' }).textContent ?? 'null',
+    )).toEqual(['knit-ivory', 'knit-blue'])
 
     fireEvent.click(screen.getByRole('button', { name: '상품 그룹에 담기' }))
     const dialog = screen.getByRole('dialog', { name: '상품 그룹에 담기' })
-    fireEvent.click(within(dialog).getByRole('button', { name: '스타일 셀렉션' }))
+    fireEvent.click(within(dialog).getByRole('button', { name: '여름의 결' }))
 
-    expect(screen.queryByRole('dialog', { name: '상품 그룹에 담기' })).toBeNull()
-    expect(screen.getByText('상품을 그룹에 담았어요.').getAttribute('role')).toBe('status')
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: '상품 그룹에 담기' })).toBeNull()
+    })
+    expect(screen.getByRole('alertdialog', { name: '알림' }).textContent).toContain('상품을 그룹에 담았어요.')
     expect(JSON.parse(
-      screen.getByRole('status', { name: '스타일 셀렉션 상품' }).textContent ?? 'null',
+      screen.getByRole('status', { name: '여름의 결 상품' }).textContent ?? 'null',
     )).toEqual([
       'knit-ivory',
-      'earring-essence',
       'knit-blue',
       'knit-midnight',
       'cologne-blackberry',
@@ -132,7 +128,7 @@ describe('campaign quick-add integration', () => {
   })
 
   it('consumes a new-group draft once', async () => {
-    window.location.hash = '#/campaigns/detail'
+    window.location.hash = '#/campaigns/season-pick'
     render(
       <StrictMode>
         <App shopProbe={<ShopFlowStateProbe />} />
@@ -150,7 +146,7 @@ describe('campaign quick-add integration', () => {
       campaignId: 'season-pick',
       productIds: ['knit-ivory', 'knit-blue', 'knit-midnight', 'cologne-blackberry'],
     })
-    await waitFor(() => expect(window.location.hash).toBe('#/shop/groups/new/season-pick'))
+    await waitFor(() => expect(window.location.hash).toBe('#/shop/groups/new/campaign/season-pick'))
 
     expect(
       (screen.getByRole('combobox', { name: '캠페인 선택' }) as HTMLSelectElement).value,
@@ -159,13 +155,16 @@ describe('campaign quick-add integration', () => {
     expect(seasonProductNames.map((productName) => (
       (screen.getByRole('checkbox', { name: productName }) as HTMLInputElement).checked
     ))).toEqual([true, true, true, true])
-    await waitFor(() => expect(draftOutput.textContent).toBe('null'))
+    expect(JSON.parse(draftOutput.textContent ?? 'null')).toEqual({
+      campaignId: 'season-pick',
+      productIds: ['knit-ivory', 'knit-blue', 'knit-midnight', 'cologne-blackberry'],
+    })
 
     fireEvent.click(screen.getByRole('link', { name: '뒤로 가기' }))
-    await waitFor(() => expect(window.location.hash).toBe('#/campaigns/detail'))
+    await waitFor(() => expect(window.location.hash).toBe('#/campaigns/season-pick'))
     expect(draftOutput.textContent).toBe('null')
 
-    window.location.hash = '#/shop/groups/new/season-pick'
+    window.location.hash = '#/shop/groups/new/campaign/season-pick'
     await waitFor(() => expect(
       screen.getByRole('heading', { level: 1, name: '상품 그룹 만들기' }),
     ).toBeTruthy())
@@ -175,7 +174,7 @@ describe('campaign quick-add integration', () => {
     ))).toEqual([false, false, false, false])
 
     fireEvent.click(screen.getByRole('link', { name: '뒤로 가기' }))
-    await waitFor(() => expect(window.location.hash).toBe('#/campaigns/detail'))
+    await waitFor(() => expect(window.location.hash).toBe('#/campaigns/season-pick'))
     fireEvent.click(screen.getByRole('button', { name: '상품 그룹에 담기' }))
     fireEvent.click(within(
       screen.getByRole('dialog', { name: '상품 그룹에 담기' }),
@@ -186,22 +185,22 @@ describe('campaign quick-add integration', () => {
   })
 
   it('clears draft after create save', async () => {
-    window.location.hash = '#/campaigns/detail'
+    window.location.hash = '#/campaigns/season-pick'
     render(<App shopProbe={<ShopFlowStateProbe />} />)
 
     fireEvent.click(screen.getByRole('button', { name: '상품 그룹에 담기' }))
     fireEvent.click(within(
       screen.getByRole('dialog', { name: '상품 그룹에 담기' }),
     ).getByRole('button', { name: '새 상품 그룹 만들기' }))
-    await waitFor(() => expect(window.location.hash).toBe('#/shop/groups/new/season-pick'))
+    await waitFor(() => expect(window.location.hash).toBe('#/shop/groups/new/campaign/season-pick'))
 
     fireEvent.change(screen.getByRole('textbox', { name: '상품 그룹 이름' }), {
       target: { value: '시즌 셀렉션' },
     })
     fireEvent.click(screen.getByRole('button', { name: '상품 그룹 저장하기' }))
 
-    await waitFor(() => expect(window.location.hash).toBe('#/shop/RC000003200T'))
-    expect(screen.getByText('상품 그룹을 만들었어요.').getAttribute('role')).toBe('status')
+    await waitFor(() => expect(window.location.hash).toBe('#/campaigns/season-pick'))
+    expect(screen.getByRole('alertdialog', { name: '알림' }).textContent).toContain('상품 그룹을 만들었어요.')
     expect(JSON.parse(
       screen.getByRole('status', { name: '생성한 상품 그룹' }).textContent ?? 'null',
     )).toEqual({
@@ -213,7 +212,7 @@ describe('campaign quick-add integration', () => {
     })
     expect(screen.getByRole('status', { name: '빠른 추가 드래프트' }).textContent).toBe('null')
 
-    window.location.hash = '#/shop/groups/new/season-pick'
+    window.location.hash = '#/shop/groups/new/campaign/season-pick'
     await waitFor(() => expect(
       screen.getByRole('heading', { level: 1, name: '상품 그룹 만들기' }),
     ).toBeTruthy())
@@ -224,32 +223,25 @@ describe('campaign quick-add integration', () => {
   })
 
   it('keeps focus and mobile layering inside the sheet', () => {
-    window.location.hash = '#/campaigns/detail'
-    const { container } = render(<App shopProbe={<SetCampaignStatusControl />} />)
-
-    fireEvent.click(screen.getByRole('button', { name: '테스트 상태 설정' }))
-    const status = screen.getByText('상품을 그룹에 담았어요.')
+    window.location.hash = '#/campaigns/season-pick'
+    const { container } = render(<App />)
     fireEvent.click(screen.getByRole('button', { name: '상품 그룹에 담기' }))
 
     const dialog = screen.getByRole('dialog', { name: '상품 그룹에 담기' })
     const close = within(dialog).getByRole('button', { name: '닫기' })
-    const lastGroup = within(dialog).getByRole('button', { name: '오늘의 픽' })
+    const lastGroup = within(dialog).getByRole('button', { name: '블랙베리 향' })
     expect(document.activeElement).toBe(close)
 
     fireEvent.keyDown(close, { key: 'Tab', shiftKey: true })
     expect(document.activeElement).toBe(lastGroup)
     fireEvent.keyDown(lastGroup, { key: 'Tab' })
     expect(document.activeElement).toBe(close)
-    expect(status.isConnected).toBe(true)
     expect(container.querySelector('.campaign-quick-add-backdrop')).toBeTruthy()
 
-    const statusLayer = Number(compactShopCss.match(
-      /\.shop-status \{[^}]*z-index: (\d+);/,
-    )?.[1])
     const sheetLayer = Number(compactShopCss.match(
       /\.campaign-quick-add-backdrop \{[^}]*z-index: (\d+);/,
     )?.[1])
-    expect(sheetLayer).toBeGreaterThan(statusLayer)
+    expect(sheetLayer).toBe(70)
     expect(compactShopCss).toMatch(
       /\.campaign-quick-add-sheet \{[^}]*width: 100%;[^}]*max-width: 520px;[^}]*overflow-y: auto;/,
     )

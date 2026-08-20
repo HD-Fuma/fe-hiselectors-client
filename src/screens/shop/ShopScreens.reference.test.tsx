@@ -1,4 +1,4 @@
-import { cleanup, render, screen, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 // @ts-expect-error The app intentionally has no Node type dependency; Vitest runs this file in Node.
 import { readFileSync } from 'node:fs'
@@ -139,8 +139,11 @@ describe('service sidebar and public shop reference contract', () => {
   })
 
   it('uses the live upload-style share icon at the accessible 22px header placement', () => {
+    localStorage.setItem('selectors-auth', JSON.stringify({ accessToken: 'owner.token', role: 'USER' }))
     window.location.hash = '#/shop/RC000003200T'
     render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: '관리자' }))
 
     const shareButton = screen.getByRole('button', { name: '셀렉터스샵 공유' })
     const shareIcon = shareButton.querySelector('svg')

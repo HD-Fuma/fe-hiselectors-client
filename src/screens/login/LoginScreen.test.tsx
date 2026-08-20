@@ -101,7 +101,7 @@ describe('The Hyundai login reference contract', () => {
         accessToken: 'test.jwt',
         role: 'USER',
       })
-      expect(window.location.hash).toBe('#/campaigns')
+      expect(window.location.hash).toBe('#/home')
     })
 
     fetchSpy.mockResolvedValueOnce(
