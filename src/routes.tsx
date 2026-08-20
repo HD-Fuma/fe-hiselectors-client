@@ -41,19 +41,19 @@ export const routes = [
   },
   {
     id: 'campaign-detail',
-    path: '#/campaigns/detail',
-    title: '시즌 픽 캠페인',
+    path: '#/campaigns/1',
+    title: '캠페인 상세',
     Screen: CampaignDetailScreen,
   },
   {
     id: 'public-shop',
-    path: '#/shop/RC000003200T',
+    path: '#/shop/example',
     title: '셀렉터스샵',
     Screen: PublicShopScreen,
   },
   {
     id: 'owner-shop-group',
-    path: '#/shop/RC000003200T/1',
+    path: '#/shop/example/1',
     title: '셀렉터스샵',
     Screen: OwnerShopGroupScreen,
   },
@@ -83,7 +83,7 @@ export const routes = [
   },
   {
     id: 'group-campaign-create',
-    path: '#/shop/groups/new/season-pick',
+    path: '#/shop/groups/new/campaign/1',
     title: '상품 그룹 만들기',
     Screen: GroupCampaignCreateScreen,
   },
@@ -124,8 +124,11 @@ export type RouteId = AppRoute['id']
 
 export function routeMatchesHash(route: AppRoute, hash: string): boolean {
   return route.path === hash
-    || (route.id === 'owner-shop-group' && /^#\/shop\/RC000003200T\/[^/]+$/.test(hash))
+    || (route.id === 'campaign-detail' && /^#\/campaigns\/[^/]+$/.test(hash))
+    || (route.id === 'public-shop' && /^#\/shop\/(?!groups(?:\/|$)|profile(?:\/|$))[^/]+$/.test(hash))
+    || (route.id === 'owner-shop-group' && /^#\/shop\/(?!groups(?:\/|$)|profile(?:\/|$))[^/]+\/[^/]+$/.test(hash))
     || (route.id === 'group-edit' && /^#\/shop\/groups\/[^/]+\/edit$/.test(hash))
+    || (route.id === 'group-campaign-create' && /^#\/shop\/groups\/new\/campaign\/[^/]+$/.test(hash))
 }
 
 export function selectRouteByHash(hash: string): AppRoute {

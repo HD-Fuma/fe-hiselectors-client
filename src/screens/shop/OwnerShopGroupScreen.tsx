@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 
 import { ShareIcon } from '../../components/Icons'
 import ScreenHeader from '../../components/ScreenHeader'
+import { hasValidUserSession, readAuthSession } from '../../auth'
 import DeleteGroupDialog from './DeleteGroupDialog'
 import RenameGroupDialog from './RenameGroupDialog'
 import ShareShopSheet from './ShareShopSheet'
@@ -10,25 +11,34 @@ import ShopGroupSection from './ShopGroupSection'
 import { useShopDemo } from './ShopDemoContext'
 import ShopStatus from './ShopStatus'
 import { MissingShopGroup } from './GroupEditorScreen'
+import { buildPublicShopHash, getPublicProductShareUrl, getPublicShopShareUrl, parsePublicShopHash } from './shopRoute'
 
 const disclosure = '셀렉터스샵에서 상품을 구매하는 경우, 상품 구매로 발생한 수익의 일부가 셀렉터스에게 제공됩니다.'
-const shopPath = '#/shop/RC000003200T'
-
-function getGroupId() {
-  return window.location.hash.match(/^#\/shop\/RC000003200T\/([^/]+)$/)?.[1] ?? ''
-}
-
 export default function OwnerShopGroupScreen() {
-  const { campaigns, deleteGroup, getGroup, renameGroup, setStatus, state } = useShopDemo()
+  const { campaigns, deleteGroup, getGroup, isProductGroupLoading, ownedSelectorsCode, productGroupError, renameGroup, selectorsCode: loadedSelectorsCode, setStatus, state } = useShopDemo()
+  const location = parsePublicShopHash(window.location.hash)
+  const selectorsCode = location?.selectorsCode ?? ''
+  const shopPath = buildPublicShopHash(selectorsCode)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [renameOpen, setRenameOpen] = useState(false)
   const [shareOpen, setShareOpen] = useState(false)
   const activeShareInvokerRef = useRef<HTMLElement>(null)
   const headerShareTriggerRef = useRef<HTMLButtonElement>(null)
   const menuTriggerRef = useRef<HTMLButtonElement>(null)
-  const group = getGroup(getGroupId())
-  const isOwnerView = sessionStorage.getItem('selectors-shop-view-mode') === 'owner'
+  const group = getGroup(location?.groupId ?? '')
+  const session = readAuthSession()
+  const isOwnerView = hasValidUserSession(session)
+    && session?.role === 'USER'
+    && Boolean(ownedSelectorsCode)
+    && ownedSelectorsCode === selectorsCode
+    && sessionStorage.getItem('selectors-shop-view-mode') === 'owner'
 
+  if (productGroupError) {
+    return <><ScreenHeader backHref={shopPath} title="셀렉터스샵" /><p className="shop-group-feedback shop-group-feedback-error">{productGroupError}</p></>
+  }
+  if (isProductGroupLoading || loadedSelectorsCode !== selectorsCode) {
+    return <><ScreenHeader backHref={shopPath} title="셀렉터스샵" /><p className="shop-group-feedback">상품 그룹을 불러오는 중입니다.</p></>
+  }
   if (!group) {
     return <MissingShopGroup title="셀렉터스샵" />
   }
@@ -58,7 +68,7 @@ export default function OwnerShopGroupScreen() {
           description={campaigns.find(({ id }) => id === group.campaignId)?.name}
           group={group}
           getProductShareUrl={isOwnerView
-            ? (productId) => `https://hi.thehyundai.com/sellectors/manage/shop/RC000003200T/products/${productId}`
+            ? (productId) => getPublicProductShareUrl(selectorsCode, productId)
             : undefined}
           ownerAction={isOwnerView ? (
             <ShopGroupMenu
@@ -74,14 +84,14 @@ export default function OwnerShopGroupScreen() {
           ) : undefined}
         />
         <p className="shop-disclosure">{disclosure}</p>
-        <ShopStatus status={state.status} />
+        {isOwnerView ? <ShopStatus onClose={() => setStatus(null)} status={state.status} /> : null}
       </div>
       {isOwnerView && shareOpen ? (
         <ShareShopSheet
           invokerRef={activeShareInvokerRef}
           onClose={() => setShareOpen(false)}
           title="상품 그룹 공유"
-          url={`https://hi.thehyundai.com/sellectors/manage/shop/RC000003200T/${group.id}`}
+          url={getPublicShopShareUrl(selectorsCode, group.id)}
         />
       ) : null}
       {isOwnerView && renameOpen ? (
@@ -90,8 +100,10 @@ export default function OwnerShopGroupScreen() {
           invokerRef={menuTriggerRef}
           onClose={() => setRenameOpen(false)}
           onSave={(name) => {
-            renameGroup(group.id, name)
-            setRenameOpen(false)
+            void renameGroup(group.id, name).then(() => {
+              setStatus('상품 그룹을 수정했어요.')
+              setRenameOpen(false)
+            }).catch((error) => setStatus(error instanceof Error ? error.message : '상품 그룹을 수정하지 못했습니다.'))
           }}
         />
       ) : null}
@@ -101,10 +113,11 @@ export default function OwnerShopGroupScreen() {
           invokerRef={menuTriggerRef}
           onClose={() => setDeleteOpen(false)}
           onConfirm={() => {
-            deleteGroup(group.id)
-            setStatus('상품 그룹을 삭제했어요.')
-            setDeleteOpen(false)
-            window.location.hash = shopPath
+            void deleteGroup(group.id).then(() => {
+              setStatus('상품 그룹을 삭제했어요.')
+              setDeleteOpen(false)
+              window.location.hash = shopPath
+            }).catch((error) => setStatus(error instanceof Error ? error.message : '상품 그룹을 삭제하지 못했습니다.'))
           }}
         />
       ) : null}
