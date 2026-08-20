@@ -85,7 +85,7 @@ describe('The Hyundai login reference contract', () => {
     fireEvent.click(screen.getByRole('button', { name: '로그인' }))
 
     expect(fetchSpy).toHaveBeenCalledWith(
-      'http://127.0.0.1:8080/api/auth/user/login',
+      'https://api.hiselectors.shop/api/auth/user/login',
       expect.objectContaining({
         method: 'POST',
         headers: expect.objectContaining({
@@ -97,7 +97,7 @@ describe('The Hyundai login reference contract', () => {
 
     await vi.waitFor(() => {
       expect(fetchSpy).toHaveBeenCalledWith(
-        'http://127.0.0.1:8080/api/product-groups/me/shop',
+        'https://api.hiselectors.shop/api/product-groups/me/shop',
         {
           headers: { Authorization: 'Bearer test.jwt' },
         },
@@ -207,6 +207,59 @@ describe('The Hyundai login reference contract', () => {
       expect(window.location.hash).toBe('#/apply/form')
       expect(sessionStorage.getItem('postLoginRedirect')).toBeNull()
     })
+  })
+
+  it('returns an existing selectors member to the protected page that requested login', async () => {
+    sessionStorage.setItem('postLoginRedirect', '#/campaigns')
+    window.location.hash = '#/login'
+    vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        data: { accessToken: 'selector.jwt', tokenType: 'Bearer', role: 'USER' },
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ data: { selectorsCode: 'SEL-001' } }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }))
+
+    render(<App />)
+    fireEvent.change(screen.getByLabelText('아이디'), { target: { value: 'selector-user' } })
+    fireEvent.change(screen.getByLabelText('비밀번호'), { target: { value: 'demo-pass' } })
+    fireEvent.click(screen.getByRole('button', { name: '로그인' }))
+
+    await vi.waitFor(() => {
+      expect(window.location.hash).toBe('#/campaigns')
+      expect(sessionStorage.getItem('postLoginRedirect')).toBeNull()
+    })
+  })
+
+  it('keeps a successful login when the selectors membership check is temporarily unavailable', async () => {
+    window.location.hash = '#/login'
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        data: { accessToken: 'selector.jwt', tokenType: 'Bearer', role: 'USER' },
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }))
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+
+    render(<App />)
+    fireEvent.change(screen.getByLabelText('아이디'), { target: { value: 'selector-user' } })
+    fireEvent.change(screen.getByLabelText('비밀번호'), { target: { value: 'demo-pass' } })
+    fireEvent.click(screen.getByRole('button', { name: '로그인' }))
+
+    await vi.waitFor(() => {
+      expect(window.location.hash).toBe('#/home')
+      expect(JSON.parse(localStorage.getItem('selectors-auth') ?? '{}')).toMatchObject({
+        accessToken: 'selector.jwt',
+        role: 'USER',
+      })
+    })
+    expect(screen.queryByRole('dialog', { name: '로그인 실패' })).toBeNull()
   })
 
   it('clears the auth session and redirects to login on logout', () => {

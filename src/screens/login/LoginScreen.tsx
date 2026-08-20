@@ -83,12 +83,19 @@ function getLoginRequestError(error: unknown): string {
   return error instanceof Error ? error.message : '로그인 요청 중 오류가 발생했습니다.'
 }
 
-async function isSelectorsMember(accessToken: string, tokenType: string): Promise<boolean> {
-  const response = await fetch(`${API_BASE_URL}/api/product-groups/me/shop`, {
-    headers: {
-      Authorization: `${tokenType || 'Bearer'} ${accessToken}`,
-    },
-  })
+async function isSelectorsMember(accessToken: string, tokenType: string): Promise<boolean | null> {
+  let response: Response
+
+  try {
+    response = await fetch(`${API_BASE_URL}/api/product-groups/me/shop`, {
+      headers: {
+        Authorization: `${tokenType || 'Bearer'} ${accessToken}`,
+      },
+    })
+  } catch (error) {
+    console.warn('셀렉터스 회원 여부를 확인하지 못했습니다.', error)
+    return null
+  }
 
   if (response.ok) {
     return true
@@ -98,8 +105,8 @@ async function isSelectorsMember(accessToken: string, tokenType: string): Promis
     return false
   }
 
-  const rawMessage = await response.text()
-  throw new Error(extractErrorMessage(rawMessage))
+  console.warn(`셀렉터스 회원 여부 확인에 실패했습니다. (${response.status})`)
+  return null
 }
 
 export default function LoginScreen() {
@@ -154,20 +161,22 @@ export default function LoginScreen() {
           trimmedLoginId,
         issuedAt: Date.now(),
       }
-      const selectorsMember = await isSelectorsMember(payload.accessToken, payload.tokenType)
-
       persistAuthSession(authState)
       window.dispatchEvent(new CustomEvent('auth:changed', { detail: authState }))
       setPassword('')
 
+      const selectorsMember = await isSelectorsMember(payload.accessToken, payload.tokenType)
       const postLoginRedirect = sessionStorage.getItem('postLoginRedirect')
-      if (!selectorsMember && postLoginRedirect) {
-        sessionStorage.removeItem('postLoginRedirect')
+      const canUseRequestedRoute = postLoginRedirect
+        && (selectorsMember !== false || postLoginRedirect.startsWith('#/apply'))
+
+      sessionStorage.removeItem('postLoginRedirect')
+
+      if (canUseRequestedRoute) {
         window.location.hash = postLoginRedirect
-      } else if (!selectorsMember) {
+      } else if (selectorsMember === false) {
         window.location.hash = '#/apply'
       } else {
-        sessionStorage.removeItem('postLoginRedirect')
         redirectToMainScreen()
       }
     } catch (error) {
