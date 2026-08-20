@@ -340,6 +340,7 @@ function ApiShopProvider({ children }: { children: ReactNode }) {
     const salePrice = Number(product.salePrice)
     return {
       id: String(product.id),
+      code: product.code,
       category: product.category || '',
       brand: product.brand || '',
       name: product.name,
@@ -503,6 +504,7 @@ function ApiShopProvider({ children }: { children: ReactNode }) {
 
           return {
             id: String(product.id),
+            code: product.code,
             category: product.category || '',
             brand: product.brand || '',
             name: product.name,

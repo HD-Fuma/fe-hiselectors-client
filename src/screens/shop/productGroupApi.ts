@@ -61,6 +61,12 @@ export function getPublicProductGroups(selectorsCode: string) {
   return request<ProductGroupApiResponse[]>(`/api/shops/${encodeURIComponent(selectorsCode)}/product-groups`)
 }
 
+export function getPublicProduct(selectorsCode: string, productCode: string) {
+  return request<CampaignApiProduct>(
+    `/api/shops/${encodeURIComponent(selectorsCode)}/products/by-code/${encodeURIComponent(productCode)}`,
+  )
+}
+
 export async function getPublicShop(selectorsCode: string): Promise<PublicShopApiResponse> {
   try {
     return await request<PublicShopApiResponse>(`/api/shops/${encodeURIComponent(selectorsCode)}`)

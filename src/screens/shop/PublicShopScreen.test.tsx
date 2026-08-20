@@ -212,7 +212,8 @@ describe('public selectors shop', () => {
     fireEvent.click(screen.getByRole('button', { name: '확인' }))
     expect(writeText).toHaveBeenCalledWith(shareUrl)
     expect(nativeShare).not.toHaveBeenCalled()
-    expect(fetchSpy).not.toHaveBeenCalled()
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    expect(String(fetchSpy.mock.calls[0]?.[0])).toContain('/api/view-logs')
 
     fireEvent.keyDown(dialog, { key: 'Escape' })
 

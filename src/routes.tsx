@@ -15,6 +15,7 @@ import {
 } from './screens/shop/GroupEditorScreen'
 import OwnerShopGroupScreen from './screens/shop/OwnerShopGroupScreen'
 import PublicShopScreen from './screens/shop/PublicShopScreen'
+import ProductDetailScreen from './screens/shop/ProductDetailScreen'
 import ProfileEditScreen from './screens/shop/ProfileEditScreen'
 import ShopGroupsScreen from './screens/shop/ShopGroupsScreen'
 
@@ -56,6 +57,12 @@ export const routes = [
     path: '#/shop/example/1',
     title: '셀렉터스샵',
     Screen: OwnerShopGroupScreen,
+  },
+  {
+    id: 'shop-product-detail',
+    path: '#/product/example',
+    title: '상품 상세',
+    Screen: ProductDetailScreen,
   },
   {
     id: 'shop-groups',
@@ -126,7 +133,8 @@ export function routeMatchesHash(route: AppRoute, hash: string): boolean {
   return route.path === hash
     || (route.id === 'campaign-detail' && /^#\/campaigns\/[^/]+$/.test(hash))
     || (route.id === 'public-shop' && /^#\/shop\/(?!groups(?:\/|$)|profile(?:\/|$))[^/]+$/.test(hash))
-    || (route.id === 'owner-shop-group' && /^#\/shop\/(?!groups(?:\/|$)|profile(?:\/|$))[^/]+\/[^/]+$/.test(hash))
+    || (route.id === 'shop-product-detail' && /^#\/product\/[^/?]+/.test(hash))
+    || (route.id === 'owner-shop-group' && /^#\/shop\/(?!groups(?:\/|$)|profile(?:\/|$))[^/]+\/(?!products(?:\/|$))[^/]+$/.test(hash))
     || (route.id === 'group-edit' && /^#\/shop\/groups\/[^/]+\/edit$/.test(hash))
     || (route.id === 'group-campaign-create' && /^#\/shop\/groups\/new\/campaign\/[^/]+$/.test(hash))
 }

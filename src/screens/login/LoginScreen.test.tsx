@@ -17,7 +17,7 @@ afterEach(() => {
   cleanup()
   localStorage.clear()
   sessionStorage.clear()
-  window.location.hash = ''
+  window.history.replaceState({}, '', '/')
 })
 
 describe('The Hyundai login reference contract', () => {
@@ -231,6 +231,41 @@ describe('The Hyundai login reference contract', () => {
 
     await vi.waitFor(() => {
       expect(window.location.hash).toBe('#/campaigns')
+      expect(sessionStorage.getItem('postLoginRedirect')).toBeNull()
+    })
+  })
+
+  it('returns a regular buyer to the exact product page after login', async () => {
+    sessionStorage.setItem(
+      'postLoginRedirect',
+      '/product/40B1342672?ptrsRefCd=RC000003200T',
+    )
+    window.location.hash = '#/login'
+    vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        data: { accessToken: 'buyer.jwt', tokenType: 'Bearer', role: 'USER' },
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        success: false,
+        code: 'SELECTOR_NOT_FOUND',
+      }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      }))
+
+    render(<App />)
+    fireEvent.change(screen.getByLabelText('아이디'), { target: { value: 'buyer' } })
+    fireEvent.change(screen.getByLabelText('비밀번호'), { target: { value: 'demo-pass' } })
+    fireEvent.click(screen.getByRole('button', { name: '로그인' }))
+
+    await vi.waitFor(() => {
+      expect(window.location.pathname).toBe('/product/40B1342672')
+      expect(window.location.search).toBe('?ptrsRefCd=RC000003200T')
+      expect(window.location.hash).toBe('')
+      expect(screen.getByRole('heading', { level: 1, name: '상품 상세' })).toBeTruthy()
       expect(sessionStorage.getItem('postLoginRedirect')).toBeNull()
     })
   })
