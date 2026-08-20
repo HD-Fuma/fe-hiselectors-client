@@ -1,14 +1,19 @@
 import { ArrowRightIcon, CartIcon, ChartIcon, CoinIcon, GiftIcon } from '../../components/Icons'
 import ScreenHeader from '../../components/ScreenHeader'
+import { buildPublicShopHash, readRememberedSelectorsCode } from '../shop/shopRoute'
 
-const homeMenus = [
-  { href: '#/shop/RC000003200T', label: '셀렉터스 샵', description: '나만의 상품 그룹과 공유 링크를 관리해요.', Icon: CartIcon },
+const staticHomeMenus = [
   { href: '#/campaigns', label: '캠페인', description: '진행 중인 캠페인과 상품을 확인해요.', Icon: GiftIcon },
   { href: '#/performance', label: '성과', description: '클릭과 구매 전환 성과를 확인해요.', Icon: ChartIcon },
   { href: '#/settlement/check', label: '정산 관리', description: '정산 정보와 지급 내역을 관리해요.', Icon: CoinIcon },
 ] as const
 
 export default function HomeScreen() {
+  const selectorsCode = readRememberedSelectorsCode()
+  const homeMenus = [
+    { href: buildPublicShopHash(selectorsCode), label: '셀렉터스 샵', description: '나만의 상품 그룹과 공유 링크를 관리해요.', Icon: CartIcon },
+    ...staticHomeMenus,
+  ]
   return (
     <div className="panel-page">
       <ScreenHeader title="셀렉터스" />

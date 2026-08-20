@@ -2,21 +2,32 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useReducer,
+  useState,
   type ReactNode,
 } from 'react'
 
 import {
-  initialShopGroups,
-  selectorProducts,
   selectorProfile,
-  shopCampaigns,
   type SelectorProfile,
   type ShopCampaign,
   type ShopGroup,
   type ShopProduct,
 } from './shopData'
+import { getCampaignDetail, getCampaigns } from '../campaigns/campaignApi'
+import { hasValidUserSession, readAuthSession } from '../../auth'
+import {
+  addProductGroupItems,
+  createProductGroup,
+  deleteProductGroup,
+  getMyProductGroups,
+  getPublicShop,
+  updateProductGroup,
+  type ProductGroupApiResponse,
+} from './productGroupApi'
+import { parsePublicShopHash, readRememberedSelectorsCode, rememberSelectorsCode } from './shopRoute'
 
 export type ShopDemoGroup = Omit<ShopGroup, 'productIds'> & { productIds: string[] }
 
@@ -40,6 +51,9 @@ export type GroupInput = {
 }
 
 export type ShopDemoAction =
+  | { type: 'hydrateGroups'; groups: ShopDemoGroup[] }
+  | { type: 'hydrateProfile'; profile: SelectorProfile }
+  | { type: 'upsertGroup'; group: ShopDemoGroup }
   | { type: 'updateProfile'; name: string; avatarImage: string }
   | { type: 'renameGroup'; groupId: string; name: string }
   | { type: 'updateGroupProducts'; groupId: string; input: GroupInput }
@@ -53,15 +67,20 @@ export type ShopDemoAction =
 export type ShopDemoContextValue = {
   readonly state: ShopDemoState
   readonly profile: SelectorProfile
+  readonly selectorsCode: string | null
   readonly products: readonly ShopProduct[]
   readonly campaigns: readonly ShopCampaign[]
+  readonly isCampaignCatalogLoading: boolean
+  readonly campaignCatalogError: string | null
+  readonly isProductGroupLoading: boolean
+  readonly productGroupError: string | null
   readonly getGroup: (groupId: string) => ShopDemoGroup | undefined
   readonly getProducts: (productIds: readonly string[]) => readonly ShopProduct[]
-  readonly renameGroup: (groupId: string, name: string) => void
-  readonly updateGroupProducts: (groupId: string, input: GroupInput) => void
-  readonly createGroup: (input: GroupInput) => void
-  readonly addProductsToGroup: (groupId: string, productIds: string[]) => void
-  readonly deleteGroup: (groupId: string) => void
+  readonly renameGroup: (groupId: string, name: string) => Promise<void>
+  readonly updateGroupProducts: (groupId: string, input: GroupInput) => Promise<void>
+  readonly createGroup: (input: GroupInput) => Promise<void>
+  readonly addProductsToGroup: (groupId: string, productIds: string[]) => Promise<void>
+  readonly deleteGroup: (groupId: string) => Promise<void>
   readonly setQuickAddDraft: (draft: QuickAddDraft) => void
   readonly clearQuickAddDraft: () => void
   readonly setStatus: (status: string | null) => void
@@ -74,11 +93,8 @@ function deduplicate(productIds: readonly string[]): string[] {
 
 export function createInitialShopDemoState(): ShopDemoState {
   return {
-    profile: { ...selectorProfile },
-    groups: initialShopGroups.map((group) => ({
-      ...group,
-      productIds: [...group.productIds],
-    })),
+    profile: { ...selectorProfile, name: '', avatarImage: '', meSpaceLabel: '' },
+    groups: [],
     status: null,
     quickAddDraft: null,
     nextGroupSerial: 14,
@@ -90,6 +106,20 @@ export function shopDemoReducer(
   action: ShopDemoAction,
 ): ShopDemoState {
   switch (action.type) {
+    case 'hydrateGroups':
+      return { ...state, groups: action.groups }
+
+    case 'hydrateProfile':
+      return { ...state, profile: action.profile }
+
+    case 'upsertGroup':
+      return {
+        ...state,
+        groups: state.groups.some(({ id }) => id === action.group.id)
+          ? state.groups.map((group) => group.id === action.group.id ? action.group : group)
+          : [...state.groups, action.group],
+      }
+
     case 'updateProfile':
       return {
         ...state,
@@ -211,6 +241,197 @@ export function ShopDemoProvider({ children }: { children: ReactNode }) {
     undefined,
     createInitialShopDemoState,
   )
+  const [campaigns, setCampaigns] = useState<readonly ShopCampaign[]>([])
+  const [products, setProducts] = useState<readonly ShopProduct[]>([])
+  const [isCampaignCatalogLoading, setIsCampaignCatalogLoading] = useState(true)
+  const [campaignCatalogError, setCampaignCatalogError] = useState<string | null>(null)
+  const [isProductGroupLoading, setIsProductGroupLoading] = useState(true)
+  const [productGroupError, setProductGroupError] = useState<string | null>(null)
+  const [authRevision, setAuthRevision] = useState(0)
+  const [shopHash, setShopHash] = useState(window.location.hash)
+  const publicShopLocation = parsePublicShopHash(shopHash)
+  const publicSelectorsCode = publicShopLocation?.selectorsCode ?? null
+  const isManagementShopRoute = /^#\/shop\/(?:groups|profile)(?:\/|$)/.test(shopHash)
+  const shopRequestKey = publicSelectorsCode
+    ? `public:${publicSelectorsCode}`
+    : isManagementShopRoute ? 'management' : 'none'
+  const [selectorsCode, setSelectorsCode] = useState<string | null>(
+    publicShopLocation?.selectorsCode ?? readRememberedSelectorsCode(),
+  )
+
+  useEffect(() => {
+    const refreshAuth = () => setAuthRevision((current) => current + 1)
+    window.addEventListener('auth:changed', refreshAuth)
+    window.addEventListener('storage', refreshAuth)
+    return () => {
+      window.removeEventListener('auth:changed', refreshAuth)
+      window.removeEventListener('storage', refreshAuth)
+    }
+  }, [])
+
+  useEffect(() => {
+    const refreshHash = () => setShopHash(window.location.hash)
+    window.addEventListener('hashchange', refreshHash)
+    return () => window.removeEventListener('hashchange', refreshHash)
+  }, [])
+
+  const mergeProducts = useCallback((incoming: readonly ShopProduct[]) => {
+    setProducts((current) => [...[...current, ...incoming].reduce((productMap, product) => {
+      const existing = productMap.get(product.id)
+      productMap.set(product.id, existing
+        ? {
+            ...existing,
+            ...product,
+            campaignIds: [...new Set([...existing.campaignIds, ...product.campaignIds])],
+          }
+        : product)
+      return productMap
+    }, new Map<string, ShopProduct>()).values()])
+  }, [])
+
+  const mapApiProduct = useCallback((product: ProductGroupApiResponse['products'][number], campaignId?: string): ShopProduct => {
+    const regularPrice = Number(product.regularPrice)
+    const salePrice = Number(product.salePrice)
+    return {
+      id: String(product.id),
+      category: product.category || '',
+      brand: product.brand || '',
+      name: product.name,
+      originalPrice: `${regularPrice.toLocaleString('ko-KR')}원`,
+      discountRate: regularPrice > 0 ? `${Math.max(0, Math.round((1 - salePrice / regularPrice) * 100))}%` : '0%',
+      salePrice: `${salePrice.toLocaleString('ko-KR')}원`,
+      image: product.thumbnailUrl,
+      detailUrl: product.detailUrl,
+      campaignIds: campaignId ? [campaignId] : [],
+    }
+  }, [])
+
+  const mapApiGroup = useCallback((group: ProductGroupApiResponse): ShopDemoGroup => ({
+    id: String(group.id),
+    name: group.title,
+    createdAt: group.createdAt?.slice(0, 10).replaceAll('-', '.') || '',
+    campaignId: String(group.campaignId),
+    productIds: group.products.map(({ id }) => String(id)),
+  }), [])
+
+  const applyApiGroup = useCallback((group: ProductGroupApiResponse) => {
+    mergeProducts(group.products.map((product) => mapApiProduct(product, String(group.campaignId))))
+    dispatch({ type: 'upsertGroup', group: mapApiGroup(group) })
+  }, [mapApiGroup, mapApiProduct, mergeProducts])
+
+  useEffect(() => {
+    let cancelled = false
+    if (!publicSelectorsCode && !isManagementShopRoute) {
+      setIsProductGroupLoading(false)
+      return
+    }
+
+    setIsProductGroupLoading(true)
+    setProductGroupError(null)
+    dispatch({ type: 'hydrateGroups', groups: [] })
+    if (publicSelectorsCode) {
+      dispatch({ type: 'hydrateProfile', profile: { ...selectorProfile, name: '', avatarImage: '', meSpaceLabel: '' } })
+    }
+
+    const loadPublicGroups = (code: string) => getPublicShop(code).then((shop) => {
+      rememberSelectorsCode(shop.selectorsCode)
+      setSelectorsCode(shop.selectorsCode)
+      dispatch({
+        type: 'hydrateProfile',
+        profile: {
+          ...selectorProfile,
+          name: shop.nickname,
+          avatarImage: shop.profileImageUrl ?? '',
+          meSpaceLabel: `${shop.nickname}의 ME스페이스`,
+        },
+      })
+      return shop.groups
+    })
+
+    const request = publicSelectorsCode
+      ? loadPublicGroups(publicSelectorsCode)
+      : hasValidUserSession(readAuthSession())
+        ? getMyProductGroups()
+        : loadPublicGroups(readRememberedSelectorsCode())
+
+    request.then((groups) => {
+      if (cancelled) return
+      mergeProducts(groups.flatMap((group) => group.products.map((product) => mapApiProduct(product, String(group.campaignId)))))
+      dispatch({ type: 'hydrateGroups', groups: groups.map(mapApiGroup) })
+      setProductGroupError(null)
+    }).catch((error) => {
+      if (!cancelled) setProductGroupError(error instanceof Error ? error.message : '상품 그룹을 불러오지 못했습니다.')
+    }).finally(() => {
+      if (!cancelled) setIsProductGroupLoading(false)
+    })
+
+    return () => { cancelled = true }
+  }, [authRevision, isManagementShopRoute, mapApiGroup, mapApiProduct, mergeProducts, publicSelectorsCode, shopRequestKey])
+
+  useEffect(() => {
+    let cancelled = false
+
+    getCampaigns()
+      .then(async (summaries) => {
+        const details = await Promise.all(summaries.map(({ id }) => getCampaignDetail(id)))
+        if (cancelled) return
+
+        const apiCampaigns: ShopCampaign[] = details.map((campaign) => ({
+          id: String(campaign.id),
+          name: campaign.title,
+          description: campaign.description,
+          startDate: campaign.startDate,
+          endDate: campaign.endDate,
+          thumbnailUrl: campaign.thumbnailUrl,
+          status: campaign.status,
+          brands: [...new Set(campaign.products.map(({ brand }) => brand).filter(Boolean))],
+          productIds: campaign.products.map(({ id }) => String(id)),
+        }))
+        const apiProducts = details.flatMap((campaign) => campaign.products.map((product) => {
+          const regularPrice = Number(product.regularPrice)
+          const salePrice = Number(product.salePrice)
+          const discountRate = regularPrice > 0
+            ? `${Math.max(0, Math.round((1 - salePrice / regularPrice) * 100))}%`
+            : '0%'
+
+          return {
+            id: String(product.id),
+            category: product.category || '',
+            brand: product.brand || '',
+            name: product.name,
+            originalPrice: `${regularPrice.toLocaleString('ko-KR')}원`,
+            discountRate,
+            salePrice: `${salePrice.toLocaleString('ko-KR')}원`,
+            image: product.thumbnailUrl,
+            detailUrl: product.detailUrl,
+            campaignIds: [String(campaign.id)],
+          } satisfies ShopProduct
+        }))
+        const uniqueApiProducts = [...apiProducts.reduce((productMap, product) => {
+          const existing = productMap.get(product.id)
+          productMap.set(product.id, existing
+            ? { ...existing, campaignIds: [...new Set([...existing.campaignIds, ...product.campaignIds])] }
+            : product)
+          return productMap
+        }, new Map<string, ShopProduct>()).values()]
+
+        setCampaigns(apiCampaigns)
+        mergeProducts(uniqueApiProducts)
+        setCampaignCatalogError(null)
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setCampaignCatalogError(error instanceof Error ? error.message : '캠페인 정보를 불러오지 못했습니다.')
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsCampaignCatalogLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [mergeProducts])
 
   const getGroup = useCallback(
     (groupId: string) => state.groups.find(({ id }) => id === groupId),
@@ -218,23 +439,39 @@ export function ShopDemoProvider({ children }: { children: ReactNode }) {
   )
   const getProducts = useCallback((productIds: readonly string[]) => {
     return productIds.flatMap((productId) => {
-      const product = selectorProducts.find(({ id }) => id === productId)
+      const product = products.find(({ id }) => id === productId)
       return product ? [product] : []
     })
-  }, [])
-  const renameGroup = useCallback((groupId: string, name: string) => {
-    dispatch({ type: 'renameGroup', groupId, name })
-  }, [])
-  const updateGroupProducts = useCallback((groupId: string, input: GroupInput) => {
-    dispatch({ type: 'updateGroupProducts', groupId, input })
-  }, [])
-  const createGroup = useCallback((input: GroupInput) => {
-    dispatch({ type: 'createGroup', input })
-  }, [])
-  const addProductsToGroup = useCallback((groupId: string, productIds: string[]) => {
-    dispatch({ type: 'addProductsToGroup', groupId, productIds })
-  }, [])
-  const deleteGroup = useCallback((groupId: string) => {
+  }, [products])
+  const renameGroup = useCallback(async (groupId: string, name: string) => {
+    const group = state.groups.find(({ id }) => id === groupId)
+    if (!hasValidUserSession(readAuthSession())) throw new Error('상품 그룹 관리는 로그인이 필요합니다.')
+    if (!group?.campaignId) throw new Error('상품 그룹의 캠페인 정보를 찾을 수 없습니다.')
+    applyApiGroup(await updateProductGroup(groupId, {
+      campaignId: Number(group.campaignId), title: name, productIds: group.productIds.map(Number),
+    }))
+  }, [applyApiGroup, state.groups])
+  const updateGroupProducts = useCallback(async (groupId: string, input: GroupInput) => {
+    if (!hasValidUserSession(readAuthSession())) throw new Error('상품 그룹 관리는 로그인이 필요합니다.')
+    if (!input.campaignId) throw new Error('캠페인을 선택해 주세요.')
+    applyApiGroup(await updateProductGroup(groupId, {
+      campaignId: Number(input.campaignId), title: input.name, productIds: input.productIds.map(Number),
+    }))
+  }, [applyApiGroup])
+  const createGroup = useCallback(async (input: GroupInput) => {
+    if (!hasValidUserSession(readAuthSession())) throw new Error('상품 그룹 관리는 로그인이 필요합니다.')
+    if (!input.campaignId) throw new Error('캠페인을 선택해 주세요.')
+    applyApiGroup(await createProductGroup({
+      campaignId: Number(input.campaignId), title: input.name, productIds: input.productIds.map(Number),
+    }))
+  }, [applyApiGroup])
+  const addProductsToGroup = useCallback(async (groupId: string, productIds: string[]) => {
+    if (!hasValidUserSession(readAuthSession())) throw new Error('상품 그룹 관리는 로그인이 필요합니다.')
+    applyApiGroup(await addProductGroupItems(groupId, productIds.map(Number)))
+  }, [applyApiGroup])
+  const deleteGroup = useCallback(async (groupId: string) => {
+    if (!hasValidUserSession(readAuthSession())) throw new Error('상품 그룹 관리는 로그인이 필요합니다.')
+    await deleteProductGroup(groupId)
     dispatch({ type: 'deleteGroup', groupId })
   }, [])
   const setQuickAddDraft = useCallback((draft: QuickAddDraft) => {
@@ -253,8 +490,13 @@ export function ShopDemoProvider({ children }: { children: ReactNode }) {
   const value = useMemo<ShopDemoContextValue>(() => ({
     state,
     profile: state.profile,
-    products: selectorProducts,
-    campaigns: shopCampaigns,
+    selectorsCode,
+    products,
+    campaigns,
+    isCampaignCatalogLoading,
+    campaignCatalogError,
+    isProductGroupLoading,
+    productGroupError,
     getGroup,
     getProducts,
     renameGroup,
@@ -268,6 +510,7 @@ export function ShopDemoProvider({ children }: { children: ReactNode }) {
     updateProfile,
   }), [
     state,
+    selectorsCode,
     getGroup,
     getProducts,
     renameGroup,
@@ -279,6 +522,12 @@ export function ShopDemoProvider({ children }: { children: ReactNode }) {
     clearQuickAddDraft,
     setStatus,
     updateProfile,
+    products,
+    campaigns,
+    isCampaignCatalogLoading,
+    campaignCatalogError,
+    isProductGroupLoading,
+    productGroupError,
   ])
 
   return (

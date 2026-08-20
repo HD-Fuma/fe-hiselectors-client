@@ -16,10 +16,15 @@ export default function ShopProductGrid({ getProductShareUrl, productIds }: Shop
 
   return (
     <div className="shop-product-grid">
-      {getProducts(productIds).map((product) => (
+      {getProducts(productIds).map((product) => {
+        const productUrl = product.detailUrl || `https://www.thehyundai.com/front/dpa/searchSectItem.thd?searchTerm=${encodeURIComponent(product.name)}`
+
+        return (
         <article className="shop-product" key={product.id}>
           <div className="shop-product-media">
-            <img alt={product.name} src={product.image} />
+            <a aria-label={`${product.name} 상품 페이지 열기`} href={productUrl} rel="noreferrer" target="_blank">
+              <img alt={product.name} src={product.image} />
+            </a>
             {getProductShareUrl ? (
               <button
                 aria-label={`${product.name} 상품 링크 복사`}
@@ -38,14 +43,15 @@ export default function ShopProductGrid({ getProductShareUrl, productIds }: Shop
           {product.brand ? (
             <span className="shop-product-brand">{product.brand}</span>
           ) : null}
-          <p className="shop-product-name">{product.name}</p>
+          <p className="shop-product-name"><a href={productUrl} rel="noreferrer" target="_blank">{product.name}</a></p>
           <div className="shop-product-pricing">
             <del>{product.originalPrice}</del>
             <span>{product.discountRate}</span>
             <strong>{product.salePrice}</strong>
           </div>
         </article>
-      ))}
+        )
+      })}
       {shareProductId && getProductShareUrl ? (
         <ShareShopSheet
           invokerRef={shareInvokerRef}

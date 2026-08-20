@@ -1,13 +1,18 @@
+import { buildPublicShopHash, readRememberedSelectorsCode } from '../../screens/shop/shopRoute'
+
 export type AppSection = 'shop' | 'campaigns' | 'performance' | 'settlement'
 
-const mainNavigation = [
-  { section: 'shop', href: '#/shop/RC000003200T', label: '샵' },
+const staticNavigation = [
   { section: 'campaigns', href: '#/campaigns', label: '캠페인' },
   { section: 'performance', href: '#/performance', label: '성과' },
   { section: 'settlement', href: '#/settlement/check', label: '정산' },
 ] as const
 
 export default function MainNavigation({ current }: { current: AppSection }) {
+  const mainNavigation = [
+    { section: 'shop', href: buildPublicShopHash(readRememberedSelectorsCode()), label: '샵' },
+    ...staticNavigation,
+  ]
   return (
     <nav aria-label="주요 기능" className="main-navigation">
       {mainNavigation.map((item) => (

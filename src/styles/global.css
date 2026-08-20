@@ -1144,6 +1144,19 @@ input:focus-visible + .custom-check {
   border-top: 1px solid var(--ink);
 }
 
+.campaign-feedback {
+  padding: 18px 16px;
+  margin-bottom: 16px;
+  background: var(--surface);
+  color: var(--gray-700);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.campaign-feedback-error {
+  color: #8a3b00;
+}
+
 .campaign-card {
   position: relative;
   display: grid;

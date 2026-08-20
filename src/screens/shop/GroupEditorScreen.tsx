@@ -4,29 +4,32 @@ import BottomActionBar from '../../components/BottomActionBar'
 import ScreenHeader from '../../components/ScreenHeader'
 import GroupProductPicker from './GroupProductPicker'
 import { useShopDemo, type ShopDemoGroup } from './ShopDemoContext'
+import { buildPublicShopHash } from './shopRoute'
+import ShopStatus from './ShopStatus'
 
 export type GroupEditorMode =
   | { kind: 'create'; backHref: '#/shop/groups'; initialCampaignId: null }
-  | { kind: 'edit'; groupId: string; backHref: `#/shop/RC000003200T/${string}` }
+  | { kind: 'edit'; groupId: string; backHref: `#/shop/${string}` }
   | {
     kind: 'campaign-create'
-    backHref: '#/campaigns/detail'
-    initialCampaignId: 'season-pick'
+    backHref: `#/campaigns/${string}`
+    initialCampaignId: string
   }
 
 export function MissingShopGroup({ title }: { title: '셀렉터스샵' | '상품 그룹 편집' }) {
-  const { clearQuickAddDraft } = useShopDemo()
+  const { clearQuickAddDraft, selectorsCode } = useShopDemo()
+  const shopPath = selectorsCode ? buildPublicShopHash(selectorsCode) : '#/home'
 
   return (
     <>
       <ScreenHeader
-        backHref="#/shop/RC000003200T"
+        backHref={shopPath}
         onBack={clearQuickAddDraft}
         title={title}
       />
       <div className="screen-scroll shop-missing-group">
         <p>상품 그룹을 찾을 수 없습니다.</p>
-        <a href="#/shop/RC000003200T">셀렉터스샵으로 돌아가기</a>
+        <a href={shopPath}>셀렉터스샵으로 돌아가기</a>
       </div>
     </>
   )
@@ -35,6 +38,24 @@ export function MissingShopGroup({ title }: { title: '셀렉터스샵' | '상품
 export function GroupEditorScreen({ mode }: { mode: GroupEditorMode }) {
   const shop = useShopDemo()
   const group = mode.kind === 'edit' ? shop.getGroup(mode.groupId) : undefined
+
+  if (mode.kind === 'edit' && shop.isProductGroupLoading) {
+    return (
+      <div className="panel-page">
+        <ScreenHeader backHref={mode.backHref} title="상품 그룹 편집" />
+        <p className="shop-group-feedback">상품 그룹을 불러오는 중입니다.</p>
+      </div>
+    )
+  }
+
+  if (mode.kind === 'edit' && shop.productGroupError) {
+    return (
+      <div className="panel-page">
+        <ScreenHeader backHref={mode.backHref} title="상품 그룹 편집" />
+        <p className="shop-group-feedback shop-group-feedback-error">{shop.productGroupError}</p>
+      </div>
+    )
+  }
 
   if (mode.kind === 'edit' && !group) {
     return <MissingShopGroup title="상품 그룹 편집" />
@@ -89,6 +110,10 @@ function GroupEditorForm({
   const editorTitle = mode.kind === 'edit' ? '상품 그룹 편집' : '상품 그룹 만들기'
   const groupId = mode.kind === 'edit' ? mode.groupId : ''
   const initialCampaign = mode.kind === 'campaign-create' ? mode.initialCampaignId : ''
+  const campaignOptions = group?.campaignId
+    && !shop.campaigns.some(({ id }) => id === group.campaignId)
+    ? [{ id: group.campaignId, name: `캠페인 #${group.campaignId}` }, ...shop.campaigns]
+    : shop.campaigns
   const visibleProducts = campaignId
     ? shop.products.filter((product) => product.campaignIds.includes(campaignId))
     : []
@@ -113,7 +138,7 @@ function GroupEditorForm({
     }
   }, [campaignCreateId, clearQuickAddDraft, modeKind])
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!canSave) {
       return
     }
@@ -124,18 +149,22 @@ function GroupEditorForm({
       productIds: selectedProductIds,
     }
 
-    if (mode.kind === 'edit') {
-      shop.updateGroupProducts(mode.groupId, input)
-      shop.setStatus('상품 그룹을 수정했어요.')
-      shop.clearQuickAddDraft()
-      window.location.hash = mode.backHref
-      return
-    }
+    try {
+      if (mode.kind === 'edit') {
+        await shop.updateGroupProducts(mode.groupId, input)
+        shop.setStatus('상품 그룹을 수정했어요.')
+        shop.clearQuickAddDraft()
+        window.location.hash = mode.backHref
+        return
+      }
 
-    shop.createGroup(input)
-    shop.setStatus('상품 그룹을 만들었어요.')
-    shop.clearQuickAddDraft()
-    window.location.hash = '#/shop/RC000003200T'
+      await shop.createGroup(input)
+      shop.setStatus('상품 그룹을 만들었어요.')
+      shop.clearQuickAddDraft()
+      window.location.hash = shop.selectorsCode ? buildPublicShopHash(shop.selectorsCode) : '#/shop/groups'
+    } catch (error) {
+      shop.setStatus(error instanceof Error ? error.message : '상품 그룹을 저장하지 못했습니다.')
+    }
   }
 
   return (
@@ -185,7 +214,7 @@ function GroupEditorForm({
             value={campaignId}
           >
             <option value="">캠페인을 선택해 주세요</option>
-            {shop.campaigns.map((campaign) => (
+            {campaignOptions.map((campaign) => (
               <option key={campaign.id} value={campaign.id}>{campaign.name}</option>
             ))}
           </select>
@@ -201,11 +230,12 @@ function GroupEditorForm({
           selectedProductIds={selectedProductIds}
         />
         {productError ? <p className="editor-alert" role="alert">{productError}</p> : null}
+        <ShopStatus status={shop.state.status} />
       </div>
       <BottomActionBar
         disabled={!canSave}
         label="상품 그룹 저장하기"
-        onClick={handleSave}
+        onClick={() => void handleSave()}
       />
     </div>
   )
@@ -225,25 +255,28 @@ export function GroupCreateScreen() {
 
 export function GroupEditScreen() {
   const groupId = window.location.hash.match(/^#\/shop\/groups\/([^/]+)\/edit$/)?.[1] ?? ''
+  const { selectorsCode } = useShopDemo()
 
   return (
     <GroupEditorScreen
       mode={{
         kind: 'edit',
         groupId,
-        backHref: `#/shop/RC000003200T/${groupId}`,
+        backHref: selectorsCode ? buildPublicShopHash(selectorsCode, groupId) : '#/shop/groups',
       }}
     />
   )
 }
 
 export function GroupCampaignCreateScreen() {
+  const campaignId = window.location.hash.match(/^#\/shop\/groups\/new\/campaign\/([^/]+)$/)?.[1] ?? ''
+
   return (
     <GroupEditorScreen
       mode={{
         kind: 'campaign-create',
-        backHref: '#/campaigns/detail',
-        initialCampaignId: 'season-pick',
+        backHref: `#/campaigns/${campaignId}`,
+        initialCampaignId: campaignId,
       }}
     />
   )
