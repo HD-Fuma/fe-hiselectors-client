@@ -7,7 +7,7 @@ export type AuthSession = {
   tokenType: string
   role: string
   loginId: string
-  selectorAccessLevel: SelectorAccessLevel
+  selectorAccessLevel?: SelectorAccessLevel
   userName?: string
   alimtalk?: string
   issuedAt?: number
@@ -75,7 +75,7 @@ export function readAuthSession(): AuthSession | null {
       loginId: parsed.loginId || '',
       selectorAccessLevel: isSelectorAccessLevel(parsed.selectorAccessLevel)
         ? parsed.selectorAccessLevel
-        : 'NONE',
+        : undefined,
       userName,
       alimtalk: parsed.alimtalk,
       issuedAt: parsed.issuedAt,
@@ -91,7 +91,7 @@ export function hasValidUserSession(session: AuthSession | null): boolean {
 
 export function getSelectorAccessLevel(session: AuthSession | null): SelectorAccessLevel {
   return hasValidUserSession(session) && session?.role === 'USER'
-    ? session.selectorAccessLevel
+    ? session.selectorAccessLevel ?? 'NONE'
     : 'NONE'
 }
 
@@ -119,7 +119,7 @@ export async function fetchSelectorAccessLevel(
   })
 
   if (!response.ok) {
-    throw new Error('셀렉터스 권한 정보를 확인하지 못했습니다.')
+    throw new SelectorAccessRequestError(response.status)
   }
 
   const body = await response.json() as unknown
@@ -136,6 +136,15 @@ export async function fetchSelectorAccessLevel(
   return accessLevel
 }
 
+export class SelectorAccessRequestError extends Error {
+  readonly status: number
+
+  constructor(status: number) {
+    super('셀렉터스 권한 정보를 확인하지 못했습니다.')
+    this.status = status
+  }
+}
+
 export function isLocalApplyTestMode(): boolean {
   return import.meta.env.DEV
     && ['127.0.0.1', 'localhost'].includes(window.location.hostname)
@@ -150,9 +159,13 @@ export function redirectToLoginScreen() {
   window.location.hash = '#/login'
 }
 
-export function logout() {
+export function clearAuthSession() {
   localStorage.removeItem(AUTH_STORAGE_KEY)
   window.dispatchEvent(new CustomEvent('auth:changed', { detail: null }))
+}
+
+export function logout() {
+  clearAuthSession()
   if (window.location.hash !== '#/login') {
     window.location.hash = '#/login'
   }

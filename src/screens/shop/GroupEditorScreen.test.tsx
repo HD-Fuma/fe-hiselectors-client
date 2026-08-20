@@ -72,12 +72,16 @@ afterEach(() => {
   cleanup()
   window.location.hash = ''
   localStorage.clear()
+  vi.restoreAllMocks()
 })
 
 beforeEach(() => {
   localStorage.setItem('selectors-auth', JSON.stringify({
     accessToken: 'test.jwt', role: 'USER', selectorAccessLevel: 'CURRENT',
   }))
+  vi.spyOn(globalThis, 'fetch').mockImplementation(() => Promise.resolve(new Response(JSON.stringify({
+    data: { accessLevel: 'CURRENT' },
+  }))))
 })
 
 describe('group editor', () => {

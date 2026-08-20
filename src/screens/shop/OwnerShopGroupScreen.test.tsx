@@ -41,6 +41,9 @@ beforeEach(() => {
     accessToken: 'owner.token', role: 'USER', selectorAccessLevel: 'CURRENT',
   }))
   sessionStorage.setItem('selectors-shop-view-mode', 'owner')
+  vi.spyOn(globalThis, 'fetch').mockImplementation(() => Promise.resolve(new Response(JSON.stringify({
+    data: { accessLevel: 'CURRENT' },
+  }))))
 })
 
 function SetShopStatusControl() {
@@ -226,7 +229,9 @@ describe('owner selectors shop group', () => {
   it('shares from both owner entry points', async () => {
     const writeText = vi.fn()
     const nativeShare = vi.fn()
-    const fetchSpy = vi.fn()
+    const fetchSpy = vi.fn((input: RequestInfo | URL) => Promise.resolve(new Response(JSON.stringify({
+      data: String(input).includes('/api/me/selector-access') ? { accessLevel: 'CURRENT' } : {},
+    }))))
     clipboardDescriptor = Object.getOwnPropertyDescriptor(navigator, 'clipboard')
     shareDescriptor = Object.getOwnPropertyDescriptor(navigator, 'share')
     navigatorMocksInstalled = true

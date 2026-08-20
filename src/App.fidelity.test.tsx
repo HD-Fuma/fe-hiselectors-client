@@ -153,7 +153,9 @@ describe('shared panel and campaign fidelity', () => {
     cleanup()
     window.location.hash = '#/settlement'
     vi.spyOn(globalThis, 'fetch').mockImplementation((input) => Promise.resolve(
-      String(input).includes('/histories')
+      String(input).endsWith('/api/me/selector-access')
+        ? new Response(JSON.stringify({ data: { accessLevel: 'CURRENT' } }))
+        : String(input).includes('/histories')
         ? new Response(JSON.stringify({ data: { selectedYear: 2026, availableYears: [2026], histories: [] } }))
         : new Response(JSON.stringify({
           data: {

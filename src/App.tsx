@@ -4,11 +4,13 @@ import AppShell from './components/layout/AppShell'
 import {
   API_BASE_URL,
   authFetch,
+  clearAuthSession,
   fetchSelectorAccessLevel,
   hasValidUserSession,
   isLocalApplyTestMode,
   persistAuthSession,
   readAuthSession,
+  SelectorAccessRequestError,
 } from './auth'
 import { getRouteRedirect, routeMatchesHash, selectRouteByHash } from './routes'
 import { ShopDemoProvider } from './screens/shop/ShopDemoContext'
@@ -41,17 +43,28 @@ function selectCurrentRoute() {
     return selectRouteByHash(`#/product/${productPathMatch[1]}`)
   }
 
+  const session = readAuthSession()
   let requestedHash = window.location.hash
   const oauthHash = pendingOAuthHash()
-  if (oauthHash) {
+  if (oauthHash === MEMBER_INFO_PATH) {
     requestedHash = oauthHash
     if (window.location.hash !== requestedHash) {
       window.location.hash = requestedHash
     }
+  } else if (oauthHash) {
+    const isApplicant = !hasValidUserSession(session)
+      || (session?.role === 'USER' && session.selectorAccessLevel === 'NONE')
+    if (isApplicant) {
+      requestedHash = '#/apply/form'
+      if (window.location.hash !== requestedHash) {
+        window.location.hash = requestedHash
+      }
+    } else if (!requestedHash) {
+      requestedHash = '#/home'
+    }
   }
 
   const route = selectRouteByHash(requestedHash)
-  const session = readAuthSession()
   const routeRedirect = getRouteRedirect(route, session)
   if (routeRedirect && routeRedirect !== requestedHash) {
     if (!hasValidUserSession(session)) {
@@ -83,10 +96,19 @@ function RoutedApp({ shopProbe }: AppProps) {
   useEffect(() => {
     let disposed = false
     let inFlight: Promise<void> | null = null
+    let hadSession = hasValidUserSession(readAuthSession())
 
     const refreshSelectorAccess = () => {
       const session = readAuthSession()
-      if (inFlight || !hasValidUserSession(session) || session?.role !== 'USER') return
+      if (!hasValidUserSession(session)) {
+        if (hadSession) {
+          hadSession = false
+          window.dispatchEvent(new CustomEvent('auth:changed', { detail: null }))
+        }
+        return
+      }
+      hadSession = true
+      if (inFlight || session?.role !== 'USER') return
 
       const accessToken = session.accessToken
       inFlight = fetchSelectorAccessLevel(accessToken, session.tokenType)
@@ -102,7 +124,23 @@ function RoutedApp({ shopProbe }: AppProps) {
             window.dispatchEvent(new CustomEvent('auth:changed', { detail: nextSession }))
           }
         })
-        .catch(() => undefined)
+        .catch((error) => {
+          if (disposed) return
+          const latestSession = readAuthSession()
+          if (!latestSession || latestSession.accessToken !== accessToken || latestSession.role !== 'USER') return
+
+          if (error instanceof SelectorAccessRequestError && [401, 403].includes(error.status)) {
+            hadSession = false
+            clearAuthSession()
+            return
+          }
+
+          if (latestSession.selectorAccessLevel !== 'NONE') {
+            const nextSession = { ...latestSession, selectorAccessLevel: 'NONE' as const }
+            persistAuthSession(nextSession)
+            window.dispatchEvent(new CustomEvent('auth:changed', { detail: nextSession }))
+          }
+        })
         .finally(() => {
           inFlight = null
         })
@@ -212,10 +250,7 @@ function RoutedApp({ shopProbe }: AppProps) {
       } finally {
         sessionStorage.removeItem('oauthProvider')
         clearOAuthQueryParams()
-        setRoute(selectRouteByHash('#/apply/form'))
-        if (window.location.hash !== '#/apply/form') {
-          window.location.hash = '#/apply/form'
-        }
+        setRoute(selectCurrentRoute())
       }
     }
 

@@ -1,6 +1,6 @@
 import { StrictMode } from 'react'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 // @ts-expect-error Vitest runs this file in Node; the app intentionally omits @types/node.
 import { readFileSync } from 'node:fs'
 
@@ -46,12 +46,16 @@ afterEach(() => {
   cleanup()
   window.location.hash = ''
   localStorage.clear()
+  vi.restoreAllMocks()
 })
 
 beforeEach(() => {
   localStorage.setItem('selectors-auth', JSON.stringify({
     accessToken: 'test.jwt', role: 'USER', selectorAccessLevel: 'CURRENT',
   }))
+  vi.spyOn(globalThis, 'fetch').mockImplementation(() => Promise.resolve(new Response(JSON.stringify({
+    data: { accessLevel: 'CURRENT' },
+  }))))
 })
 
 describe('campaign quick-add integration', () => {

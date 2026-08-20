@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import App from '../../App'
 import { useShopDemo } from './ShopDemoContext'
@@ -12,6 +12,12 @@ const shareUrl = 'http://localhost:3000/#/shop/RC000003200T'
 let clipboardDescriptor: PropertyDescriptor | undefined
 let shareDescriptor: PropertyDescriptor | undefined
 let navigatorMocksInstalled = false
+
+beforeEach(() => {
+  vi.spyOn(globalThis, 'fetch').mockImplementation(() => Promise.resolve(new Response(JSON.stringify({
+    data: { accessLevel: 'CURRENT' },
+  }))))
+})
 
 function SetShopStatusControl() {
   const { setStatus } = useShopDemo()
@@ -193,7 +199,9 @@ describe('public selectors shop', () => {
     }))
     const writeText = vi.fn()
     const nativeShare = vi.fn()
-    const fetchSpy = vi.fn()
+    const fetchSpy = vi.fn((input: RequestInfo | URL) => Promise.resolve(new Response(JSON.stringify({
+      data: String(input).includes('/api/me/selector-access') ? { accessLevel: 'CURRENT' } : {},
+    }))))
     clipboardDescriptor = Object.getOwnPropertyDescriptor(navigator, 'clipboard')
     shareDescriptor = Object.getOwnPropertyDescriptor(navigator, 'share')
     navigatorMocksInstalled = true
