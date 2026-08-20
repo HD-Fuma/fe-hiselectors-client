@@ -80,7 +80,7 @@ export default function OwnerShopGroupScreen() {
           ) : undefined}
         />
         <p className="shop-disclosure">{disclosure}</p>
-        {isOwnerView ? <ShopStatus status={state.status} /> : null}
+        {isOwnerView ? <ShopStatus onClose={() => setStatus(null)} status={state.status} /> : null}
       </div>
       {isOwnerView && shareOpen ? (
         <ShareShopSheet

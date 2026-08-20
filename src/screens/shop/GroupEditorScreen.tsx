@@ -230,7 +230,7 @@ function GroupEditorForm({
           selectedProductIds={selectedProductIds}
         />
         {productError ? <p className="editor-alert" role="alert">{productError}</p> : null}
-        <ShopStatus status={shop.state.status} />
+        <ShopStatus onClose={() => shop.setStatus(null)} status={shop.state.status} />
       </div>
       <BottomActionBar
         disabled={!canSave}

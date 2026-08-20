@@ -115,7 +115,7 @@ export function CampaignDetailScreen() {
           </>
         ) : <p className="campaign-feedback">캠페인을 불러오는 중입니다.</p>}
       </div>
-      <ShopStatus status={shop.state.status} />
+      <ShopStatus onClose={() => shop.setStatus(null)} status={shop.state.status} />
       {campaign && isQuickAddOpen ? (
         <CampaignQuickAddSheet
           groups={shop.state.groups.filter((group) => group.campaignId === campaign.id)}

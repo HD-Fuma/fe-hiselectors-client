@@ -24,7 +24,7 @@ function getInitialViewMode(): ShopViewMode {
 }
 
 export default function PublicShopScreen() {
-  const { isProductGroupLoading, productGroupError, profile, state } = useShopDemo()
+  const { isProductGroupLoading, productGroupError, profile, setStatus, state } = useShopDemo()
   const selectorsCode = parsePublicShopHash(window.location.hash)?.selectorsCode ?? ''
   const shareUrl = selectorsCode ? getPublicShopShareUrl(selectorsCode) : ''
   const [visibleGroupCount, setVisibleGroupCount] = useState(initialGroupCount)
@@ -141,7 +141,7 @@ export default function PublicShopScreen() {
         ) : null}
 
         <p className="shop-disclosure">{disclosure}</p>
-        {isOwner ? <ShopStatus status={state.status} /> : null}
+        {isOwner ? <ShopStatus onClose={() => setStatus(null)} status={state.status} /> : null}
       </div>
       {shareOpen ? (
         <ShareShopSheet

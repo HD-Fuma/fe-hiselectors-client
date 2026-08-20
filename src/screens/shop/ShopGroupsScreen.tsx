@@ -70,7 +70,7 @@ function ManagedGroupCard({ group, index }: { group: ShopDemoGroup; index: numbe
 }
 
 export default function ShopGroupsScreen() {
-  const { isProductGroupLoading, productGroupError, profile, selectorsCode, state } = useShopDemo()
+  const { isProductGroupLoading, productGroupError, profile, selectorsCode, setStatus, state } = useShopDemo()
 
   return (
     <div className="panel-page">
@@ -93,7 +93,7 @@ export default function ShopGroupsScreen() {
           {state.groups.map((group, index) => <ManagedGroupCard group={group} index={index} key={group.id} />)}
         </div>
         {!isProductGroupLoading && !productGroupError && state.groups.length === 0 ? <p className="shop-group-feedback">등록된 상품 그룹이 없습니다.</p> : null}
-        <ShopStatus status={state.status} />
+        <ShopStatus onClose={() => setStatus(null)} status={state.status} />
       </div>
       <BottomActionBar href="#/shop/groups/new" label="상품 그룹 만들기" />
     </div>

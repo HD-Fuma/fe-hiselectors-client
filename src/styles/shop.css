@@ -790,17 +790,24 @@
   line-height: 18px;
 }
 
-.shop-status {
-  position: fixed;
-  z-index: 40;
-  right: 24px;
-  bottom: 24px;
-  max-width: calc(100% - 48px);
-  padding: 12px 16px;
-  background: var(--black);
-  color: var(--white);
+.group-dialog-backdrop.shop-status-backdrop {
+  z-index: 90;
+}
+
+.group-dialog.shop-status-dialog {
+  max-width: 360px;
+  text-align: center;
+}
+
+.shop-status-dialog > p {
+  margin-top: 12px;
+  color: var(--gray-700);
   font-size: 13px;
-  line-height: 18px;
+  line-height: 20px;
+}
+
+.group-dialog-actions.shop-status-actions {
+  grid-template-columns: 1fr;
 }
 
 /* Campaign quick add */

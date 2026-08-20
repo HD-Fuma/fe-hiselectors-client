@@ -2,6 +2,7 @@ import { useId, useRef, useState, type RefObject } from 'react'
 
 import useModalFocus from './useModalFocus'
 import { copyText } from './copyText'
+import ShopStatus from './ShopStatus'
 
 type ShareShopSheetProps = {
   title: string
@@ -23,33 +24,37 @@ export default function ShareShopSheet({
   useModalFocus({ containerRef, invokerRef, onClose })
 
   return (
-    <div className="share-shop-backdrop">
-      <section
-        aria-labelledby={titleId}
-        aria-modal="true"
-        className="share-shop-sheet"
-        ref={containerRef}
-        role="dialog"
-      >
-        <div className="share-shop-heading">
-          <h2 id={titleId}>{title}</h2>
-          <button aria-label="닫기" className="share-shop-close" onClick={onClose} type="button">
-            ×
-          </button>
-        </div>
-        <label htmlFor={urlId}>공유 링크</label>
-        <input id={urlId} readOnly type="text" value={url} />
-        <button
-          className="share-shop-copy"
-          onClick={() => {
-            void copyText(url).then(() => setCopyStatus('링크를 복사했어요.'))
-          }}
-          type="button"
+    <>
+      <div className="share-shop-backdrop">
+        <section
+          aria-labelledby={titleId}
+          aria-modal="true"
+          className="share-shop-sheet"
+          ref={containerRef}
+          role="dialog"
         >
-          링크 복사
-        </button>
-        {copyStatus ? <p role="status">{copyStatus}</p> : null}
-      </section>
-    </div>
+          <div className="share-shop-heading">
+            <h2 id={titleId}>{title}</h2>
+            <button aria-label="닫기" className="share-shop-close" onClick={onClose} type="button">
+              ×
+            </button>
+          </div>
+          <label htmlFor={urlId}>공유 링크</label>
+          <input id={urlId} readOnly type="text" value={url} />
+          <button
+            className="share-shop-copy"
+            onClick={() => {
+              void copyText(url)
+                .then(() => setCopyStatus('링크를 복사했어요.'))
+                .catch(() => setCopyStatus('링크를 복사하지 못했습니다.'))
+            }}
+            type="button"
+          >
+            링크 복사
+          </button>
+        </section>
+      </div>
+      <ShopStatus onClose={() => setCopyStatus(null)} status={copyStatus} />
+    </>
   )
 }
