@@ -21,6 +21,7 @@ type AuthTokenResponse = {
   name?: string
   username?: string
   memberName?: string
+  alimtalk?: string
 }
 
 function extractAuthPayload(body: unknown): AuthTokenResponse {
@@ -48,6 +49,7 @@ function extractAuthPayload(body: unknown): AuthTokenResponse {
     name: payload.name,
     username: payload.username,
     memberName: payload.memberName,
+    alimtalk: payload.alimtalk,
   }
 }
 

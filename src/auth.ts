@@ -6,6 +6,7 @@ export type AuthSession = {
   role: string
   loginId: string
   userName?: string
+  alimtalk?: string
   issuedAt?: number
 }
 
@@ -40,6 +41,7 @@ export function readAuthSession(): AuthSession | null {
       name?: string
       username?: string
       memberName?: string
+      alimtalk?: string
     }
     if (!parsed.accessToken || typeof parsed.accessToken !== 'string') {
       return null
@@ -64,6 +66,7 @@ export function readAuthSession(): AuthSession | null {
       role: parsed.role || 'USER',
       loginId: parsed.loginId || '',
       userName,
+      alimtalk: parsed.alimtalk,
       issuedAt: parsed.issuedAt,
     }
   } catch {

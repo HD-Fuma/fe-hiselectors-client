@@ -121,6 +121,7 @@ export function ApplyFormScreen() {
   const [connectedAccount, setConnectedAccount] = useState<ConnectedAccount | null>(null)
   const session = readAuthSession()
   const isUserSessionValid = hasValidUserSession(session)
+  const hasAlimtalkConsent = session?.alimtalk === 'Y'
 
   const selectChannel = (index: number | null) => {
     const nextChannel = index === null ? null : snsChannels[index]
@@ -153,7 +154,7 @@ export function ApplyFormScreen() {
     }
   }, [isUserSessionValid])
 
-  const canSubmit = !isSubmitting && isCurrentChannelConnected && privacyAgreed && shopTermsAgreed && alarmAgreed
+  const canSubmit = !isSubmitting && isCurrentChannelConnected && privacyAgreed && shopTermsAgreed && (hasAlimtalkConsent || alarmAgreed)
 
   const hydrateVerifiedAccount = () => {
     const verifiedJson = sessionStorage.getItem('oauthVerified')
@@ -284,7 +285,7 @@ export function ApplyFormScreen() {
         snsAccountId: connectedAccount?.label || session.loginId || selectedChannel.label,
         followerCount: connectedAccount?.followerCount ?? 0,
         privacyAgreed,
-        alarmAgreed,
+        alarmAgreed: hasAlimtalkConsent || alarmAgreed,
       }
 
       const response = await authFetch(`${API_BASE_URL}/api/applications`, {
@@ -413,14 +414,16 @@ export function ApplyFormScreen() {
             </label>
             <button aria-label="한무쇼핑 이용약관 내용 보기" type="button"><ArrowRightIcon size={18} /></button>
           </div>
-          <div className="term-row">
-            <label>
-              <input checked={alarmAgreed} onChange={(event) => setAlarmAgreed(event.target.checked)} type="checkbox" />
-              <span className="custom-check"><CheckIcon size={16} /></span>
-              <span>카카오 알림톡 수신 동의 (필수)</span>
-            </label>
-            <button aria-label="카카오 알림톡 수신 동의 내용 보기" type="button"><ArrowRightIcon size={18} /></button>
-          </div>
+          {hasAlimtalkConsent ? null : (
+            <div className="term-row">
+              <label>
+                <input checked={alarmAgreed} onChange={(event) => setAlarmAgreed(event.target.checked)} type="checkbox" />
+                <span className="custom-check"><CheckIcon size={16} /></span>
+                <span>카카오 알림톡 수신 동의 (필수)</span>
+              </label>
+              <button aria-label="카카오 알림톡 수신 동의 내용 보기" type="button"><ArrowRightIcon size={18} /></button>
+            </div>
+          )}
         </section>
 
       </div>
