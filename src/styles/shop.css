@@ -3,6 +3,82 @@
   padding: 20px 16px 32px;
 }
 
+.shop-profile-manage-card {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 14px 0 20px;
+}
+
+.shop-profile-manage-avatar,
+.profile-image-preview {
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--surface);
+}
+
+.shop-profile-manage-avatar {
+  width: 48px;
+  height: 48px;
+}
+
+.shop-profile-manage-avatar img,
+.shop-profile-manage-avatar span,
+.profile-image-preview img,
+.profile-image-preview span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.shop-profile-manage-avatar span,
+.profile-image-preview span {
+  background: url('https://image.thehyundai.com/images/no_avatar.png') center / cover no-repeat;
+}
+
+.shop-profile-manage-card > div:nth-child(2) {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.shop-profile-manage-card > div:nth-child(2) span {
+  margin-bottom: 3px;
+  color: var(--gray-500);
+  font-size: 10px;
+}
+
+.shop-profile-manage-card > div:nth-child(2) strong {
+  overflow: hidden;
+  font-size: 15px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shop-profile-manage-card > a {
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 30px;
+}
+
+.shop-group-feedback {
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  background: var(--surface);
+  color: var(--gray-700);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.shop-group-feedback-error {
+  color: #a13c00;
+}
+
 .shop-link-card {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -32,9 +108,15 @@
   align-items: center;
   gap: 5px;
   padding: 8px 10px;
-  border: 1px solid #666666;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
   color: var(--white);
   font-size: 11px;
+}
+
+.shop-link-card button:hover {
+  background: rgba(255, 255, 255, 0.22);
 }
 
 .group-list-heading,
@@ -180,6 +262,13 @@
   line-height: 18px;
 }
 
+.group-editor-screen .editor-helper {
+  margin-top: 7px;
+  color: var(--gray-500);
+  font-size: 11px;
+  line-height: 17px;
+}
+
 .group-editor-screen .campaign-select-section,
 .group-editor-screen .product-picker-section {
   padding-top: 27px;
@@ -208,11 +297,25 @@
   line-height: 17px;
 }
 
-.group-editor-screen .picker-heading > span {
+.group-editor-screen .picker-selection-summary {
+  display: flex;
   flex: 0 0 auto;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+}
+
+.group-editor-screen .picker-selection-summary strong {
   padding: 5px 8px;
   background: var(--black);
   color: var(--white);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  line-height: 14px;
+}
+
+.group-editor-screen .picker-selection-summary span {
+  color: var(--gray-500);
   font-size: 10px;
   font-variant-numeric: tabular-nums;
   line-height: 14px;
@@ -237,6 +340,11 @@
   padding: 0;
   border-bottom: 0;
   cursor: pointer;
+}
+
+.group-editor-screen .picker-row.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.68;
 }
 
 .group-editor-screen .picker-row > input {
@@ -273,6 +381,24 @@
 .group-editor-screen .picker-row input:focus-visible + .product-check {
   outline: 2px solid #2268e8;
   outline-offset: 2px;
+}
+
+.group-editor-screen .picker-product-state {
+  position: absolute;
+  z-index: 2;
+  top: 12px;
+  right: 12px;
+  padding: 4px 7px;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--gray-700);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 14px;
+}
+
+.group-editor-screen .picker-product-state.is-selected {
+  background: var(--black);
+  color: var(--white);
 }
 
 .group-editor-screen .picker-row img {
@@ -328,6 +454,10 @@
   text-align: center;
 }
 
+.group-editor-screen .picker-empty.picker-error {
+  color: #d93025;
+}
+
 .panel-page[data-editor-mode] .primary-action:disabled {
   border-color: #dedede;
   background: #dedede;
@@ -337,6 +467,7 @@
 
 /* Public selectors shop */
 .public-shop-screen {
+  position: relative;
   padding: 0 16px;
 }
 
@@ -461,6 +592,123 @@
   align-items: center;
 }
 
+.selector-avatar-image {
+  width: 74px;
+  height: 74px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* Profile editor */
+.shop-profile-edit-screen {
+  padding: 32px 16px 48px;
+}
+
+.profile-image-editor {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.profile-image-preview {
+  width: 104px;
+  height: 104px;
+  margin-bottom: 16px;
+}
+
+.profile-image-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 38px;
+  padding: 0 18px;
+  border: 1px solid var(--black);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.profile-image-button input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.profile-image-editor > button {
+  margin-top: 10px;
+  color: var(--gray-500);
+  font-size: 11px;
+  text-decoration: underline;
+}
+
+.profile-name-editor {
+  position: relative;
+  padding-top: 30px;
+  margin-top: 32px;
+  border-top: 1px solid var(--line);
+}
+
+.profile-name-editor input {
+  width: 100%;
+  height: 52px;
+  padding: 0 56px 0 14px;
+  border: 1px solid #d2d2d2;
+  border-radius: 0;
+}
+
+.profile-name-editor > span {
+  position: absolute;
+  right: 14px;
+  bottom: 18px;
+  color: var(--gray-500);
+  font-size: 10px;
+}
+
+.shop-group-heading a {
+  display: inline-block;
+  border-bottom: 1px solid transparent;
+}
+
+.shop-group-heading a:hover {
+  border-bottom-color: currentColor;
+}
+
+.shop-group-heading a:focus-visible {
+  outline: 2px solid #2268e8;
+  outline-offset: 3px;
+}
+
+.shop-view-toggle {
+  position: absolute;
+  z-index: 2;
+  top: 12px;
+  right: 16px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: 104px;
+  padding: 2px;
+  border-radius: 999px;
+  background: #eeeeee;
+}
+
+.shop-view-toggle button {
+  height: 24px;
+  padding: 0 7px;
+  border-radius: 999px;
+  color: var(--gray-500);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 24px;
+}
+
+.shop-view-toggle button[aria-pressed='true'] {
+  background: var(--white);
+  color: var(--black);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
 .shop-product-grid {
   display: grid;
   grid-template-columns: repeat(3, 168px);
@@ -476,13 +724,50 @@
   min-width: 0;
 }
 
+.shop-product-media {
+  position: relative;
+  width: 168px;
+  height: 168px;
+  margin-bottom: 10px;
+}
+
+.shop-product-media > a {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 .shop-product img {
   width: 168px;
   height: 168px;
   aspect-ratio: 1;
-  margin-bottom: 10px;
+  margin-bottom: 0;
   object-fit: cover;
   background: var(--surface);
+}
+
+.shop-product-copy {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--black);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.shop-product-copy:hover {
+  background: var(--white);
+}
+
+.shop-product-copy:focus-visible {
+  outline: 2px solid #2268e8;
+  outline-offset: 2px;
 }
 
 .shop-product-brand {
@@ -553,17 +838,24 @@
   line-height: 18px;
 }
 
-.shop-status {
-  position: fixed;
-  z-index: 40;
-  right: 24px;
-  bottom: 24px;
-  max-width: calc(100% - 48px);
-  padding: 12px 16px;
-  background: var(--black);
-  color: var(--white);
+.group-dialog-backdrop.shop-status-backdrop {
+  z-index: 90;
+}
+
+.group-dialog.shop-status-dialog {
+  max-width: 360px;
+  text-align: center;
+}
+
+.shop-status-dialog > p {
+  margin-top: 12px;
+  color: var(--gray-700);
   font-size: 13px;
-  line-height: 18px;
+  line-height: 20px;
+}
+
+.group-dialog-actions.shop-status-actions {
+  grid-template-columns: 1fr;
 }
 
 /* Campaign quick add */
@@ -1104,9 +1396,14 @@
     width: 100%;
   }
 
+  .shop-product-media,
   .shop-product img {
     width: 100%;
     height: auto;
+  }
+
+  .shop-product-media {
+    aspect-ratio: 1;
   }
 
   .group-editor-screen {

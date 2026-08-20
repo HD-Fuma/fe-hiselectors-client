@@ -3,12 +3,13 @@ import { useId, useRef, useState, type RefObject } from 'react'
 import { CheckIcon } from '../../components/Icons'
 import type { ShopDemoGroup } from './ShopDemoContext'
 import type { ShopProduct } from './shopData'
+import ShopStatus from './ShopStatus'
 import useModalFocus from './useModalFocus'
 
 type CampaignQuickAddSheetProps = {
   groups: readonly ShopDemoGroup[]
   invokerRef: RefObject<HTMLElement | null>
-  onAddToGroup: (groupId: string, productIds: string[]) => void
+  onAddToGroup: (groupId: string, productIds: string[]) => Promise<void>
   onClose: () => void
   onCreateGroup: (productIds: string[]) => void
   products: readonly ShopProduct[]
@@ -25,6 +26,8 @@ export default function CampaignQuickAddSheet({
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>(
     () => products.map(({ id }) => id),
   )
+  const [savingGroupId, setSavingGroupId] = useState<string | null>(null)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const containerRef = useRef<HTMLElement>(null)
   const titleId = useId()
   const selected = new Set(selectedProductIds)
@@ -42,15 +45,27 @@ export default function CampaignQuickAddSheet({
     })
   }
 
+  const addToGroup = async (groupId: string) => {
+    setSavingGroupId(groupId)
+    setSaveError(null)
+    try {
+      await onAddToGroup(groupId, selectedProductIds)
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : '상품을 추가하지 못했습니다.')
+      setSavingGroupId(null)
+    }
+  }
+
   return (
-    <div className="campaign-quick-add-backdrop">
-      <section
-        aria-labelledby={titleId}
-        aria-modal="true"
-        className="campaign-quick-add-sheet"
-        ref={containerRef}
-        role="dialog"
-      >
+    <>
+      <div className="campaign-quick-add-backdrop">
+        <section
+          aria-labelledby={titleId}
+          aria-modal="true"
+          className="campaign-quick-add-sheet"
+          ref={containerRef}
+          role="dialog"
+        >
         <div className="campaign-quick-add-heading">
           <h2 id={titleId}>상품 그룹에 담기</h2>
           <button
@@ -96,27 +111,32 @@ export default function CampaignQuickAddSheet({
           <strong>상품 그룹 선택</strong>
           <button
             className="campaign-quick-add-new"
+            disabled={selectedProductIds.length === 0 || savingGroupId !== null}
             onClick={() => onCreateGroup(selectedProductIds)}
             type="button"
           >
             새 상품 그룹 만들기
           </button>
           <div className="campaign-quick-add-group-list">
+            {groups.length === 0 ? <p className="campaign-feedback">이 캠페인으로 만든 상품 그룹이 없습니다.</p> : null}
             {groups.map((group) => (
               <button
                 aria-label={group.name}
                 className="campaign-quick-add-group"
+                disabled={savingGroupId !== null}
                 key={group.id}
-                onClick={() => onAddToGroup(group.id, selectedProductIds)}
+                onClick={() => void addToGroup(group.id)}
                 type="button"
               >
                 <strong>{group.name}</strong>
-                <span>{group.productIds.length}개 상품</span>
+                <span>{savingGroupId === group.id ? '저장 중' : `${group.productIds.length}개 상품`}</span>
               </button>
             ))}
           </div>
-        </div>
-      </section>
-    </div>
+          </div>
+        </section>
+      </div>
+      <ShopStatus onClose={() => setSaveError(null)} status={saveError} />
+    </>
   )
 }

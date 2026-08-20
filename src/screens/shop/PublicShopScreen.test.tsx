@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import App from '../../App'
@@ -7,7 +7,7 @@ import { useShopDemo } from './ShopDemoContext'
 const shopHash = '#/shop/RC000003200T'
 const badgeImage = 'https://image.thehyundai.com/images/badge/badge_manager_large.png?SF=webp&AO=1'
 const disclosure = '셀렉터스샵에서 상품을 구매하는 경우, 상품 구매로 발생한 수익의 일부가 셀렉터스에게 제공됩니다.'
-const shareUrl = 'https://hi.thehyundai.com/sellectors/manage/shop/RC000003200T'
+const shareUrl = 'http://localhost:3000/#/shop/RC000003200T'
 
 let clipboardDescriptor: PropertyDescriptor | undefined
 let shareDescriptor: PropertyDescriptor | undefined
@@ -56,8 +56,8 @@ describe('public selectors shop', () => {
     const { container } = render(<App />)
 
     expect(screen.getByRole('heading', { level: 1, name: '셀렉터스샵' })).toBeTruthy()
-    expect(screen.getByRole('link', { name: '뒤로 가기' }).getAttribute('href')).toBe('#/campaigns')
-    expect(screen.getByRole('button', { name: '셀렉터스샵 공유' })).toBeTruthy()
+    expect(screen.getByRole('link', { name: '뒤로 가기' }).getAttribute('href')).toBe('#/home')
+    expect(screen.queryByRole('button', { name: '셀렉터스샵 공유' })).toBeNull()
 
     const badge = screen.getByAltText('인플루언서 뱃지')
     expect(badge.getAttribute('src')).toBe(badgeImage)
@@ -116,20 +116,25 @@ describe('public selectors shop', () => {
 
     render(<App />)
 
+    fireEvent.click(screen.getByRole('button', { name: '관리자' }))
+
     expect(screen.getByRole('link', { name: '관리하기' }).getAttribute('href')).toBe(
       '#/shop/groups',
     )
   })
 
   it('announces only actual shop statuses', () => {
+    localStorage.setItem('selectors-auth', JSON.stringify({ accessToken: 'owner.token', role: 'USER' }))
     window.location.hash = shopHash
     render(<App shopProbe={<SetShopStatusControl />} />)
+
+    fireEvent.click(screen.getByRole('button', { name: '관리자' }))
 
     expect(screen.queryByRole('status')).toBeNull()
 
     fireEvent.click(screen.getByRole('button', { name: '테스트 상태 설정' }))
 
-    expect(screen.getByRole('status').textContent).toBe('상품을 그룹에 담았어요.')
+    expect(screen.getByRole('alertdialog', { name: '알림' }).textContent).toContain('상품을 그룹에 담았어요.')
   })
 
   it('expands groups without remounting existing sections or resetting scroll', () => {
@@ -165,7 +170,8 @@ describe('public selectors shop', () => {
     expect(scrollContainer.scrollTop).toBe(318)
   })
 
-  it('shares through a local-only accessible sheet and restores the trigger on Escape', () => {
+  it('shares through a local-only accessible sheet and restores the trigger on Escape', async () => {
+    localStorage.setItem('selectors-auth', JSON.stringify({ accessToken: 'owner.token', role: 'USER' }))
     const writeText = vi.fn()
     const nativeShare = vi.fn()
     const fetchSpy = vi.fn()
@@ -184,6 +190,8 @@ describe('public selectors shop', () => {
     window.location.hash = shopHash
     render(<App />)
 
+    fireEvent.click(screen.getByRole('button', { name: '관리자' }))
+
     const trigger = screen.getByRole('button', { name: '셀렉터스샵 공유' })
     trigger.focus()
     fireEvent.click(trigger)
@@ -198,8 +206,11 @@ describe('public selectors shop', () => {
 
     fireEvent.click(within(dialog).getByRole('button', { name: '링크 복사' }))
 
-    expect(within(dialog).getByRole('status').textContent).toBe('링크를 복사했어요.')
-    expect(writeText).not.toHaveBeenCalled()
+    await waitFor(() => {
+      expect(screen.getByRole('alertdialog', { name: '알림' }).textContent).toContain('링크를 복사했어요.')
+    })
+    fireEvent.click(screen.getByRole('button', { name: '확인' }))
+    expect(writeText).toHaveBeenCalledWith(shareUrl)
     expect(nativeShare).not.toHaveBeenCalled()
     expect(fetchSpy).not.toHaveBeenCalled()
 

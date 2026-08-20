@@ -1,5 +1,6 @@
 export type SelectorProfile = {
   readonly name: string
+  readonly avatarImage?: string
   readonly meSpaceLabel: string
   readonly badgeAlt: string
   readonly badgeImage: string
@@ -8,13 +9,14 @@ export type SelectorProfile = {
 
 export type ShopProduct = {
   readonly id: string
-  readonly category: '패션' | '뷰티' | '주얼리'
+  readonly category: string
   readonly brand: string
   readonly name: string
   readonly originalPrice: string
   readonly discountRate: string
   readonly salePrice: string
   readonly image: string
+  readonly detailUrl?: string
   readonly campaignIds: readonly string[]
 }
 
@@ -22,6 +24,12 @@ export type ShopCampaign = {
   readonly id: string
   readonly name: string
   readonly productIds: readonly string[]
+  readonly description?: string
+  readonly startDate?: string
+  readonly endDate?: string
+  readonly thumbnailUrl?: string
+  readonly status?: 'ACTIVE' | 'SCHEDULED' | 'ENDED'
+  readonly brands?: readonly string[]
 }
 
 export type ShopGroup = {
@@ -34,6 +42,7 @@ export type ShopGroup = {
 
 export const selectorProfile = {
   name: 'byunjjii',
+  avatarImage: '',
   meSpaceLabel: 'byunjjii의 ME스페이스',
   badgeAlt: '인플루언서 뱃지',
   badgeImage: 'https://image.thehyundai.com/images/badge/badge_manager_large.png?SF=webp&AO=1',
@@ -170,6 +179,11 @@ export const shopCampaigns = [
   {
     id: 'season-pick',
     name: '여름의 결을 고르는 시즌 픽',
+    description: '여름의 결을 고르는 시즌 픽',
+    startDate: '2026-08-01',
+    endDate: '2026-08-31',
+    status: 'ACTIVE',
+    brands: ['TIME'],
     productIds: ['knit-ivory', 'knit-blue', 'knit-midnight', 'cologne-blackberry'],
   },
   {

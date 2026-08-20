@@ -103,7 +103,7 @@ describe('shared panel and campaign fidelity', () => {
   it('uses border-box sizing for responsive panel widths', () => {
     const narrowDesktopStart = compactCss.indexOf('@media (min-width: 1100px) and (max-width: 1151px)')
     const tabletStart = compactCss.indexOf('@media (max-width: 1099px)')
-    const mobileStart = compactCss.indexOf('@media (max-width: 480px)')
+    const mobileStart = compactCss.indexOf('@media (max-width: 480px)', tabletStart)
     const narrowDesktopCss = compactCss.slice(narrowDesktopStart, tabletStart)
     const tabletCss = compactCss.slice(tabletStart, mobileStart)
 
@@ -112,7 +112,8 @@ describe('shared panel and campaign fidelity', () => {
   })
 
   it('removes only the campaign activity-commission claim', () => {
-    window.location.hash = '#/campaigns/detail'
+    localStorage.setItem('selectors-auth', JSON.stringify({ accessToken: 'test.jwt', role: 'USER' }))
+    window.location.hash = '#/campaigns/season-pick'
     render(<App />)
 
     expect(screen.queryByText('활동 수수료')).toBeNull()

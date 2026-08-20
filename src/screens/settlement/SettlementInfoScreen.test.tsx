@@ -59,7 +59,7 @@ describe('SettlementInfoScreen', () => {
     render(<SettlementInfoScreen />)
 
     await waitFor(() => expect(fetchSpy).toHaveBeenCalled())
-    expect(screen.getByRole('link', { name: '뒤로 가기' }).getAttribute('href')).toBe('#/performance')
+    expect(screen.getByRole('link', { name: '뒤로 가기' }).getAttribute('href')).toBe('#/home')
     expect(screen.getAllByRole('radio').map((radio) => radio.parentElement?.textContent)).toEqual([
       '개인',
       '개인사업자',
