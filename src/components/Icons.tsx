@@ -36,6 +36,15 @@ export function ArrowRightIcon(props: IconProps) {
   )
 }
 
+export function CloseIcon(props: IconProps) {
+  return (
+    <SvgIcon {...props}>
+      <path d="M5 5 19 19" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M19 5 5 19" stroke="currentColor" strokeWidth="1.5" />
+    </SvgIcon>
+  )
+}
+
 export function CheckIcon(props: IconProps) {
   return (
     <SvgIcon {...props}>

@@ -299,6 +299,119 @@ describe('apply flow', () => {
     expect((applicationCall?.[1]?.headers as Headers).get('Authorization')).toBe('Bearer demo.jwt')
   })
 
+  it('requires both SNS content consents before enabling submission', () => {
+    authenticate()
+    verifyInstagram()
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse({ data: { id: 1 } }))
+    window.location.hash = '#/apply/form'
+    render(<App />)
+
+    const contentCollectionConsent = screen.getByRole('checkbox', {
+      name: /SNS 콘텐츠 자동 수집 및 활용 동의/,
+    })
+    const copyrightConfirmation = screen.getByRole('checkbox', {
+      name: /게시물 저작권 및 제3자 정보 확인/,
+    })
+    const submit = screen.getByRole('button', { name: '셀렉터스 신청하기' })
+
+    expect(screen.queryByText(/현대백화점이 주기적으로 자동 수집·저장·이용/)).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', {
+      name: 'SNS 콘텐츠 자동 수집 및 활용 동의 내용 보기',
+    }))
+    const collectionDialog = screen.getByRole('dialog', {
+      name: 'SNS 콘텐츠 자동 수집 및 활용 동의',
+    })
+    expect(collectionDialog.classList.contains('consent-detail-modal')).toBe(true)
+    expect(collectionDialog.parentElement?.classList.contains('consent-detail-backdrop')).toBe(true)
+    expect(within(collectionDialog).getByText(/현대백화점이 주기적으로 자동 수집·저장·이용/)).toBeTruthy()
+    const closeButton = within(collectionDialog).getByRole('button', { name: '닫기' })
+    const closeIcon = closeButton.querySelector('svg')
+    expect(closeIcon?.getAttribute('width')).toBe('24')
+    expect(closeIcon?.getAttribute('height')).toBe('24')
+    expect(closeIcon?.querySelector('path')?.getAttribute('stroke-width')).toBe('1.5')
+    fireEvent.click(closeButton)
+
+    fireEvent.click(screen.getByRole('button', {
+      name: '게시물 저작권 및 제3자 정보 확인 내용 보기',
+    }))
+    const copyrightDialog = screen.getByRole('dialog', {
+      name: '게시물 저작권 및 제3자 정보 확인',
+    })
+    expect(within(copyrightDialog).getByText(/제3자의 정보에 대해 필요한 동의를 확보/)).toBeTruthy()
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(screen.queryByRole('dialog')).toBeNull()
+
+    screen.getAllByRole('checkbox').forEach((checkbox) => {
+      if (checkbox !== contentCollectionConsent && checkbox !== copyrightConfirmation) {
+        fireEvent.click(checkbox)
+      }
+    })
+    expect(submit).toHaveProperty('disabled', true)
+
+    fireEvent.click(contentCollectionConsent)
+    expect(submit).toHaveProperty('disabled', true)
+
+    fireEvent.click(copyrightConfirmation)
+    expect(submit).toHaveProperty('disabled', false)
+  })
+
+  it('checks an agreement when its row label is clicked', () => {
+    authenticate()
+    verifyInstagram()
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse({ data: { id: 1 } }))
+    window.location.hash = '#/apply/form'
+    render(<App />)
+
+    const checkbox = screen.getByRole('checkbox', { name: '현대백화점 이용약관 (필수)' }) as HTMLInputElement
+    expect(checkbox.checked).toBe(false)
+
+    fireEvent.click(screen.getByText('현대백화점 이용약관 (필수)'))
+    expect(checkbox.checked).toBe(true)
+  })
+
+  it.each([
+    {
+      buttonName: '현대백화점 이용약관 내용 보기',
+      companyText: /㈜현대백화점.*마케팅 제휴 프로그램/,
+      title: '현대백화점 이용약관',
+    },
+    {
+      buttonName: '한무쇼핑 이용약관 내용 보기',
+      companyText: /한무쇼핑㈜.*마케팅 제휴 프로그램/,
+      title: '한무쇼핑 이용약관',
+    },
+  ])('opens the complete $title document', ({ buttonName, companyText, title }) => {
+    authenticate()
+    verifyInstagram()
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse({ data: { id: 1 } }))
+    window.location.hash = '#/apply/form'
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: buttonName }))
+
+    const dialog = screen.getByRole('dialog', { name: title })
+    expect(within(dialog).getByText('더현대Hi 셀렉터스 프로그램 이용약관')).toBeTruthy()
+    expect(within(dialog).getByText('제1조 (목적)')).toBeTruthy()
+    expect(within(dialog).getByText(companyText)).toBeTruthy()
+    expect(within(dialog).getByText('제23조 (준거법 및 관할법원)')).toBeTruthy()
+  })
+
+  it('opens the Kakao Alimtalk consent details', () => {
+    authenticate()
+    verifyInstagram()
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse({ data: { id: 1 } }))
+    window.location.hash = '#/apply/form'
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: '카카오 알림톡 수신 동의 내용 보기' }))
+
+    const dialog = screen.getByRole('dialog', { name: '카카오 알림톡 수신 동의' })
+    expect(within(dialog).getByText(/신청 접수 및 심사 결과/)).toBeTruthy()
+    expect(within(dialog).getByText(/SMS 또는 LMS/)).toBeTruthy()
+    expect(within(dialog).getByText(/광고성 정보 수신 동의와는 별개/)).toBeTruthy()
+  })
+
   it.each([
     { status: 409, body: { message: 'duplicate' }, message: '이미 해당 기수에 신청하셨습니다.' },
     { status: 400, body: { message: '지원 정보를 확인해 주세요.' }, message: '지원 정보를 확인해 주세요.' },
