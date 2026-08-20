@@ -279,15 +279,34 @@ describe('apply flow', () => {
     expect(verified.verificationToken).toBe('instagram-verification-token')
   })
 
+  it.each([undefined, '   '])('rejects a verified OAuth response with an invalid token (%s)', async (verificationToken) => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({ data: { ...instagramOAuthResult, verificationToken } }),
+    )
+    const { verifyOAuth } = await import('../../oauth')
+
+    await expect(verifyOAuth('instagram', 'abc123', 'state-1')).rejects.toThrow(
+      'OAuth 인증 토큰을 응답에서 찾을 수 없습니다.',
+    )
+  })
+
   it.each([
     {
       provider: 'instagram',
-      oauthResult: { verified: true, accountId: '17841400000000000' },
+      oauthResult: {
+        verified: true,
+        verificationToken: 'instagram-verification-token',
+        accountId: '17841400000000000',
+      },
       message: 'Instagram 사용자명을 인증 결과에서 찾을 수 없습니다.',
     },
     {
       provider: 'youtube',
-      oauthResult: { verified: true, channelTitle: 'creator-channel' },
+      oauthResult: {
+        verified: true,
+        verificationToken: 'youtube-verification-token',
+        channelTitle: 'creator-channel',
+      },
       message: 'YouTube 채널 ID를 인증 결과에서 찾을 수 없습니다.',
     },
   ])('rejects a $provider callback without its canonical identifier', async ({
