@@ -5,6 +5,7 @@ import {
   useEffect,
   useMemo,
   useReducer,
+  useRef,
   useState,
   type ReactNode,
 } from 'react'
@@ -22,9 +23,10 @@ import {
   addProductGroupItems,
   createProductGroup,
   deleteProductGroup,
-  getMyProductGroups,
+  getMyShop,
   getPublicShop,
   updateProductGroup,
+  type MyShopApiResponse,
   type ProductGroupApiResponse,
 } from './productGroupApi'
 import { parsePublicShopHash, readRememberedSelectorsCode, rememberSelectorsCode } from './shopRoute'
@@ -50,6 +52,12 @@ export type GroupInput = {
   productIds: string[]
 }
 
+export type OwnedShopProfileMeta = {
+  readonly generationName: string | null
+  readonly userName: string | null
+  readonly snsId: string | null
+}
+
 export type ShopDemoAction =
   | { type: 'hydrateGroups'; groups: ShopDemoGroup[] }
   | { type: 'hydrateProfile'; profile: SelectorProfile }
@@ -68,6 +76,8 @@ export type ShopDemoContextValue = {
   readonly state: ShopDemoState
   readonly profile: SelectorProfile
   readonly selectorsCode: string | null
+  readonly ownedSelectorsCode: string | null
+  readonly ownedProfileMeta: OwnedShopProfileMeta
   readonly products: readonly ShopProduct[]
   readonly campaigns: readonly ShopCampaign[]
   readonly isCampaignCatalogLoading: boolean
@@ -89,6 +99,11 @@ export type ShopDemoContextValue = {
 
 function deduplicate(productIds: readonly string[]): string[] {
   return [...new Set(productIds)]
+}
+
+function hasSelectorUserSession(): boolean {
+  const session = readAuthSession()
+  return hasValidUserSession(session) && session?.role === 'USER'
 }
 
 export function createInitialShopDemoState(): ShopDemoState {
@@ -235,6 +250,12 @@ export function shopDemoReducer(
 
 const ShopDemoContext = createContext<ShopDemoContextValue | null>(null)
 
+const emptyOwnedProfileMeta: OwnedShopProfileMeta = {
+  generationName: null,
+  userName: null,
+  snsId: null,
+}
+
 export function ShopDemoProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(
     shopDemoReducer,
@@ -247,20 +268,31 @@ export function ShopDemoProvider({ children }: { children: ReactNode }) {
   const [campaignCatalogError, setCampaignCatalogError] = useState<string | null>(null)
   const [isProductGroupLoading, setIsProductGroupLoading] = useState(true)
   const [productGroupError, setProductGroupError] = useState<string | null>(null)
+  const [ownedSelectorsCode, setOwnedSelectorsCode] = useState<string | null>(null)
+  const [ownedProfileMeta, setOwnedProfileMeta] = useState<OwnedShopProfileMeta>(emptyOwnedProfileMeta)
   const [authRevision, setAuthRevision] = useState(0)
+  const shopDataRequestRef = useRef(0)
+  const ownedIdentityRequestRef = useRef(0)
   const [shopHash, setShopHash] = useState(window.location.hash)
   const publicShopLocation = parsePublicShopHash(shopHash)
   const publicSelectorsCode = publicShopLocation?.selectorsCode ?? null
   const isManagementShopRoute = /^#\/shop\/(?:groups|profile)(?:\/|$)/.test(shopHash)
+  const isCampaignRoute = /^#\/campaigns(?:\/|$)/.test(shopHash)
+  const isHomeRoute = shopHash === '#/home'
+  const needsOwnedGroups = isHomeRoute || isManagementShopRoute || isCampaignRoute
   const shopRequestKey = publicSelectorsCode
     ? `public:${publicSelectorsCode}`
-    : isManagementShopRoute ? 'management' : 'none'
+    : needsOwnedGroups ? 'owned' : 'none'
   const [selectorsCode, setSelectorsCode] = useState<string | null>(
-    publicShopLocation?.selectorsCode ?? readRememberedSelectorsCode(),
+    publicShopLocation?.selectorsCode ?? null,
   )
 
   useEffect(() => {
-    const refreshAuth = () => setAuthRevision((current) => current + 1)
+    const refreshAuth = () => {
+      setOwnedSelectorsCode(null)
+      setOwnedProfileMeta(emptyOwnedProfileMeta)
+      setAuthRevision((current) => current + 1)
+    }
     window.addEventListener('auth:changed', refreshAuth)
     window.addEventListener('storage', refreshAuth)
     return () => {
@@ -321,20 +353,51 @@ export function ShopDemoProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false
-    if (!publicSelectorsCode && !isManagementShopRoute) {
+    const requestId = ++shopDataRequestRef.current
+    const isCurrentRequest = () => !cancelled && shopDataRequestRef.current === requestId
+
+    if (!publicSelectorsCode && !needsOwnedGroups) {
       setIsProductGroupLoading(false)
-      return
+      return () => { cancelled = true }
     }
 
     setIsProductGroupLoading(true)
     setProductGroupError(null)
     dispatch({ type: 'hydrateGroups', groups: [] })
-    if (publicSelectorsCode) {
+    const isOwnedRequest = !publicSelectorsCode && hasSelectorUserSession()
+    const isSelectorSession = hasSelectorUserSession()
+    if (isOwnedRequest) {
+      setOwnedSelectorsCode(null)
+      setOwnedProfileMeta(emptyOwnedProfileMeta)
+    }
+    if (publicSelectorsCode || needsOwnedGroups) {
+      if (!publicSelectorsCode) setSelectorsCode(null)
       dispatch({ type: 'hydrateProfile', profile: { ...selectorProfile, name: '', avatarImage: '', meSpaceLabel: '' } })
     }
 
-    const loadPublicGroups = (code: string) => getPublicShop(code).then((shop) => {
-      rememberSelectorsCode(shop.selectorsCode)
+    const request = publicSelectorsCode
+      ? getPublicShop(publicSelectorsCode)
+      : isOwnedRequest
+        ? getMyShop()
+        : isManagementShopRoute
+          ? getPublicShop(readRememberedSelectorsCode())
+          : Promise.reject(new Error('상품 그룹에 담으려면 로그인이 필요합니다.'))
+
+    request.then((shop) => {
+      if (!isCurrentRequest()) return
+
+      if (isOwnedRequest) {
+        const ownedShop = shop as MyShopApiResponse
+        setOwnedSelectorsCode(shop.selectorsCode)
+        setOwnedProfileMeta({
+          generationName: ownedShop.generationName,
+          userName: ownedShop.userName,
+          snsId: ownedShop.snsId,
+        })
+        rememberSelectorsCode(shop.selectorsCode)
+      } else if (!isSelectorSession) {
+        rememberSelectorsCode(shop.selectorsCode)
+      }
       setSelectorsCode(shop.selectorsCode)
       dispatch({
         type: 'hydrateProfile',
@@ -345,31 +408,61 @@ export function ShopDemoProvider({ children }: { children: ReactNode }) {
           meSpaceLabel: `${shop.nickname}의 ME스페이스`,
         },
       })
-      return shop.groups
-    })
 
-    const request = publicSelectorsCode
-      ? loadPublicGroups(publicSelectorsCode)
-      : hasValidUserSession(readAuthSession())
-        ? getMyProductGroups()
-        : loadPublicGroups(readRememberedSelectorsCode())
-
-    request.then((groups) => {
-      if (cancelled) return
+      const groups = shop.groups
       mergeProducts(groups.flatMap((group) => group.products.map((product) => mapApiProduct(product, String(group.campaignId)))))
       dispatch({ type: 'hydrateGroups', groups: groups.map(mapApiGroup) })
       setProductGroupError(null)
     }).catch((error) => {
-      if (!cancelled) setProductGroupError(error instanceof Error ? error.message : '상품 그룹을 불러오지 못했습니다.')
+      if (isCurrentRequest()) setProductGroupError(error instanceof Error ? error.message : '상품 그룹을 불러오지 못했습니다.')
     }).finally(() => {
-      if (!cancelled) setIsProductGroupLoading(false)
+      if (isCurrentRequest()) setIsProductGroupLoading(false)
     })
 
     return () => { cancelled = true }
-  }, [authRevision, isManagementShopRoute, mapApiGroup, mapApiProduct, mergeProducts, publicSelectorsCode, shopRequestKey])
+  }, [authRevision, isManagementShopRoute, mapApiGroup, mapApiProduct, mergeProducts, needsOwnedGroups, publicSelectorsCode, shopRequestKey])
 
   useEffect(() => {
     let cancelled = false
+    const requestId = ++ownedIdentityRequestRef.current
+    const isCurrentRequest = () => !cancelled && ownedIdentityRequestRef.current === requestId
+
+    const hasUserSession = hasSelectorUserSession()
+    if (!publicSelectorsCode || !hasUserSession) {
+      if (!hasUserSession) {
+        setOwnedSelectorsCode(null)
+        setOwnedProfileMeta(emptyOwnedProfileMeta)
+      }
+      return () => { cancelled = true }
+    }
+
+    setOwnedSelectorsCode(null)
+    setOwnedProfileMeta(emptyOwnedProfileMeta)
+    getMyShop()
+      .then((shop) => {
+        if (!isCurrentRequest()) return
+        setOwnedSelectorsCode(shop.selectorsCode)
+        setOwnedProfileMeta({
+          generationName: shop.generationName,
+          userName: shop.userName,
+          snsId: shop.snsId,
+        })
+        rememberSelectorsCode(shop.selectorsCode)
+      })
+      .catch(() => {
+        if (!isCurrentRequest()) return
+        setOwnedSelectorsCode(null)
+        setOwnedProfileMeta(emptyOwnedProfileMeta)
+      })
+
+    return () => { cancelled = true }
+  }, [authRevision, publicSelectorsCode])
+
+  useEffect(() => {
+    let cancelled = false
+    setIsCampaignCatalogLoading(true)
+    setCampaignCatalogError(null)
+    setCampaigns([])
 
     getCampaigns()
       .then(async (summaries) => {
@@ -431,7 +524,7 @@ export function ShopDemoProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true
     }
-  }, [mergeProducts])
+  }, [authRevision, mergeProducts])
 
   const getGroup = useCallback(
     (groupId: string) => state.groups.find(({ id }) => id === groupId),
@@ -445,32 +538,32 @@ export function ShopDemoProvider({ children }: { children: ReactNode }) {
   }, [products])
   const renameGroup = useCallback(async (groupId: string, name: string) => {
     const group = state.groups.find(({ id }) => id === groupId)
-    if (!hasValidUserSession(readAuthSession())) throw new Error('상품 그룹 관리는 로그인이 필요합니다.')
+    if (!hasSelectorUserSession()) throw new Error('상품 그룹 관리는 셀렉터스 로그인이 필요합니다.')
     if (!group?.campaignId) throw new Error('상품 그룹의 캠페인 정보를 찾을 수 없습니다.')
     applyApiGroup(await updateProductGroup(groupId, {
       campaignId: Number(group.campaignId), title: name, productIds: group.productIds.map(Number),
     }))
   }, [applyApiGroup, state.groups])
   const updateGroupProducts = useCallback(async (groupId: string, input: GroupInput) => {
-    if (!hasValidUserSession(readAuthSession())) throw new Error('상품 그룹 관리는 로그인이 필요합니다.')
+    if (!hasSelectorUserSession()) throw new Error('상품 그룹 관리는 셀렉터스 로그인이 필요합니다.')
     if (!input.campaignId) throw new Error('캠페인을 선택해 주세요.')
     applyApiGroup(await updateProductGroup(groupId, {
       campaignId: Number(input.campaignId), title: input.name, productIds: input.productIds.map(Number),
     }))
   }, [applyApiGroup])
   const createGroup = useCallback(async (input: GroupInput) => {
-    if (!hasValidUserSession(readAuthSession())) throw new Error('상품 그룹 관리는 로그인이 필요합니다.')
+    if (!hasSelectorUserSession()) throw new Error('상품 그룹 관리는 셀렉터스 로그인이 필요합니다.')
     if (!input.campaignId) throw new Error('캠페인을 선택해 주세요.')
     applyApiGroup(await createProductGroup({
       campaignId: Number(input.campaignId), title: input.name, productIds: input.productIds.map(Number),
     }))
   }, [applyApiGroup])
   const addProductsToGroup = useCallback(async (groupId: string, productIds: string[]) => {
-    if (!hasValidUserSession(readAuthSession())) throw new Error('상품 그룹 관리는 로그인이 필요합니다.')
+    if (!hasSelectorUserSession()) throw new Error('상품 그룹 관리는 셀렉터스 로그인이 필요합니다.')
     applyApiGroup(await addProductGroupItems(groupId, productIds.map(Number)))
   }, [applyApiGroup])
   const deleteGroup = useCallback(async (groupId: string) => {
-    if (!hasValidUserSession(readAuthSession())) throw new Error('상품 그룹 관리는 로그인이 필요합니다.')
+    if (!hasSelectorUserSession()) throw new Error('상품 그룹 관리는 셀렉터스 로그인이 필요합니다.')
     await deleteProductGroup(groupId)
     dispatch({ type: 'deleteGroup', groupId })
   }, [])
@@ -491,6 +584,8 @@ export function ShopDemoProvider({ children }: { children: ReactNode }) {
     state,
     profile: state.profile,
     selectorsCode,
+    ownedSelectorsCode,
+    ownedProfileMeta,
     products,
     campaigns,
     isCampaignCatalogLoading,
@@ -511,6 +606,8 @@ export function ShopDemoProvider({ children }: { children: ReactNode }) {
   }), [
     state,
     selectorsCode,
+    ownedSelectorsCode,
+    ownedProfileMeta,
     getGroup,
     getProducts,
     renameGroup,

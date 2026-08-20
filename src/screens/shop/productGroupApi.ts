@@ -24,6 +24,12 @@ export type PublicShopApiResponse = {
   groups: ProductGroupApiResponse[]
 }
 
+export type MyShopApiResponse = PublicShopApiResponse & {
+  generationName: string | null
+  userName: string | null
+  snsId: string | null
+}
+
 function unwrap<T>(payload: unknown): T {
   if (payload && typeof payload === 'object' && 'data' in payload) {
     return (payload as { data: T }).data
@@ -45,6 +51,10 @@ const jsonHeaders = { 'Content-Type': 'application/json' }
 
 export function getMyProductGroups() {
   return request<ProductGroupApiResponse[]>('/api/product-groups/me')
+}
+
+export function getMyShop() {
+  return request<MyShopApiResponse>('/api/product-groups/me/shop')
 }
 
 export function getPublicProductGroups(selectorsCode: string) {
