@@ -121,7 +121,7 @@ describe('owner selectors shop group', () => {
     expect(items.map((item) => item.textContent)).toEqual([
       '그룹 공유',
       '그룹명 수정',
-      '항목 변경',
+      '상품 추가·편집',
       '그룹 삭제',
     ])
     expect(document.activeElement).toBe(items[0])
@@ -137,7 +137,7 @@ describe('owner selectors shop group', () => {
     fireEvent.keyDown(items[3], { key: 'Home' })
     expect(document.activeElement).toBe(items[0])
 
-    const editItem = within(menu).getByRole('menuitem', { name: '항목 변경' })
+    const editItem = within(menu).getByRole('menuitem', { name: '상품 추가·편집' })
     expect(editItem.tagName).toBe('A')
     expect(editItem.getAttribute('href')).toBe('#/shop/groups/1/edit')
 
@@ -162,7 +162,7 @@ describe('owner selectors shop group', () => {
     expect(within(group).getByText('여름의 결을 고르는 시즌 픽')).toBeTruthy()
 
     fireEvent.click(screen.getByRole('button', { name: '옵션 열기' }))
-    const editLink = screen.getByRole('menuitem', { name: '항목 변경' })
+    const editLink = screen.getByRole('menuitem', { name: '상품 추가·편집' })
     expect(editLink.getAttribute('href')).toBe(
       '#/shop/groups/2/edit',
     )
@@ -203,7 +203,7 @@ describe('owner selectors shop group', () => {
     render(<App />)
 
     fireEvent.click(screen.getByRole('button', { name: '옵션 열기' }))
-    const editItem = screen.getByRole('menuitem', { name: '항목 변경' }) as HTMLAnchorElement
+    const editItem = screen.getByRole('menuitem', { name: '상품 추가·편집' }) as HTMLAnchorElement
     const clickSpy = vi.spyOn(editItem, 'click')
     editItem.focus()
 

@@ -1,10 +1,10 @@
 import { useRef, useState } from 'react'
 
+import { hasValidUserSession, readAuthSession } from '../../auth'
 import { ArrowRightIcon } from '../../components/Icons'
 import ScreenHeader from '../../components/ScreenHeader'
 import CampaignQuickAddSheet from '../shop/CampaignQuickAddSheet'
 import { useShopDemo } from '../shop/ShopDemoContext'
-import { shopProducts } from '../shop/shopData'
 import ShopStatus from '../shop/ShopStatus'
 
 const statusLabels = {
@@ -22,8 +22,32 @@ function getCampaignId() {
   return decodeURIComponent(window.location.hash.match(/^#\/campaigns\/([^/]+)$/)?.[1] ?? '')
 }
 
+function CampaignLoginRequired({ backHref, redirect }: { backHref: string; redirect: string }) {
+  return (
+    <>
+      <ScreenHeader backHref={backHref} title="캠페인" />
+      <div className="screen-scroll campaigns-screen">
+        <p className="campaign-feedback">캠페인은 셀렉터스 로그인 후 확인할 수 있습니다.</p>
+        <a
+          className="primary-action"
+          href="#/login"
+          onClick={() => sessionStorage.setItem('postLoginRedirect', redirect)}
+        >
+          로그인하기
+        </a>
+      </div>
+    </>
+  )
+}
+
 export function CampaignListScreen() {
   const shop = useShopDemo()
+  const session = readAuthSession()
+  const canViewCampaigns = hasValidUserSession(session) && session?.role === 'USER'
+
+  if (!canViewCampaigns) {
+    return <CampaignLoginRequired backHref="#/home" redirect="#/campaigns" />
+  }
 
   return (
     <>
@@ -34,11 +58,11 @@ export function CampaignListScreen() {
           <p>브랜드와 상품을 살펴보고 나만의 셀렉션을 만들어 보세요.</p>
         </div>
         {shop.isCampaignCatalogLoading ? <p className="campaign-feedback">캠페인을 불러오는 중입니다.</p> : null}
-        {shop.campaignCatalogError ? <p className="campaign-feedback campaign-feedback-error">{shop.campaignCatalogError} 데모 캠페인을 표시합니다.</p> : null}
+        {shop.campaignCatalogError ? <p className="campaign-feedback campaign-feedback-error">{shop.campaignCatalogError}</p> : null}
         <div className="campaign-list">
           {shop.campaigns.map((campaign, index) => (
             <a className="campaign-card" href={`#/campaigns/${campaign.id}`} key={campaign.id}>
-              <img alt="" src={campaign.thumbnailUrl || shopProducts[index % shopProducts.length]?.image} />
+              {campaign.thumbnailUrl ? <img alt="" src={campaign.thumbnailUrl} /> : null}
               <div className="campaign-card-body">
                 <div className="campaign-card-topline">
                   <span className={`status-badge status-${index}`}>{campaign.status ? statusLabels[campaign.status] : '진행 중'}</span>
@@ -58,11 +82,17 @@ export function CampaignListScreen() {
 
 export function CampaignDetailScreen() {
   const shop = useShopDemo()
+  const session = readAuthSession()
+  const canManageProductGroups = hasValidUserSession(session) && session?.role === 'USER'
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false)
   const quickAddTriggerRef = useRef<HTMLButtonElement>(null)
   const campaignId = getCampaignId()
   const campaign = shop.campaigns.find(({ id }) => id === campaignId)
   const products = shop.getProducts(campaign?.productIds ?? [])
+
+  if (!canManageProductGroups) {
+    return <CampaignLoginRequired backHref="#/campaigns" redirect={window.location.hash} />
+  }
 
   if (!campaign && !shop.isCampaignCatalogLoading) {
     return (
@@ -80,7 +110,7 @@ export function CampaignDetailScreen() {
         {campaign ? (
           <>
             <section className="campaign-hero-card">
-              <img alt="" src={campaign.thumbnailUrl || products[0]?.image || shopProducts[0].image} />
+              {campaign.thumbnailUrl || products[0]?.image ? <img alt="" src={campaign.thumbnailUrl || products[0]?.image} /> : null}
               <div className="campaign-hero-overlay">
                 <span>HI SELECTORS CAMPAIGN</span>
                 <h2>{campaign.name}</h2>
@@ -97,9 +127,16 @@ export function CampaignDetailScreen() {
               ) : null}
             </section>
 
-            <button className="campaign-quick-add-trigger" onClick={() => setIsQuickAddOpen(true)} ref={quickAddTriggerRef} type="button">
-              상품 그룹에 담기
+            <button
+              className="campaign-quick-add-trigger"
+              disabled={shop.isProductGroupLoading || Boolean(shop.productGroupError) || products.length === 0}
+              onClick={() => setIsQuickAddOpen(true)}
+              ref={quickAddTriggerRef}
+              type="button"
+            >
+              {shop.isProductGroupLoading ? '상품 그룹 불러오는 중' : '상품 그룹에 담기'}
             </button>
+            {shop.productGroupError ? <p className="campaign-feedback campaign-feedback-error">{shop.productGroupError}</p> : null}
 
             <section className="campaign-product-section">
               <div className="section-heading-row compact-heading"><h2>캠페인 상품</h2><span>{products.length}개 상품</span></div>
@@ -120,11 +157,10 @@ export function CampaignDetailScreen() {
         <CampaignQuickAddSheet
           groups={shop.state.groups.filter((group) => group.campaignId === campaign.id)}
           invokerRef={quickAddTriggerRef}
-          onAddToGroup={(groupId, productIds) => {
-            void shop.addProductsToGroup(groupId, productIds).then(() => {
-              shop.setStatus('상품을 그룹에 담았어요.')
-              setIsQuickAddOpen(false)
-            }).catch((error) => shop.setStatus(error instanceof Error ? error.message : '상품을 추가하지 못했습니다.'))
+          onAddToGroup={async (groupId, productIds) => {
+            await shop.addProductsToGroup(groupId, productIds)
+            shop.setStatus('상품을 그룹에 담았어요.')
+            setIsQuickAddOpen(false)
           }}
           onClose={() => setIsQuickAddOpen(false)}
           onCreateGroup={(productIds) => {

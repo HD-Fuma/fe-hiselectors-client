@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 import BottomActionBar from '../../components/BottomActionBar'
 import ScreenHeader from '../../components/ScreenHeader'
@@ -6,6 +6,8 @@ import GroupProductPicker from './GroupProductPicker'
 import { useShopDemo, type ShopDemoGroup } from './ShopDemoContext'
 import { buildPublicShopHash } from './shopRoute'
 import ShopStatus from './ShopStatus'
+
+const maxGroupProductCount = 100
 
 export type GroupEditorMode =
   | { kind: 'create'; backHref: '#/shop/groups'; initialCampaignId: null }
@@ -72,11 +74,6 @@ function GroupEditorForm({
   mode: GroupEditorMode
 }) {
   const shop = useShopDemo()
-  const { clearQuickAddDraft } = shop
-  const modeKind = mode.kind
-  const campaignCreateId = mode.kind === 'campaign-create'
-    ? mode.initialCampaignId
-    : ''
   const [quickAddDraft] = useState(() => {
     const draft = shop.state.quickAddDraft
 
@@ -107,36 +104,47 @@ function GroupEditorForm({
         : [],
   )
   const [touched, setTouched] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
   const editorTitle = mode.kind === 'edit' ? '상품 그룹 편집' : '상품 그룹 만들기'
   const groupId = mode.kind === 'edit' ? mode.groupId : ''
   const initialCampaign = mode.kind === 'campaign-create' ? mode.initialCampaignId : ''
-  const campaignOptions = group?.campaignId
-    && !shop.campaigns.some(({ id }) => id === group.campaignId)
-    ? [{ id: group.campaignId, name: `캠페인 #${group.campaignId}` }, ...shop.campaigns]
+  const selectedCampaignId = group?.campaignId || initialCampaign
+  const campaignOptions = selectedCampaignId
+    && !shop.campaigns.some(({ id }) => id === selectedCampaignId)
+    ? [{ id: selectedCampaignId, name: `캠페인 #${selectedCampaignId}` }, ...shop.campaigns]
     : shop.campaigns
   const visibleProducts = campaignId
     ? shop.products.filter((product) => product.campaignIds.includes(campaignId))
     : []
+  const visibleProductIds = new Set(visibleProducts.map(({ id }) => id))
+  const selectedProductCountIsValid = selectedProductIds.length > 0
+    && selectedProductIds.length <= maxGroupProductCount
+  const selectedProductsBelongToCampaign = selectedProductIds.every((productId) => visibleProductIds.has(productId))
+  const isCampaignCatalogReady = !shop.isCampaignCatalogLoading && !shop.campaignCatalogError
+  const isCampaignLocked = mode.kind !== 'create'
   const trimmedName = name.trim()
-  const canSave = trimmedName.length >= 1
+  const canSave = !isSaving
+    && isCampaignCatalogReady
+    && trimmedName.length >= 1
     && trimmedName.length <= 30
     && Boolean(campaignId)
-    && selectedProductIds.length >= 1
+    && selectedProductCountIsValid
+    && selectedProductsBelongToCampaign
   const nameError = touched && (trimmedName.length < 1 || trimmedName.length > 30)
     ? '상품 그룹 이름을 입력해 주세요.'
     : null
-  const productError = touched && !nameError && selectedProductIds.length === 0
-    ? '상품을 1개 이상 선택해 주세요.'
+  const productError = touched && !nameError
+    ? selectedProductIds.length === 0
+      ? '상품을 1개 이상 선택해 주세요.'
+      : selectedProductIds.length > maxGroupProductCount
+        ? `상품은 최대 ${maxGroupProductCount}개까지 선택할 수 있어요.`
+        : !selectedProductsBelongToCampaign
+          ? '선택한 캠페인에 포함된 상품만 저장할 수 있어요.'
+          : null
     : null
   const campaignError = touched && !nameError && !campaignId
     ? '캠페인을 선택해 주세요.'
     : null
-
-  useEffect(() => {
-    if (modeKind === 'campaign-create') {
-      clearQuickAddDraft()
-    }
-  }, [campaignCreateId, clearQuickAddDraft, modeKind])
 
   const handleSave = async () => {
     if (!canSave) {
@@ -149,6 +157,7 @@ function GroupEditorForm({
       productIds: selectedProductIds,
     }
 
+    setIsSaving(true)
     try {
       if (mode.kind === 'edit') {
         await shop.updateGroupProducts(mode.groupId, input)
@@ -161,9 +170,13 @@ function GroupEditorForm({
       await shop.createGroup(input)
       shop.setStatus('상품 그룹을 만들었어요.')
       shop.clearQuickAddDraft()
-      window.location.hash = shop.selectorsCode ? buildPublicShopHash(shop.selectorsCode) : '#/shop/groups'
+      window.location.hash = mode.kind === 'campaign-create'
+        ? mode.backHref
+        : shop.selectorsCode ? buildPublicShopHash(shop.selectorsCode) : '#/shop/groups'
     } catch (error) {
       shop.setStatus(error instanceof Error ? error.message : '상품 그룹을 저장하지 못했습니다.')
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -206,6 +219,7 @@ function GroupEditorForm({
           <select
             id="campaign-filter"
             aria-invalid={campaignError ? true : undefined}
+            disabled={isSaving || isCampaignLocked}
             onChange={(event) => {
               setCampaignId(event.target.value)
               setSelectedProductIds([])
@@ -218,10 +232,19 @@ function GroupEditorForm({
               <option key={campaign.id} value={campaign.id}>{campaign.name}</option>
             ))}
           </select>
+          {isCampaignLocked ? (
+            <p className="editor-helper">상품 그룹에는 하나의 캠페인 상품만 담을 수 있어 캠페인을 변경할 수 없어요.</p>
+          ) : null}
           {campaignError ? <p className="editor-alert" role="alert">{campaignError}</p> : null}
         </section>
 
         <GroupProductPicker
+          disabled={isSaving}
+          error={shop.campaignCatalogError}
+          hasCampaign={Boolean(campaignId)}
+          isEditing={mode.kind === 'edit'}
+          isLoading={shop.isCampaignCatalogLoading}
+          maxSelectedProducts={maxGroupProductCount}
           onSelectedProductIdsChange={(productIds) => {
             setSelectedProductIds(productIds)
             setTouched(true)
@@ -234,7 +257,7 @@ function GroupEditorForm({
       </div>
       <BottomActionBar
         disabled={!canSave}
-        label="상품 그룹 저장하기"
+        label={isSaving ? '저장 중' : '상품 그룹 저장하기'}
         onClick={() => void handleSave()}
       />
     </div>

@@ -38,6 +38,9 @@ function unwrap<T>(payload: unknown): T {
 async function request<T>(path: string): Promise<T> {
   const response = await authFetch(`${API_BASE_URL}${path}`)
   if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new Error('캠페인을 확인하려면 로그인이 필요합니다.')
+    }
     throw new Error('캠페인 정보를 불러오지 못했습니다.')
   }
   return unwrap<T>(await response.json())
