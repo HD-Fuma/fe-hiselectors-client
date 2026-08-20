@@ -1,6 +1,7 @@
 import { useId, useRef, useState, type RefObject } from 'react'
 
 import useModalFocus from './useModalFocus'
+import { copyText } from './copyText'
 
 type ShareShopSheetProps = {
   title: string
@@ -40,7 +41,9 @@ export default function ShareShopSheet({
         <input id={urlId} readOnly type="text" value={url} />
         <button
           className="share-shop-copy"
-          onClick={() => setCopyStatus('링크를 복사했어요.')}
+          onClick={() => {
+            void copyText(url).then(() => setCopyStatus('링크를 복사했어요.'))
+          }}
           type="button"
         >
           링크 복사

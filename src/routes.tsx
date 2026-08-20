@@ -3,6 +3,7 @@ import type { ComponentType } from 'react'
 import { ApplyFormScreen, ApplyIntroScreen, ApplyStatusScreen } from './screens/apply/ApplyScreens'
 import { CampaignDetailScreen, CampaignListScreen } from './screens/campaigns/CampaignScreens'
 import LoginScreen from './screens/login/LoginScreen'
+import HomeScreen from './screens/home/HomeScreen'
 import { PerformanceSummaryScreen, ProductPerformanceScreen } from './screens/performance/PerformanceScreens'
 import SettlementEntryScreen from './screens/settlement/SettlementEntryScreen'
 import SettlementInfoScreen from './screens/settlement/SettlementInfoScreen'
@@ -14,6 +15,7 @@ import {
 } from './screens/shop/GroupEditorScreen'
 import OwnerShopGroupScreen from './screens/shop/OwnerShopGroupScreen'
 import PublicShopScreen from './screens/shop/PublicShopScreen'
+import ProfileEditScreen from './screens/shop/ProfileEditScreen'
 import ShopGroupsScreen from './screens/shop/ShopGroupsScreen'
 
 export type HashPath = `#/${string}`
@@ -27,6 +29,7 @@ type RouteDefinition = {
 
 export const routes = [
   { id: 'login', path: '#/login', title: '로그인', Screen: LoginScreen },
+  { id: 'home', path: '#/home', title: '셀렉터스', Screen: HomeScreen },
   { id: 'apply-intro', path: '#/apply', title: '셀렉터스 신청하기', Screen: ApplyIntroScreen },
   { id: 'apply-form', path: '#/apply/form', title: '셀렉터스 신청하기', Screen: ApplyFormScreen },
   { id: 'apply-status', path: '#/apply/status', title: '신청 완료', Screen: ApplyStatusScreen },
@@ -57,8 +60,14 @@ export const routes = [
   {
     id: 'shop-groups',
     path: '#/shop/groups',
-    title: '상품 그룹',
+    title: '셀렉터스 샵 관리하기',
     Screen: ShopGroupsScreen,
+  },
+  {
+    id: 'shop-profile-edit',
+    path: '#/shop/profile/edit',
+    title: '프로필 수정',
+    Screen: ProfileEditScreen,
   },
   {
     id: 'group-create',

@@ -26,6 +26,7 @@ export type QuickAddDraft = {
 }
 
 export type ShopDemoState = {
+  profile: SelectorProfile
   groups: ShopDemoGroup[]
   status: string | null
   quickAddDraft: QuickAddDraft | null
@@ -39,6 +40,7 @@ export type GroupInput = {
 }
 
 export type ShopDemoAction =
+  | { type: 'updateProfile'; name: string; avatarImage: string }
   | { type: 'renameGroup'; groupId: string; name: string }
   | { type: 'updateGroupProducts'; groupId: string; input: GroupInput }
   | { type: 'createGroup'; input: GroupInput }
@@ -63,6 +65,7 @@ export type ShopDemoContextValue = {
   readonly setQuickAddDraft: (draft: QuickAddDraft) => void
   readonly clearQuickAddDraft: () => void
   readonly setStatus: (status: string | null) => void
+  readonly updateProfile: (name: string, avatarImage: string) => void
 }
 
 function deduplicate(productIds: readonly string[]): string[] {
@@ -71,6 +74,7 @@ function deduplicate(productIds: readonly string[]): string[] {
 
 export function createInitialShopDemoState(): ShopDemoState {
   return {
+    profile: { ...selectorProfile },
     groups: initialShopGroups.map((group) => ({
       ...group,
       productIds: [...group.productIds],
@@ -86,6 +90,17 @@ export function shopDemoReducer(
   action: ShopDemoAction,
 ): ShopDemoState {
   switch (action.type) {
+    case 'updateProfile':
+      return {
+        ...state,
+        profile: {
+          ...state.profile,
+          name: action.name.trim(),
+          avatarImage: action.avatarImage,
+          meSpaceLabel: `${action.name.trim()}의 ME스페이스`,
+        },
+      }
+
     case 'renameGroup': {
       if (!state.groups.some(({ id }) => id === action.groupId)) {
         return state
@@ -231,10 +246,13 @@ export function ShopDemoProvider({ children }: { children: ReactNode }) {
   const setStatus = useCallback((status: string | null) => {
     dispatch({ type: 'setStatus', status })
   }, [])
+  const updateProfile = useCallback((name: string, avatarImage: string) => {
+    dispatch({ type: 'updateProfile', name, avatarImage })
+  }, [])
 
   const value = useMemo<ShopDemoContextValue>(() => ({
     state,
-    profile: selectorProfile,
+    profile: state.profile,
     products: selectorProducts,
     campaigns: shopCampaigns,
     getGroup,
@@ -247,6 +265,7 @@ export function ShopDemoProvider({ children }: { children: ReactNode }) {
     setQuickAddDraft,
     clearQuickAddDraft,
     setStatus,
+    updateProfile,
   }), [
     state,
     getGroup,
@@ -259,6 +278,7 @@ export function ShopDemoProvider({ children }: { children: ReactNode }) {
     setQuickAddDraft,
     clearQuickAddDraft,
     setStatus,
+    updateProfile,
   ])
 
   return (

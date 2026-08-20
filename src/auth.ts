@@ -85,7 +85,7 @@ export function isLocalApplyTestMode(): boolean {
 }
 
 export function redirectToMainScreen() {
-  window.location.hash = '#/campaigns'
+  window.location.hash = '#/home'
 }
 
 export function redirectToLoginScreen() {

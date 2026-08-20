@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import ScreenHeader from '../../components/ScreenHeader'
-import MainNavigation from '../../components/layout/MainNavigation'
 import {
   getSettlementErrorMessage,
   getSettlementEstimate,
@@ -154,9 +153,9 @@ export default function SettlementScreen() {
     <>
       <ScreenHeader
         action={<a className="panel-text-action" href="#/settlement/info">정보 수정</a>}
+        backHref="#/home"
         title="정산 내역"
       />
-      <MainNavigation current="settlement" />
       <div className="screen-scroll settlement-screen">
         <section aria-busy={isSummaryLoading} className="settlement-summary">
           {isSummaryLoading ? <p className="settlement-feedback">정산 정보를 불러오는 중입니다.</p> : null}

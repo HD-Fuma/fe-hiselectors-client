@@ -91,16 +91,20 @@ function GroupEditorForm({
   const initialCampaign = mode.kind === 'campaign-create' ? mode.initialCampaignId : ''
   const visibleProducts = campaignId
     ? shop.products.filter((product) => product.campaignIds.includes(campaignId))
-    : shop.products
+    : []
   const trimmedName = name.trim()
   const canSave = trimmedName.length >= 1
     && trimmedName.length <= 30
+    && Boolean(campaignId)
     && selectedProductIds.length >= 1
   const nameError = touched && (trimmedName.length < 1 || trimmedName.length > 30)
     ? '상품 그룹 이름을 입력해 주세요.'
     : null
   const productError = touched && !nameError && selectedProductIds.length === 0
     ? '상품을 1개 이상 선택해 주세요.'
+    : null
+  const campaignError = touched && !nameError && !campaignId
+    ? '캠페인을 선택해 주세요.'
     : null
 
   useEffect(() => {
@@ -172,14 +176,20 @@ function GroupEditorForm({
           <label className="field-label" htmlFor="campaign-filter">캠페인 선택</label>
           <select
             id="campaign-filter"
-            onChange={(event) => setCampaignId(event.target.value)}
+            aria-invalid={campaignError ? true : undefined}
+            onChange={(event) => {
+              setCampaignId(event.target.value)
+              setSelectedProductIds([])
+              setTouched(true)
+            }}
             value={campaignId}
           >
-            <option value="">전체 캠페인</option>
+            <option value="">캠페인을 선택해 주세요</option>
             {shop.campaigns.map((campaign) => (
               <option key={campaign.id} value={campaign.id}>{campaign.name}</option>
             ))}
           </select>
+          {campaignError ? <p className="editor-alert" role="alert">{campaignError}</p> : null}
         </section>
 
         <GroupProductPicker
