@@ -169,8 +169,8 @@ describe('shared panel and campaign fidelity', () => {
         })),
     ))
     render(<App />)
-    const settlementSummary = (await screen.findByText('2026년 8월 예상 정산 금액')).closest('.settlement-summary') as HTMLElement
-    expect(within(settlementSummary).getByText('2026년 8월 예상 정산 금액')).toBeTruthy()
+    const settlementSummary = (await screen.findByText('2026년 8월 활동 예상 수수료')).closest('.settlement-summary') as HTMLElement
+    expect(within(settlementSummary).getByText('2026년 8월 활동 예상 수수료')).toBeTruthy()
     expect(within(settlementSummary).getByText('1,284,600')).toBeTruthy()
     expect(within(settlementSummary).getByText('원')).toBeTruthy()
   })

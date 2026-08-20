@@ -1,8 +1,15 @@
-import { useRef, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 
+import { redirectToLoginScreen } from '../../auth'
 import BottomActionBar from '../../components/BottomActionBar'
 import ScreenHeader from '../../components/ScreenHeader'
-
+import {
+  getSettlementAccount,
+  getSettlementErrorMessage,
+  isSettlementAccountNotRegistered,
+  isSettlementUnauthorized,
+  upsertSettlementAccount,
+} from './settlementApi'
 const settlementTypes = [
   { label: '개인', value: 'personal' },
   { label: '개인사업자', value: 'sole-proprietor' },
@@ -13,12 +20,47 @@ type SettlementType = (typeof settlementTypes)[number]['value']
 
 export default function SettlementInfoScreen() {
   const [settlementType, setSettlementType] = useState<SettlementType>('personal')
+  const [bankName, setBankName] = useState('')
+  const [accountNumber, setAccountNumber] = useState('')
+  const [accountHolder, setAccountHolder] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
+  const [loadError, setLoadError] = useState<unknown>(null)
+  const [saveError, setSaveError] = useState<unknown>(null)
   const formRef = useRef<HTMLFormElement>(null)
   const isPersonal = settlementType === 'personal'
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const loadAccount = useCallback(async () => {
+    setLoadError(null)
+    try {
+      const account = await getSettlementAccount()
+      setBankName(account.bankName)
+      setAccountNumber(account.accountNumber)
+      setAccountHolder(account.accountHolder)
+    } catch (error) {
+      if (!isSettlementAccountNotRegistered(error)) {
+        setLoadError(error)
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    void loadAccount()
+  }, [loadAccount])
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    window.location.hash = '#/settlement'
+    if (isSaving) return
+
+    setIsSaving(true)
+    setSaveError(null)
+    try {
+      await upsertSettlementAccount({ bankName, accountNumber, accountHolder })
+      window.location.hash = '#/settlement'
+    } catch (error) {
+      setSaveError(error)
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   return (
@@ -29,6 +71,30 @@ export default function SettlementInfoScreen() {
           <h2>정산 정보를 입력해 주세요</h2>
           <p>정산 유형에 맞는 정보를 정확하게 입력해 주세요.</p>
         </section>
+
+        {loadError ? (
+          <div className="settlement-content-feedback settlement-content-error" role="alert">
+            <p>{getSettlementErrorMessage(loadError)}</p>
+            <button
+              onClick={() => {
+                if (isSettlementUnauthorized(loadError)) {
+                  redirectToLoginScreen()
+                  return
+                }
+                void loadAccount()
+              }}
+              type="button"
+            >
+              {isSettlementUnauthorized(loadError) ? '로그인하기' : '재요청'}
+            </button>
+          </div>
+        ) : null}
+
+        {saveError ? (
+          <div className="settlement-content-feedback settlement-content-error" role="alert">
+            <p>{getSettlementErrorMessage(saveError)}</p>
+          </div>
+        ) : null}
 
         <form
           autoComplete="off"
@@ -59,9 +125,12 @@ export default function SettlementInfoScreen() {
             <input
               autoComplete="off"
               id="settlement-bank"
+              name="bankName"
+              onChange={(event) => setBankName(event.target.value)}
               placeholder="은행명을 입력해 주세요"
               required
               type="text"
+              value={bankName}
             />
           </div>
           <div className="settlement-info-field">
@@ -70,10 +139,13 @@ export default function SettlementInfoScreen() {
               autoComplete="off"
               id="settlement-account"
               inputMode="numeric"
+              name="accountNumber"
+              onChange={(event) => setAccountNumber(event.target.value)}
               pattern="[0-9-]+"
               placeholder="숫자만 입력해 주세요"
               required
               type="text"
+              value={accountNumber}
             />
           </div>
           <div className="settlement-info-field">
@@ -81,9 +153,12 @@ export default function SettlementInfoScreen() {
             <input
               autoComplete="off"
               id="settlement-holder"
+              name="accountHolder"
+              onChange={(event) => setAccountHolder(event.target.value)}
               placeholder="예금주명을 입력해 주세요"
               required
               type="text"
+              value={accountHolder}
             />
           </div>
 
@@ -106,12 +181,13 @@ export default function SettlementInfoScreen() {
           </div>
 
           <p className="settlement-security-note">
-            입력한 정보는 이 데모에서 저장하거나 전송하지 않습니다.
+            입력한 은행명, 계좌번호, 예금주는 정산 지급을 위해 저장됩니다.
           </p>
         </form>
       </div>
       <BottomActionBar
-        label="저장하기"
+        disabled={isSaving}
+        label={isSaving ? '저장 중...' : '저장하기'}
         onClick={() => formRef.current?.requestSubmit()}
       />
     </div>
