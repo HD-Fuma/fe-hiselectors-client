@@ -17,30 +17,36 @@ type ShopViewMode = 'public' | 'owner'
 
 function getInitialViewMode(): ShopViewMode {
   const wantsOwnerView = sessionStorage.getItem(viewModeStorageKey) === 'owner'
-  if (wantsOwnerView && hasValidUserSession(readAuthSession())) return 'owner'
+  const session = readAuthSession()
+  if (wantsOwnerView && hasValidUserSession(session) && session?.role === 'USER') return 'owner'
 
   if (wantsOwnerView) sessionStorage.setItem(viewModeStorageKey, 'public')
   return 'public'
 }
 
 export default function PublicShopScreen() {
-  const { isProductGroupLoading, productGroupError, profile, setStatus, state } = useShopDemo()
+  const { isProductGroupLoading, ownedSelectorsCode, productGroupError, profile, setStatus, state } = useShopDemo()
   const selectorsCode = parsePublicShopHash(window.location.hash)?.selectorsCode ?? ''
   const shareUrl = selectorsCode ? getPublicShopShareUrl(selectorsCode) : ''
   const [visibleGroupCount, setVisibleGroupCount] = useState(initialGroupCount)
   const [shareOpen, setShareOpen] = useState(false)
   const [viewMode, setViewMode] = useState<ShopViewMode>(getInitialViewMode)
   const shareTriggerRef = useRef<HTMLButtonElement>(null)
-  const hasUserSession = hasValidUserSession(readAuthSession())
-  const isOwner = hasUserSession && viewMode === 'owner'
+  const session = readAuthSession()
+  const hasUserSession = hasValidUserSession(session) && session?.role === 'USER'
+  const canUseOwnerView = hasUserSession
+    && Boolean(ownedSelectorsCode)
+    && ownedSelectorsCode === selectorsCode
+  const isOwner = canUseOwnerView && viewMode === 'owner'
 
   useEffect(() => {
-    if (hasUserSession) return
+    if (canUseOwnerView) return
     setViewMode('public')
     sessionStorage.setItem(viewModeStorageKey, 'public')
-  }, [hasUserSession])
+  }, [canUseOwnerView])
 
   const changeViewMode = (mode: ShopViewMode) => {
+    if (mode === 'owner' && !canUseOwnerView) return
     setViewMode(mode)
     sessionStorage.setItem(viewModeStorageKey, mode)
   }
@@ -84,7 +90,7 @@ export default function PublicShopScreen() {
         {isProductGroupLoading ? <p className="shop-group-feedback">셀렉터스샵을 불러오는 중입니다.</p> : null}
         {productGroupError ? <p className="shop-group-feedback shop-group-feedback-error">{productGroupError}</p> : null}
 
-        {hasUserSession ? (
+        {canUseOwnerView ? (
           <div aria-label="셀렉터스샵 보기 모드" className="shop-view-toggle" role="group">
             <button
               aria-pressed={viewMode === 'public'}
@@ -143,7 +149,7 @@ export default function PublicShopScreen() {
         <p className="shop-disclosure">{disclosure}</p>
         {isOwner ? <ShopStatus onClose={() => setStatus(null)} status={state.status} /> : null}
       </div>
-      {shareOpen ? (
+      {isOwner && shareOpen ? (
         <ShareShopSheet
           invokerRef={shareTriggerRef}
           onClose={() => setShareOpen(false)}

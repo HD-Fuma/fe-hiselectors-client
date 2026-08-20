@@ -15,7 +15,7 @@ import { buildPublicShopHash, getPublicProductShareUrl, getPublicShopShareUrl, p
 
 const disclosure = '셀렉터스샵에서 상품을 구매하는 경우, 상품 구매로 발생한 수익의 일부가 셀렉터스에게 제공됩니다.'
 export default function OwnerShopGroupScreen() {
-  const { campaigns, deleteGroup, getGroup, isProductGroupLoading, productGroupError, renameGroup, selectorsCode: loadedSelectorsCode, setStatus, state } = useShopDemo()
+  const { campaigns, deleteGroup, getGroup, isProductGroupLoading, ownedSelectorsCode, productGroupError, renameGroup, selectorsCode: loadedSelectorsCode, setStatus, state } = useShopDemo()
   const location = parsePublicShopHash(window.location.hash)
   const selectorsCode = location?.selectorsCode ?? ''
   const shopPath = buildPublicShopHash(selectorsCode)
@@ -26,7 +26,11 @@ export default function OwnerShopGroupScreen() {
   const headerShareTriggerRef = useRef<HTMLButtonElement>(null)
   const menuTriggerRef = useRef<HTMLButtonElement>(null)
   const group = getGroup(location?.groupId ?? '')
-  const isOwnerView = hasValidUserSession(readAuthSession())
+  const session = readAuthSession()
+  const isOwnerView = hasValidUserSession(session)
+    && session?.role === 'USER'
+    && Boolean(ownedSelectorsCode)
+    && ownedSelectorsCode === selectorsCode
     && sessionStorage.getItem('selectors-shop-view-mode') === 'owner'
 
   if (productGroupError) {
