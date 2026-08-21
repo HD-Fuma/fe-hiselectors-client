@@ -39,9 +39,10 @@ function historyResponse(year: number, histories: SettlementEstimate[] = [estima
   return json({ data: { selectedYear: year, availableYears: [2026, 2025], histories } })
 }
 
-function setSession() {
+function setSession(selectorAccessLevel: 'CURRENT' | 'PREVIOUS' | 'BLACKLIST' = 'CURRENT') {
   localStorage.setItem('selectors-auth', JSON.stringify({
     accessToken: 'selector.jwt', tokenType: 'Bearer', role: 'USER', loginId: 'selector-user',
+    selectorAccessLevel,
   }))
 }
 
@@ -130,6 +131,18 @@ describe('SettlementScreen', () => {
     fireEvent.click((await screen.findAllByRole('button', { name: '로그인하기' }))[0])
 
     expect(window.location.hash).toBe('#/login')
+  })
+
+  it.each(['PREVIOUS', 'BLACKLIST'] as const)('loads history only for %s access', async (accessLevel) => {
+    setSession(accessLevel)
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(historyResponse(2026))
+
+    render(<SettlementScreen />)
+
+    expect(await screen.findByText('2026년 7월')).toBeTruthy()
+    expect(screen.queryByRole('link', { name: '정보 수정' })).toBeNull()
+    expect(document.querySelector('.settlement-summary')).toBeNull()
+    expect(fetchSpy.mock.calls.every(([input]) => requestUrl(input).includes('/histories'))).toBe(true)
   })
 
   it('calculates settlement and payment dates across year boundaries', () => {

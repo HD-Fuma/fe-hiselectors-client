@@ -20,6 +20,7 @@ beforeEach(() => {
     tokenType: 'Bearer',
     role: 'USER',
     loginId: 'selector-user',
+    selectorAccessLevel: 'NONE',
   }))
   vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ data: { id: 1 } }), {
     status: 200,
@@ -63,6 +64,9 @@ describe('reference shell contract', () => {
     expect(customCheck?.nextElementSibling?.classList.contains('custom-check')).toBe(true)
 
     cleanup()
+    localStorage.setItem('selectors-auth', JSON.stringify({
+      accessToken: 'test.jwt', role: 'USER', selectorAccessLevel: 'CURRENT',
+    }))
     window.location.hash = '#/shop/groups/new'
     const editor = render(<App />)
     fireEvent.change(screen.getByLabelText('캠페인 선택'), { target: { value: 'season-pick' } })

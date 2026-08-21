@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import App from '../../App'
 import BottomActionBar from '../../components/BottomActionBar'
@@ -71,6 +71,17 @@ function RuntimeDisabledAction({
 afterEach(() => {
   cleanup()
   window.location.hash = ''
+  localStorage.clear()
+  vi.restoreAllMocks()
+})
+
+beforeEach(() => {
+  localStorage.setItem('selectors-auth', JSON.stringify({
+    accessToken: 'test.jwt', role: 'USER', selectorAccessLevel: 'CURRENT',
+  }))
+  vi.spyOn(globalThis, 'fetch').mockImplementation(() => Promise.resolve(new Response(JSON.stringify({
+    data: { accessLevel: 'CURRENT' },
+  }))))
 })
 
 describe('group editor', () => {

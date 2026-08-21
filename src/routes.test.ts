@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { routes, selectRouteByHash } from './routes'
+import type { AuthSession, SelectorAccessLevel } from './auth'
+import { getRouteRedirect, routes, selectRouteByHash } from './routes'
 
 const expectedScreens = [
   { id: 'login', path: '#/login', title: '로그인' },
@@ -58,5 +59,46 @@ describe('routes', () => {
     expect(selectRouteByHash('#/shop/RC000003200T/13').id).toBe('owner-shop-group')
     expect(selectRouteByHash('#/product/60A2099341?ptrsRefCd=RC000003200T').id).toBe('shop-product-detail')
     expect(selectRouteByHash('#/shop/groups/13/edit').id).toBe('group-edit')
+  })
+
+  it.each([
+    ['CURRENT', '#/campaigns', null],
+    ['CURRENT', '#/shop/groups/new', null],
+    ['PREVIOUS', '#/campaigns', '#/home'],
+    ['PREVIOUS', '#/shop/groups/new', '#/home'],
+    ['PREVIOUS', '#/settlement', null],
+    ['BLACKLIST', '#/settlement', null],
+    ['BLACKLIST', '#/shop/example', null],
+    ['BLACKLIST', '#/home', null],
+    ['NONE', '#/home', '#/apply'],
+    ['NONE', '#/settlement', '#/apply'],
+    ['NONE', '#/apply', null],
+  ] as const)('guards %s access to %s', (accessLevel, hash, expectedRedirect) => {
+    const session: AuthSession = {
+      accessToken: 'test.jwt',
+      tokenType: 'Bearer',
+      role: 'USER',
+      loginId: 'user',
+      selectorAccessLevel: accessLevel as SelectorAccessLevel,
+    }
+
+    expect(getRouteRedirect(selectRouteByHash(hash), session)).toBe(expectedRedirect)
+  })
+
+  it('sends an anonymous protected-route request to login', () => {
+    expect(getRouteRedirect(selectRouteByHash('#/campaigns'), null)).toBe('#/login')
+  })
+
+  it('treats a non-user role as having no selector access', () => {
+    const session: AuthSession = {
+      accessToken: 'admin.jwt',
+      tokenType: 'Bearer',
+      role: 'ADMIN',
+      loginId: 'admin',
+      selectorAccessLevel: 'CURRENT',
+    }
+
+    expect(getRouteRedirect(selectRouteByHash('#/home'), session)).toBe('#/apply')
+    expect(getRouteRedirect(selectRouteByHash('#/apply'), session)).toBeNull()
   })
 })

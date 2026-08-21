@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 
 import { ShareIcon } from '../../components/Icons'
 import ScreenHeader from '../../components/ScreenHeader'
-import { hasValidUserSession, readAuthSession } from '../../auth'
+import { canManageSelectorOperations, readAuthSession } from '../../auth'
 import DeleteGroupDialog from './DeleteGroupDialog'
 import RenameGroupDialog from './RenameGroupDialog'
 import ShareShopSheet from './ShareShopSheet'
@@ -28,8 +28,7 @@ export default function OwnerShopGroupScreen() {
   const menuTriggerRef = useRef<HTMLButtonElement>(null)
   const group = getGroup(location?.groupId ?? '')
   const session = readAuthSession()
-  const isOwnerView = hasValidUserSession(session)
-    && session?.role === 'USER'
+  const isOwnerView = canManageSelectorOperations(session)
     && Boolean(ownedSelectorsCode)
     && ownedSelectorsCode === selectorsCode
     && sessionStorage.getItem('selectors-shop-view-mode') === 'owner'

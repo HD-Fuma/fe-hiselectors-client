@@ -56,14 +56,14 @@ describe('The Hyundai login reference contract', () => {
 
   it('calls the user login API and surfaces the backend message only', async () => {
     window.location.hash = '#/login'
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(JSON.stringify({
-        accessToken: 'test.jwt', tokenType: 'Bearer', role: 'USER',
-      }), {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation((input) => Promise.resolve(
+      new Response(JSON.stringify(String(input).endsWith('/api/me/selector-access')
+        ? { data: { accessLevel: 'CURRENT' } }
+        : { accessToken: 'test.jwt', tokenType: 'Bearer', role: 'USER' }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       }),
-    )
+    ))
 
     render(<App />)
 
@@ -97,10 +97,11 @@ describe('The Hyundai login reference contract', () => {
 
     await vi.waitFor(() => {
       expect(fetchSpy).toHaveBeenCalledWith(
-        'https://api.hiselectors.shop/api/product-groups/me/shop',
-        {
+        'https://api.hiselectors.shop/api/me/selector-access',
+        expect.objectContaining({
           headers: { Authorization: 'Bearer test.jwt' },
-        },
+          signal: expect.any(AbortSignal),
+        }),
       )
     })
 
@@ -108,6 +109,7 @@ describe('The Hyundai login reference contract', () => {
       expect(JSON.parse(localStorage.getItem('selectors-auth') ?? '{}')).toMatchObject({
         accessToken: 'test.jwt',
         role: 'USER',
+        selectorAccessLevel: 'CURRENT',
       })
       expect(window.location.hash).toBe('#/home')
     })
@@ -119,6 +121,7 @@ describe('The Hyundai login reference contract', () => {
       }),
     )
 
+    localStorage.clear()
     window.location.hash = '#/login'
     cleanup()
     render(<App />)
@@ -156,9 +159,9 @@ describe('The Hyundai login reference contract', () => {
         headers: { 'Content-Type': 'application/json' },
       }))
       .mockResolvedValueOnce(new Response(JSON.stringify({
-        message: '셀렉터스를 찾을 수 없습니다.',
+        data: { accessLevel: 'NONE' },
       }), {
-        status: 404,
+        status: 200,
         headers: { 'Content-Type': 'application/json' },
       }))
 
@@ -172,6 +175,7 @@ describe('The Hyundai login reference contract', () => {
       expect(JSON.parse(localStorage.getItem('selectors-auth') ?? '{}')).toMatchObject({
         accessToken: 'user.jwt',
         role: 'USER',
+        selectorAccessLevel: 'NONE',
       })
     })
   })
@@ -185,9 +189,9 @@ describe('The Hyundai login reference contract', () => {
           status: 200,
           headers: { 'Content-Type': 'application/json' },
         })
-        : String(input).endsWith('/api/product-groups/me/shop')
-          ? new Response(JSON.stringify({ message: '셀렉터스를 찾을 수 없습니다.' }), {
-            status: 404,
+        : String(input).endsWith('/api/me/selector-access')
+          ? new Response(JSON.stringify({ data: { accessLevel: 'NONE' } }), {
+            status: 200,
             headers: { 'Content-Type': 'application/json' },
           })
         : new Response(JSON.stringify({
@@ -219,7 +223,7 @@ describe('The Hyundai login reference contract', () => {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ data: { selectorsCode: 'SEL-001' } }), {
+      .mockResolvedValueOnce(new Response(JSON.stringify({ data: { accessLevel: 'CURRENT' } }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       }))
@@ -248,11 +252,8 @@ describe('The Hyundai login reference contract', () => {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        success: false,
-        code: 'SELECTOR_NOT_FOUND',
-      }), {
-        status: 404,
+      .mockResolvedValueOnce(new Response(JSON.stringify({ data: { accessLevel: 'NONE' } }), {
+        status: 200,
         headers: { 'Content-Type': 'application/json' },
       }))
 
@@ -270,7 +271,11 @@ describe('The Hyundai login reference contract', () => {
     })
   })
 
-  it('keeps a successful login when the selectors membership check is temporarily unavailable', async () => {
+  it('does not grant selectors access when the access check is unavailable', async () => {
+    sessionStorage.setItem(
+      'postLoginRedirect',
+      '/product/40B1342672?ptrsRefCd=RC000003200T',
+    )
     window.location.hash = '#/login'
     vi.spyOn(console, 'warn').mockImplementation(() => undefined)
     vi.spyOn(globalThis, 'fetch')
@@ -288,17 +293,75 @@ describe('The Hyundai login reference contract', () => {
     fireEvent.click(screen.getByRole('button', { name: '로그인' }))
 
     await vi.waitFor(() => {
-      expect(window.location.hash).toBe('#/home')
+      expect(window.location.pathname).toBe('/product/40B1342672')
       expect(JSON.parse(localStorage.getItem('selectors-auth') ?? '{}')).toMatchObject({
         accessToken: 'selector.jwt',
-        role: 'USER',
+        selectorAccessLevel: 'NONE',
+      })
+    })
+    expect(screen.queryByRole('dialog', { name: '로그인 실패' })).toBeNull()
+  })
+
+  it.each([401, 403])('does not keep a login session when the access check returns %s', async (status) => {
+    window.location.hash = '#/login'
+    vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        data: { accessToken: 'rejected.jwt', tokenType: 'Bearer', role: 'USER' },
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }))
+      .mockResolvedValueOnce(new Response(null, { status }))
+
+    render(<App />)
+    localStorage.setItem('selectors-auth', JSON.stringify({
+      accessToken: 'previous.jwt', tokenType: 'Bearer', role: 'USER', loginId: 'previous-user',
+      selectorAccessLevel: 'CURRENT',
+    }))
+    fireEvent.change(screen.getByLabelText('아이디'), { target: { value: 'selector-user' } })
+    fireEvent.change(screen.getByLabelText('비밀번호'), { target: { value: 'demo-pass' } })
+    fireEvent.click(screen.getByRole('button', { name: '로그인' }))
+
+    const dialog = await screen.findByRole('dialog', { name: '로그인 실패' })
+    expect(within(dialog).getByText('셀렉터스 권한 정보를 확인하지 못했습니다.')).toBeTruthy()
+    expect(localStorage.getItem('selectors-auth')).toBeNull()
+    expect(window.location.hash).toBe('#/login')
+  })
+
+  it('falls back to NONE when the access response is invalid', async () => {
+    window.location.hash = '#/login'
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        data: { accessToken: 'selector.jwt', tokenType: 'Bearer', role: 'USER' },
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ data: { accessLevel: 'UNKNOWN' } }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }))
+
+    render(<App />)
+    fireEvent.change(screen.getByLabelText('아이디'), { target: { value: 'selector-user' } })
+    fireEvent.change(screen.getByLabelText('비밀번호'), { target: { value: 'demo-pass' } })
+    fireEvent.click(screen.getByRole('button', { name: '로그인' }))
+
+    await vi.waitFor(() => {
+      expect(window.location.hash).toBe('#/apply')
+      expect(JSON.parse(localStorage.getItem('selectors-auth') ?? '{}')).toMatchObject({
+        accessToken: 'selector.jwt',
+        selectorAccessLevel: 'NONE',
       })
     })
     expect(screen.queryByRole('dialog', { name: '로그인 실패' })).toBeNull()
   })
 
   it('clears the auth session and redirects to login on logout', () => {
-    localStorage.setItem('selectors-auth', JSON.stringify({ accessToken: 'keep.me', role: 'USER' }))
+    localStorage.setItem('selectors-auth', JSON.stringify({
+      accessToken: 'keep.me', role: 'USER', selectorAccessLevel: 'CURRENT',
+    }))
     window.location.hash = '#/home'
 
     render(<App />)
