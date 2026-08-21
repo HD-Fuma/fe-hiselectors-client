@@ -92,7 +92,7 @@ const screenExpectations = [
   {
     path: '#/performance',
     id: 'performance-summary',
-    heading: '성과 요약',
+    heading: '셀렉터스 성과',
     content: '누적 클릭 수',
   },
   {

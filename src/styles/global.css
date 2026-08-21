@@ -1599,16 +1599,53 @@ input:focus-visible + .custom-check {
   font-size: 12px;
 }
 
+.period-row select,
+.period-row button,
+.month-selector-row button {
+  height: 34px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 0;
+  background: var(--surface);
+  font-size: 11px;
+  font-weight: 700;
+}
+
 .period-row button,
 .month-selector-row button {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  height: 34px;
-  padding: 0 10px;
-  background: var(--surface);
+}
+
+.performance-feedback {
+  margin-top: 12px;
+  padding: 12px 14px;
+  background: #fff3f3;
+  color: #9f2020;
+  font-size: 12px;
+}
+
+.performance-feedback-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.performance-feedback-error button {
+  flex: 0 0 auto;
+  padding: 6px 8px;
+  border: 1px solid currentColor;
+  color: inherit;
   font-size: 11px;
-  font-weight: 700;
+}
+
+.performance-empty {
+  padding: 30px 10px;
+  color: var(--gray-500);
+  font-size: 11px;
+  text-align: center;
 }
 
 .metric-grid {
@@ -1627,6 +1664,14 @@ input:focus-visible + .custom-check {
   background: var(--white);
 }
 
+.metric-card-featured {
+  grid-column: 1 / -1;
+  min-height: 132px;
+  padding: 21px 18px;
+  background: var(--ink);
+  color: var(--white);
+}
+
 .metric-card > span {
   display: block;
   margin-bottom: 15px;
@@ -1637,6 +1682,14 @@ input:focus-visible + .custom-check {
 .metric-card > strong {
   font-size: 22px;
   letter-spacing: -0.02em;
+}
+
+.metric-card-featured > span {
+  color: var(--gray-300);
+}
+
+.metric-card-featured > strong {
+  font-size: 30px;
 }
 
 .metric-card small {
@@ -1651,6 +1704,22 @@ input:focus-visible + .custom-check {
   color: var(--gray-700);
   font-size: 10px;
   font-style: normal;
+}
+
+.metric-card em span {
+  margin-right: 5px;
+  color: var(--gray-500);
+  font-weight: 400;
+}
+
+.metric-card-featured em {
+  right: 18px;
+  bottom: 20px;
+  color: var(--white);
+}
+
+.metric-card-featured em span {
+  color: var(--gray-300);
 }
 
 .trend-card {
@@ -1681,18 +1750,60 @@ input:focus-visible + .custom-check {
   font-size: 14px;
 }
 
-.legend {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
+.trend-heading > span {
   color: var(--gray-500);
-  font-size: 9px;
+  font-size: 10px;
 }
 
-.legend i {
-  width: 13px;
+.trend-legend {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 14px;
+  border: 1px solid var(--line-soft);
+}
+
+.trend-legend-item {
+  min-width: 0;
+  padding: 10px;
+}
+
+.trend-legend-item + .trend-legend-item {
+  border-left: 1px solid var(--line-soft);
+}
+
+.trend-legend-item > span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 5px;
+  color: var(--gray-500);
+  font-size: 8px;
+  white-space: nowrap;
+}
+
+.trend-legend-item > strong {
+  display: block;
+  overflow: hidden;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trend-legend-item i {
+  flex: 0 0 auto;
+  width: 10px;
   height: 2px;
   background: var(--black);
+}
+
+.trend-legend-item-2 i {
+  background: var(--gray-700);
+}
+
+.trend-legend-item-3 i {
+  height: 0;
+  background: transparent;
+  border-top: 2px dashed var(--gray-400);
 }
 
 .trend-chart {
@@ -1709,15 +1820,38 @@ input:focus-visible + .custom-check {
 
 .chart-line {
   fill: none;
-  stroke: var(--black);
   stroke-linejoin: round;
   stroke-width: 2;
 }
 
+.chart-line-clicks {
+  stroke: var(--black);
+}
+
+.chart-line-conversions {
+  stroke: var(--gray-700);
+}
+
+.chart-line-amount {
+  stroke: var(--gray-400);
+  stroke-dasharray: 5 4;
+}
+
 .chart-dot {
   fill: var(--white);
-  stroke: var(--black);
   stroke-width: 2;
+}
+
+.chart-dot-clicks {
+  stroke: var(--black);
+}
+
+.chart-dot-conversions {
+  stroke: var(--gray-700);
+}
+
+.chart-dot-amount {
+  stroke: var(--gray-400);
 }
 
 .chart-labels {

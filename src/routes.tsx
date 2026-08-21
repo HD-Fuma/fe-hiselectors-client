@@ -120,7 +120,7 @@ export const routes = [
   {
     id: 'performance-summary',
     path: '#/performance',
-    title: '성과 요약',
+    title: '셀렉터스 성과',
     Screen: PerformanceSummaryScreen,
     access: 'current',
   },
