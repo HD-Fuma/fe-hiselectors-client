@@ -12,6 +12,18 @@ const screenExpectations = [
     content: 'H.Point 통합회원 로그인',
   },
   {
+    path: '#/home',
+    id: 'home',
+    heading: '셀렉터스',
+    content: '회원정보 변경',
+  },
+  {
+    path: '#/mypage/member',
+    id: 'member-info',
+    heading: '회원정보 변경',
+    content: '카카오 메시지',
+  },
+  {
     path: '#/apply',
     id: 'apply-intro',
     heading: '셀렉터스 신청하기',
@@ -169,7 +181,7 @@ describe('Selectors client routes', () => {
   it.each(screenExpectations)(
     'renders the unique heading and representative content for $path',
     ({ path, id, heading, content }) => {
-      if (path === '#/apply/form' || path.startsWith('#/campaigns') || path.startsWith('#/shop/groups')) {
+      if (path === '#/apply/form' || path === '#/mypage/member' || path.startsWith('#/campaigns') || path.startsWith('#/shop/groups')) {
         localStorage.setItem('selectors-auth', JSON.stringify({
           accessToken: 'test.jwt',
           tokenType: 'Bearer',
@@ -202,6 +214,7 @@ describe('Selectors client routes', () => {
       '#/campaigns',
       '#/performance',
       '#/settlement/check',
+      '#/mypage/member',
     ])
     expect(document.querySelector('[data-screen-id="catalog"]')).toBeNull()
   })

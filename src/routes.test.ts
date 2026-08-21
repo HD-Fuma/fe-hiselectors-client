@@ -5,6 +5,7 @@ import { routes, selectRouteByHash } from './routes'
 const expectedScreens = [
   { id: 'login', path: '#/login', title: '로그인' },
   { id: 'home', path: '#/home', title: '셀렉터스' },
+  { id: 'member-info', path: '#/mypage/member', title: '회원정보 변경' },
   { id: 'apply-intro', path: '#/apply', title: '셀렉터스 신청하기' },
   { id: 'apply-form', path: '#/apply/form', title: '셀렉터스 신청하기' },
   { id: 'apply-status', path: '#/apply/status', title: '신청 완료' },
