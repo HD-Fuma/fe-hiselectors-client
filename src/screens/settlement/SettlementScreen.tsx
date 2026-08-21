@@ -72,6 +72,14 @@ function statusClass(status: SettlementStatus): string {
   return status.toLowerCase().replaceAll('_', '-')
 }
 
+function summaryAmount(estimate: SettlementEstimate): number {
+  return estimate.provisionalEstimate?.settlementAmount ?? estimate.settlementAmount
+}
+
+function summaryPurchaseCount(estimate: SettlementEstimate): number {
+  return estimate.provisionalEstimate?.purchaseCount ?? estimate.confirmedPurchaseCount
+}
+
 function paymentText(history: SettlementEstimate): string {
   if (history.status === 'PAYMENT_HOLD_INFO') return '지급 정보 확인 필요'
   if (history.status === 'PAYMENT_HOLD_BLACK') return '지급이 보류되었습니다.'
@@ -181,9 +189,10 @@ export default function SettlementScreen() {
           {!isSummaryLoading && !summaryError && estimate ? (
             <>
               <span>{formatSettlementMonth(estimate.activityMonth)} 활동 예상 수수료</span>
-              <strong>{formatNumber(estimate.settlementAmount)}<small>원</small></strong>
+              <strong>{formatNumber(summaryAmount(estimate))}<small>원</small></strong>
+              <p className="settlement-summary-hint">취소나 환불에 따른 금액 변동 가능</p>
               <div>
-                <span>구매 확정 {formatNumber(estimate.confirmedPurchaseCount)}건</span>
+                <span>구매 확정 {formatNumber(summaryPurchaseCount(estimate))}건</span>
                 <span>정산 예정일 {formatPaymentDate(estimate.paymentMonth)}</span>
               </div>
             </>

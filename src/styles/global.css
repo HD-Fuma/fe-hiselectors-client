@@ -1909,7 +1909,7 @@ input:focus-visible + .custom-check {
 
 .settlement-summary > strong {
   display: block;
-  margin-bottom: 22px;
+  margin-bottom: 8px;
   font-size: 30px;
   letter-spacing: -0.03em;
 }
@@ -1917,6 +1917,13 @@ input:focus-visible + .custom-check {
 .settlement-summary > strong small {
   margin-left: 4px;
   font-size: 14px;
+}
+
+.settlement-summary-hint {
+  margin: 0 0 18px;
+  color: #8d8d8d;
+  font-size: 10px;
+  line-height: 1.4;
 }
 
 .settlement-summary > div {

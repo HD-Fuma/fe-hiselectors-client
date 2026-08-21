@@ -73,6 +73,7 @@ describe('SettlementScreen', () => {
     render(<SettlementScreen />)
 
     expect(await screen.findByText('2026년 7월 활동 예상 수수료')).toBeTruthy()
+    expect(screen.getByText('취소나 환불에 따른 금액 변동 가능')).toBeTruthy()
     expect(screen.getByText('구매 확정 386건')).toBeTruthy()
     expect(screen.getByText('정산 예정일 2026.09.20')).toBeTruthy()
     expect(screen.getByText('지급 완료')).toBeTruthy()
@@ -80,7 +81,39 @@ describe('SettlementScreen', () => {
     expect((screen.getByLabelText('정산 이력 연도') as HTMLSelectElement).value).toBe('2026')
 
     const estimateCall = fetchSpy.mock.calls.find(([input]) => requestUrl(input).endsWith('/api/settlements/estimates'))
+    expect(requestUrl(estimateCall?.[0] ?? '')).not.toContain('activityMonth=')
     expect((estimateCall?.[1]?.headers as Headers).get('Authorization')).toBe('Bearer selector.jwt')
+  })
+
+  it('uses the live provisional estimate for the current-month summary', async () => {
+    setSession()
+    const currentMonth: SettlementEstimate = {
+      ...estimate,
+      activityMonth: '2026-08',
+      settlementMonth: '2026-09',
+      paymentMonth: '2026-10',
+      confirmedPurchaseCount: 120,
+      settlementAmount: 400_000,
+      provisionalEstimate: {
+        purchaseCount: 412,
+        settlementAmount: 1_512_300,
+      },
+    }
+    vi.spyOn(globalThis, 'fetch').mockImplementation((input) => Promise.resolve(
+      requestUrl(input).includes('/histories')
+        ? historyResponse(2026, [])
+        : json({ data: currentMonth }),
+    ))
+
+    render(<SettlementScreen />)
+
+    expect(await screen.findByText('2026년 8월 활동 예상 수수료')).toBeTruthy()
+    expect(screen.getByText('취소나 환불에 따른 금액 변동 가능')).toBeTruthy()
+    expect(screen.getByText('1,512,300')).toBeTruthy()
+    expect(screen.getByText('구매 확정 412건')).toBeTruthy()
+    expect(screen.getByText('정산 예정일 2026.10.20')).toBeTruthy()
+    expect(screen.queryByText('1,284,600')).toBeNull()
+    expect(screen.queryByText('구매 확정 120건')).toBeNull()
   })
 
   it('reloads histories when the selected year changes', async () => {

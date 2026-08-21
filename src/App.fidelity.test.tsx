@@ -165,6 +165,10 @@ describe('shared panel and campaign fidelity', () => {
             status: 'CALCULATING',
             calculatedAt: '2026-09-01T00:00:00',
             updatedAt: '2026-09-01T00:00:00',
+            provisionalEstimate: {
+              purchaseCount: 386,
+              settlementAmount: 1_284_600,
+            },
           },
         })),
     ))
