@@ -4,11 +4,16 @@ import AppShell from './components/layout/AppShell'
 import {
   API_BASE_URL,
   authFetch,
+  clearAuthSession,
+  fetchSelectorAccessLevel,
   hasValidUserSession,
   isLocalApplyTestMode,
+  isSelectorAccessPending,
+  persistAuthSession,
   readAuthSession,
+  SelectorAccessRequestError,
 } from './auth'
-import { routeMatchesHash, selectRouteByHash } from './routes'
+import { getRouteRedirect, routeMatchesHash, selectRouteByHash } from './routes'
 import { ShopDemoProvider } from './screens/shop/ShopDemoContext'
 import { verifyOAuth } from './oauth'
 import { KAKAO_OAUTH_PENDING_KEY, MEMBER_INFO_PATH } from './screens/mypage/kakaoApi'
@@ -32,16 +37,46 @@ function pendingOAuthHash() {
 }
 
 function selectCurrentRoute() {
+  const productPathMatch = window.location.pathname.match(/\/product\/([^/]+)\/?$/)
+  if (!window.location.hash
+    && productPathMatch
+    && new URLSearchParams(window.location.search).has('ptrsRefCd')) {
+    return selectRouteByHash(`#/product/${productPathMatch[1]}`)
+  }
+
+  const session = readAuthSession()
   let requestedHash = window.location.hash
   const oauthHash = pendingOAuthHash()
-  if (oauthHash) {
+  if (oauthHash === MEMBER_INFO_PATH) {
     requestedHash = oauthHash
     if (window.location.hash !== requestedHash) {
       window.location.hash = requestedHash
     }
+  } else if (oauthHash) {
+    const isApplicant = !hasValidUserSession(session)
+      || (session?.role === 'USER'
+        && (session.selectorAccessLevel === undefined || session.selectorAccessLevel === 'NONE'))
+    if (isApplicant) {
+      requestedHash = '#/apply/form'
+      if (window.location.hash !== requestedHash) {
+        window.location.hash = requestedHash
+      }
+    } else if (!requestedHash) {
+      requestedHash = '#/home'
+    }
   }
 
   const route = selectRouteByHash(requestedHash)
+  const routeRedirect = getRouteRedirect(route, session)
+  if (routeRedirect && routeRedirect !== requestedHash) {
+    if (!hasValidUserSession(session)) {
+      sessionStorage.setItem('postLoginRedirect', requestedHash)
+    }
+    window.history.replaceState(window.history.state, '', routeRedirect)
+    window.setTimeout(() => window.dispatchEvent(new HashChangeEvent('hashchange')), 0)
+    return selectRouteByHash(routeRedirect)
+  }
+
   if (!routeMatchesHash(route, window.location.hash)) {
     const nextUrl = hasPendingOAuthCallback()
       ? `${window.location.pathname}${window.location.search}${route.path}`
@@ -54,11 +89,80 @@ function selectCurrentRoute() {
 
 function RoutedApp({ shopProbe }: AppProps) {
   const [route, setRoute] = useState(selectCurrentRoute)
+  const [authSession, setAuthSession] = useState(readAuthSession)
   const [showAuthGateModal, setShowAuthGateModal] = useState(false)
   const [showNoCohortModal, setShowNoCohortModal] = useState(false)
   const [hasActiveCohort, setHasActiveCohort] = useState(false)
   const [isCohortStatusLoaded, setIsCohortStatusLoaded] = useState(false)
   const localApplyTestMode = isLocalApplyTestMode()
+
+  useEffect(() => {
+    let disposed = false
+    let inFlight: Promise<void> | null = null
+    let hadSession = hasValidUserSession(readAuthSession())
+
+    const refreshSelectorAccess = () => {
+      const session = readAuthSession()
+      if (!hasValidUserSession(session)) {
+        if (hadSession) {
+          hadSession = false
+          window.dispatchEvent(new CustomEvent('auth:changed', { detail: null }))
+        }
+        return
+      }
+      hadSession = true
+      if (inFlight || session?.role !== 'USER') return
+
+      const accessToken = session.accessToken
+      inFlight = fetchSelectorAccessLevel(accessToken, session.tokenType)
+        .then((selectorAccessLevel) => {
+          if (disposed) return
+          const latestSession = readAuthSession()
+          if (!latestSession || latestSession.accessToken !== accessToken || latestSession.role !== 'USER') return
+
+          const accessChanged = latestSession.selectorAccessLevel !== selectorAccessLevel
+          const nextSession = { ...latestSession, selectorAccessLevel }
+          persistAuthSession(nextSession)
+          if (accessChanged) {
+            window.dispatchEvent(new CustomEvent('auth:changed', { detail: nextSession }))
+          }
+        })
+        .catch((error) => {
+          if (disposed) return
+          const latestSession = readAuthSession()
+          if (!latestSession || latestSession.accessToken !== accessToken || latestSession.role !== 'USER') return
+
+          if (error instanceof SelectorAccessRequestError && [401, 403].includes(error.status)) {
+            hadSession = false
+            clearAuthSession()
+            return
+          }
+
+          if (latestSession.selectorAccessLevel !== 'NONE') {
+            const nextSession = { ...latestSession, selectorAccessLevel: 'NONE' as const }
+            persistAuthSession(nextSession)
+            window.dispatchEvent(new CustomEvent('auth:changed', { detail: nextSession }))
+          }
+        })
+        .finally(() => {
+          inFlight = null
+        })
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') refreshSelectorAccess()
+    }
+
+    refreshSelectorAccess()
+    window.addEventListener('focus', refreshSelectorAccess)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      disposed = true
+      window.removeEventListener('focus', refreshSelectorAccess)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [])
 
   useEffect(() => {
     if (route.id !== 'apply-intro' && route.id !== 'apply-form') {
@@ -117,11 +221,21 @@ function RoutedApp({ shopProbe }: AppProps) {
       try {
         const verified = await verifyOAuth(provider, code, state)
         if (verified.verified) {
+          const accountId = provider === 'instagram'
+            ? verified.username?.trim()
+            : verified.channelId?.trim()
+          if (!accountId) {
+            throw new Error(provider === 'instagram'
+              ? 'Instagram 사용자명을 인증 결과에서 찾을 수 없습니다.'
+              : 'YouTube 채널 ID를 인증 결과에서 찾을 수 없습니다.')
+          }
           const nextVerifiedState = {
             provider,
-            accountId: provider === 'instagram' ? (verified.accountId ?? verified.username ?? '') : (verified.channelId ?? verified.channelTitle ?? ''),
+            accountId,
+            verificationToken: verified.verificationToken,
             followerCount: verified.followerCount ?? null,
-            label: provider === 'instagram' ? (verified.username ?? 'Instagram') : (verified.channelTitle ?? 'YouTube'),
+            contentCount: verified.contentCount ?? null,
+            label: provider === 'instagram' ? accountId : (verified.channelTitle?.trim() || 'YouTube'),
           }
 
           sessionStorage.setItem('oauthVerified', JSON.stringify(nextVerifiedState))
@@ -139,10 +253,7 @@ function RoutedApp({ shopProbe }: AppProps) {
       } finally {
         sessionStorage.removeItem('oauthProvider')
         clearOAuthQueryParams()
-        setRoute(selectRouteByHash('#/apply/form'))
-        if (window.location.hash !== '#/apply/form') {
-          window.location.hash = '#/apply/form'
-        }
+        setRoute(selectCurrentRoute())
       }
     }
 
@@ -178,12 +289,14 @@ function RoutedApp({ shopProbe }: AppProps) {
     }
 
     const handleAuthChanged = () => {
+      setAuthSession(readAuthSession())
       setShowAuthGateModal(false)
       setShowNoCohortModal(false)
       setRoute(selectCurrentRoute())
     }
 
     window.addEventListener('hashchange', handleHashChange)
+    window.addEventListener('popstate', handleHashChange)
     document.addEventListener('click', handleApplyGateClick, true)
     window.addEventListener('auth:required', handleAuthRequired)
     window.addEventListener('auth:changed', handleAuthChanged)
@@ -191,6 +304,7 @@ function RoutedApp({ shopProbe }: AppProps) {
 
     return () => {
       window.removeEventListener('hashchange', handleHashChange)
+      window.removeEventListener('popstate', handleHashChange)
       document.removeEventListener('click', handleApplyGateClick, true)
       window.removeEventListener('auth:required', handleAuthRequired)
       window.removeEventListener('auth:changed', handleAuthChanged)
@@ -229,6 +343,8 @@ function RoutedApp({ shopProbe }: AppProps) {
   }, [route])
 
   const { Screen } = route
+  const isAccessPending = route.access !== 'public'
+    && isSelectorAccessPending(authSession)
 
   const handleGoToLogin = () => {
     setShowAuthGateModal(false)
@@ -240,10 +356,16 @@ function RoutedApp({ shopProbe }: AppProps) {
       <AppShell
         screenId={route.id}
       >
-        <p aria-atomic="true" aria-live="polite" className="sr-only route-announcement">
-          {route.title} 화면
-        </p>
-        <Screen />
+        {isAccessPending ? (
+          <p aria-live="polite" role="status">권한을 확인하고 있습니다.</p>
+        ) : (
+          <>
+            <p aria-atomic="true" aria-live="polite" className="sr-only route-announcement">
+              {route.title} 화면
+            </p>
+            <Screen />
+          </>
+        )}
       </AppShell>
       {showNoCohortModal ? (
         <div aria-modal="true" className="auth-gate-backdrop" role="dialog" aria-labelledby="cohort-closed-title">

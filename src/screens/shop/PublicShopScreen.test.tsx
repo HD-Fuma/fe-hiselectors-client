@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import App from '../../App'
 import { useShopDemo } from './ShopDemoContext'
@@ -12,6 +12,12 @@ const shareUrl = 'http://localhost:3000/#/shop/RC000003200T'
 let clipboardDescriptor: PropertyDescriptor | undefined
 let shareDescriptor: PropertyDescriptor | undefined
 let navigatorMocksInstalled = false
+
+beforeEach(() => {
+  vi.spyOn(globalThis, 'fetch').mockImplementation(() => Promise.resolve(new Response(JSON.stringify({
+    data: { accessLevel: 'CURRENT' },
+  }))))
+})
 
 function SetShopStatusControl() {
   const { setStatus } = useShopDemo()
@@ -27,6 +33,7 @@ afterEach(() => {
   cleanup()
   window.location.hash = ''
   localStorage.clear()
+  sessionStorage.clear()
   vi.unstubAllGlobals()
   vi.restoreAllMocks()
 
@@ -111,6 +118,7 @@ describe('public selectors shop', () => {
     localStorage.setItem('selectors-auth', JSON.stringify({
       accessToken: 'owner.token',
       role: 'USER',
+      selectorAccessLevel: 'CURRENT',
     }))
     window.location.hash = shopHash
 
@@ -123,8 +131,62 @@ describe('public selectors shop', () => {
     )
   })
 
+  it('keeps a previous generation shop read-only after access resolves', async () => {
+    localStorage.setItem('selectors-auth', JSON.stringify({
+      accessToken: 'owner.token', role: 'USER',
+    }))
+    sessionStorage.setItem('selectors-shop-view-mode', 'owner')
+    vi.mocked(globalThis.fetch).mockImplementation(() => Promise.resolve(new Response(JSON.stringify({
+      data: { accessLevel: 'PREVIOUS' },
+    }))))
+    window.location.hash = shopHash
+
+    render(<App />)
+
+    await waitFor(() => {
+      expect(JSON.parse(localStorage.getItem('selectors-auth') ?? '{}')).toMatchObject({
+        selectorAccessLevel: 'PREVIOUS',
+      })
+      expect(sessionStorage.getItem('selectors-shop-view-mode')).toBe('public')
+    })
+    expect(screen.getByRole('heading', { level: 1, name: '셀렉터스샵' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: '관리자' })).toBeNull()
+    expect(screen.queryByRole('link', { name: '관리하기' })).toBeNull()
+  })
+
+  it('preserves a legacy owner preference until current access resolves', async () => {
+    localStorage.setItem('selectors-auth', JSON.stringify({
+      accessToken: 'owner.token', role: 'USER',
+    }))
+    sessionStorage.setItem('selectors-shop-view-mode', 'owner')
+    let resolveAccess!: (response: Response) => void
+    const accessResponse = new Promise<Response>((resolve) => { resolveAccess = resolve })
+    vi.mocked(globalThis.fetch).mockImplementation((input) => (
+      String(input).endsWith('/api/me/selector-access')
+        ? accessResponse
+        : Promise.resolve(new Response(JSON.stringify({ data: {} })))
+    ))
+    window.location.hash = shopHash
+
+    const app = render(<App />)
+
+    expect(sessionStorage.getItem('selectors-shop-view-mode')).toBe('owner')
+    expect(screen.queryByRole('button', { name: '관리자' })).toBeNull()
+
+    resolveAccess(new Response(JSON.stringify({ data: { accessLevel: 'CURRENT' } })))
+    await waitFor(() => expect(JSON.parse(localStorage.getItem('selectors-auth') ?? '{}')).toMatchObject({
+      selectorAccessLevel: 'CURRENT',
+    }))
+    expect(sessionStorage.getItem('selectors-shop-view-mode')).toBe('owner')
+
+    app.rerender(<App />)
+    await waitFor(() => expect(screen.getByRole('link', { name: '관리하기' })).toBeTruthy())
+  })
+
   it('announces only actual shop statuses', () => {
-    localStorage.setItem('selectors-auth', JSON.stringify({ accessToken: 'owner.token', role: 'USER' }))
+    localStorage.setItem('selectors-auth', JSON.stringify({
+      accessToken: 'owner.token', role: 'USER', selectorAccessLevel: 'CURRENT',
+    }))
     window.location.hash = shopHash
     render(<App shopProbe={<SetShopStatusControl />} />)
 
@@ -171,10 +233,14 @@ describe('public selectors shop', () => {
   })
 
   it('shares through a local-only accessible sheet and restores the trigger on Escape', async () => {
-    localStorage.setItem('selectors-auth', JSON.stringify({ accessToken: 'owner.token', role: 'USER' }))
+    localStorage.setItem('selectors-auth', JSON.stringify({
+      accessToken: 'owner.token', role: 'USER', selectorAccessLevel: 'CURRENT',
+    }))
     const writeText = vi.fn()
     const nativeShare = vi.fn()
-    const fetchSpy = vi.fn()
+    const fetchSpy = vi.fn((input: RequestInfo | URL) => Promise.resolve(new Response(JSON.stringify({
+      data: String(input).includes('/api/me/selector-access') ? { accessLevel: 'CURRENT' } : {},
+    }))))
     clipboardDescriptor = Object.getOwnPropertyDescriptor(navigator, 'clipboard')
     shareDescriptor = Object.getOwnPropertyDescriptor(navigator, 'share')
     navigatorMocksInstalled = true
@@ -212,7 +278,7 @@ describe('public selectors shop', () => {
     fireEvent.click(screen.getByRole('button', { name: '확인' }))
     expect(writeText).toHaveBeenCalledWith(shareUrl)
     expect(nativeShare).not.toHaveBeenCalled()
-    expect(fetchSpy).not.toHaveBeenCalled()
+    expect(fetchSpy.mock.calls.filter(([input]) => String(input).includes('/api/view-logs'))).toHaveLength(1)
 
     fireEvent.keyDown(dialog, { key: 'Escape' })
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { routes, selectRouteByHash } from './routes'
+import type { AuthSession, SelectorAccessLevel } from './auth'
+import { getRouteRedirect, routes, selectRouteByHash } from './routes'
 
 const expectedScreens = [
   { id: 'login', path: '#/login', title: '로그인' },
@@ -13,6 +14,7 @@ const expectedScreens = [
   { id: 'campaign-detail', path: '#/campaigns/1', title: '캠페인 상세' },
   { id: 'public-shop', path: '#/shop/example', title: '셀렉터스샵' },
   { id: 'owner-shop-group', path: '#/shop/example/1', title: '셀렉터스샵' },
+  { id: 'shop-product-detail', path: '#/product/example', title: '상품 상세' },
   { id: 'shop-groups', path: '#/shop/groups', title: '셀렉터스 샵 관리하기' },
   { id: 'shop-profile-edit', path: '#/shop/profile/edit', title: '프로필 수정' },
   { id: 'group-create', path: '#/shop/groups/new', title: '상품 그룹 만들기' },
@@ -22,7 +24,7 @@ const expectedScreens = [
     path: '#/shop/groups/new/campaign/1',
     title: '상품 그룹 만들기',
   },
-  { id: 'performance-summary', path: '#/performance', title: '성과 요약' },
+  { id: 'performance-summary', path: '#/performance', title: '셀렉터스 성과' },
   { id: 'product-performance', path: '#/performance/products', title: '상품별 성과' },
   { id: 'settlement-entry', path: '#/settlement/check', title: '정산' },
   { id: 'settlement-info', path: '#/settlement/info', title: '정산 정보' },
@@ -55,6 +57,48 @@ describe('routes', () => {
 
   it('selects dynamic shop group detail and edit routes', () => {
     expect(selectRouteByHash('#/shop/RC000003200T/13').id).toBe('owner-shop-group')
+    expect(selectRouteByHash('#/product/60A2099341?ptrsRefCd=RC000003200T').id).toBe('shop-product-detail')
     expect(selectRouteByHash('#/shop/groups/13/edit').id).toBe('group-edit')
+  })
+
+  it.each([
+    ['CURRENT', '#/campaigns', null],
+    ['CURRENT', '#/shop/groups/new', null],
+    ['PREVIOUS', '#/campaigns', '#/home'],
+    ['PREVIOUS', '#/shop/groups/new', '#/home'],
+    ['PREVIOUS', '#/settlement', null],
+    ['BLACKLIST', '#/settlement', null],
+    ['BLACKLIST', '#/shop/example', null],
+    ['BLACKLIST', '#/home', null],
+    ['NONE', '#/home', '#/apply'],
+    ['NONE', '#/settlement', '#/apply'],
+    ['NONE', '#/apply', null],
+  ] as const)('guards %s access to %s', (accessLevel, hash, expectedRedirect) => {
+    const session: AuthSession = {
+      accessToken: 'test.jwt',
+      tokenType: 'Bearer',
+      role: 'USER',
+      loginId: 'user',
+      selectorAccessLevel: accessLevel as SelectorAccessLevel,
+    }
+
+    expect(getRouteRedirect(selectRouteByHash(hash), session)).toBe(expectedRedirect)
+  })
+
+  it('sends an anonymous protected-route request to login', () => {
+    expect(getRouteRedirect(selectRouteByHash('#/campaigns'), null)).toBe('#/login')
+  })
+
+  it('treats a non-user role as having no selector access', () => {
+    const session: AuthSession = {
+      accessToken: 'admin.jwt',
+      tokenType: 'Bearer',
+      role: 'ADMIN',
+      loginId: 'admin',
+      selectorAccessLevel: 'CURRENT',
+    }
+
+    expect(getRouteRedirect(selectRouteByHash('#/home'), session)).toBe('#/apply')
+    expect(getRouteRedirect(selectRouteByHash('#/apply'), session)).toBeNull()
   })
 })

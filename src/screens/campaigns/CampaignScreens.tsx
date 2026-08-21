@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 
-import { hasValidUserSession, readAuthSession } from '../../auth'
+import { canManageSelectorOperations, readAuthSession } from '../../auth'
 import { ArrowRightIcon } from '../../components/Icons'
 import ScreenHeader from '../../components/ScreenHeader'
 import CampaignQuickAddSheet from '../shop/CampaignQuickAddSheet'
@@ -43,7 +43,7 @@ function CampaignLoginRequired({ backHref, redirect }: { backHref: string; redir
 export function CampaignListScreen() {
   const shop = useShopDemo()
   const session = readAuthSession()
-  const canViewCampaigns = hasValidUserSession(session) && session?.role === 'USER'
+  const canViewCampaigns = canManageSelectorOperations(session)
 
   if (!canViewCampaigns) {
     return <CampaignLoginRequired backHref="#/home" redirect="#/campaigns" />
@@ -83,7 +83,7 @@ export function CampaignListScreen() {
 export function CampaignDetailScreen() {
   const shop = useShopDemo()
   const session = readAuthSession()
-  const canManageProductGroups = hasValidUserSession(session) && session?.role === 'USER'
+  const canManageProductGroups = canManageSelectorOperations(session)
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false)
   const quickAddTriggerRef = useRef<HTMLButtonElement>(null)
   const campaignId = getCampaignId()

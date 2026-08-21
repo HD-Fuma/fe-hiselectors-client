@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
-import { redirectToLoginScreen } from '../../auth'
+import { canManageSelectorOperations, readAuthSession, redirectToLoginScreen } from '../../auth'
 import ScreenHeader from '../../components/ScreenHeader'
 import {
   getSettlementErrorMessage,
@@ -105,11 +105,12 @@ function SettlementHistoryRow({ history }: { history: SettlementEstimate }) {
 }
 
 export default function SettlementScreen() {
+  const canManage = canManageSelectorOperations(readAuthSession())
   const [selectedYear, setSelectedYear] = useState(getCurrentSettlementYear)
   const [estimate, setEstimate] = useState<SettlementEstimate | null>(null)
   const [histories, setHistories] = useState<SettlementEstimate[]>([])
   const [availableYears, setAvailableYears] = useState<number[]>([])
-  const [isSummaryLoading, setIsSummaryLoading] = useState(true)
+  const [isSummaryLoading, setIsSummaryLoading] = useState(canManage)
   const [isHistoryLoading, setIsHistoryLoading] = useState(true)
   const [summaryError, setSummaryError] = useState<unknown>(null)
   const [historyError, setHistoryError] = useState<unknown>(null)
@@ -145,8 +146,8 @@ export default function SettlementScreen() {
   }, [])
 
   useEffect(() => {
-    void loadSummary()
-  }, [loadSummary])
+    if (canManage) void loadSummary()
+  }, [canManage, loadSummary])
 
   useEffect(() => {
     void loadHistories(selectedYear)
@@ -162,12 +163,12 @@ export default function SettlementScreen() {
   return (
     <>
       <ScreenHeader
-        action={<a className="panel-text-action" href="#/settlement/info">정보 수정</a>}
+        action={canManage ? <a className="panel-text-action" href="#/settlement/info">정보 수정</a> : undefined}
         backHref="#/home"
         title="정산 내역"
       />
       <div className="screen-scroll settlement-screen">
-        <section aria-busy={isSummaryLoading} className="settlement-summary">
+        {canManage ? <section aria-busy={isSummaryLoading} className="settlement-summary">
           {isSummaryLoading ? <p className="settlement-feedback">정산 정보를 불러오는 중입니다.</p> : null}
           {!isSummaryLoading && summaryError ? (
             <div className="settlement-feedback settlement-feedback-error" role="alert">
@@ -200,7 +201,7 @@ export default function SettlementScreen() {
           {!isSummaryLoading && !summaryError && !estimate ? (
             <p className="settlement-feedback">아직 계산된 정산 내역이 없습니다.</p>
           ) : null}
-        </section>
+        </section> : null}
 
         <div className="month-selector-row">
           <div><h2>월별 정산 내역</h2><p>구매 확정일 기준으로 집계됩니다.</p></div>

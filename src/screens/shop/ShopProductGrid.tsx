@@ -3,6 +3,7 @@ import { useRef, useState } from 'react'
 import { useShopDemo } from './ShopDemoContext'
 import { CopyIcon } from '../../components/Icons'
 import ShareShopSheet from './ShareShopSheet'
+import { buildPublicProductUrl, parsePublicShopHash } from './shopRoute'
 
 type ShopProductGridProps = {
   productIds: readonly string[]
@@ -11,18 +12,20 @@ type ShopProductGridProps = {
 
 export default function ShopProductGrid({ getProductShareUrl, productIds }: ShopProductGridProps) {
   const { getProducts } = useShopDemo()
-  const [shareProductId, setShareProductId] = useState<string | null>(null)
+  const [shareProductCode, setShareProductCode] = useState<string | null>(null)
   const shareInvokerRef = useRef<HTMLElement>(null)
 
   return (
     <div className="shop-product-grid">
       {getProducts(productIds).map((product) => {
-        const productUrl = product.detailUrl || `https://www.thehyundai.com/front/dpa/searchSectItem.thd?searchTerm=${encodeURIComponent(product.name)}`
+        const selectorsCode = parsePublicShopHash(window.location.hash)?.selectorsCode ?? ''
+        const productCode = product.code ?? product.id
+        const productUrl = buildPublicProductUrl(productCode, selectorsCode)
 
         return (
         <article className="shop-product" key={product.id}>
           <div className="shop-product-media">
-            <a aria-label={`${product.name} 상품 페이지 열기`} href={productUrl} rel="noreferrer" target="_blank">
+            <a aria-label={`${product.name} 상품 페이지 열기`} href={productUrl}>
               <img alt={product.name} src={product.image} />
             </a>
             {getProductShareUrl ? (
@@ -31,7 +34,7 @@ export default function ShopProductGrid({ getProductShareUrl, productIds }: Shop
                 className="shop-product-copy"
                 onClick={(event) => {
                   shareInvokerRef.current = event.currentTarget
-                  setShareProductId(product.id)
+                  setShareProductCode(productCode)
                 }}
                 title="상품 링크 복사"
                 type="button"
@@ -43,7 +46,7 @@ export default function ShopProductGrid({ getProductShareUrl, productIds }: Shop
           {product.brand ? (
             <span className="shop-product-brand">{product.brand}</span>
           ) : null}
-          <p className="shop-product-name"><a href={productUrl} rel="noreferrer" target="_blank">{product.name}</a></p>
+          <p className="shop-product-name"><a href={productUrl}>{product.name}</a></p>
           <div className="shop-product-pricing">
             <del>{product.originalPrice}</del>
             <span>{product.discountRate}</span>
@@ -52,12 +55,12 @@ export default function ShopProductGrid({ getProductShareUrl, productIds }: Shop
         </article>
         )
       })}
-      {shareProductId && getProductShareUrl ? (
+      {shareProductCode && getProductShareUrl ? (
         <ShareShopSheet
           invokerRef={shareInvokerRef}
-          onClose={() => setShareProductId(null)}
+          onClose={() => setShareProductCode(null)}
           title="상품 공유"
-          url={getProductShareUrl(shareProductId)}
+          url={getProductShareUrl(shareProductCode)}
         />
       ) : null}
     </div>

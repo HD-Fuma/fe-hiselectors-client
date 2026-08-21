@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 
 import { ShareIcon } from '../../components/Icons'
 import ScreenHeader from '../../components/ScreenHeader'
-import { hasValidUserSession, readAuthSession } from '../../auth'
+import { canManageSelectorOperations, readAuthSession } from '../../auth'
 import DeleteGroupDialog from './DeleteGroupDialog'
 import RenameGroupDialog from './RenameGroupDialog'
 import ShareShopSheet from './ShareShopSheet'
@@ -12,6 +12,7 @@ import { useShopDemo } from './ShopDemoContext'
 import ShopStatus from './ShopStatus'
 import { MissingShopGroup } from './GroupEditorScreen'
 import { buildPublicShopHash, getPublicProductShareUrl, getPublicShopShareUrl, parsePublicShopHash } from './shopRoute'
+import { useShopViewLog } from './useShopViewLog'
 
 const disclosure = '셀렉터스샵에서 상품을 구매하는 경우, 상품 구매로 발생한 수익의 일부가 셀렉터스에게 제공됩니다.'
 export default function OwnerShopGroupScreen() {
@@ -27,11 +28,11 @@ export default function OwnerShopGroupScreen() {
   const menuTriggerRef = useRef<HTMLButtonElement>(null)
   const group = getGroup(location?.groupId ?? '')
   const session = readAuthSession()
-  const isOwnerView = hasValidUserSession(session)
-    && session?.role === 'USER'
+  const isOwnerView = canManageSelectorOperations(session)
     && Boolean(ownedSelectorsCode)
     && ownedSelectorsCode === selectorsCode
     && sessionStorage.getItem('selectors-shop-view-mode') === 'owner'
+  useShopViewLog(selectorsCode, 'GROUP', group ? Number(group.id) : undefined, Boolean(group) && !productGroupError)
 
   if (productGroupError) {
     return <><ScreenHeader backHref={shopPath} title="셀렉터스샵" /><p className="shop-group-feedback shop-group-feedback-error">{productGroupError}</p></>

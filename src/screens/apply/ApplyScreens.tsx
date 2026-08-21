@@ -9,9 +9,10 @@ import {
   redirectToMainScreen,
 } from '../../auth'
 import BottomActionBar from '../../components/BottomActionBar'
-import { ArrowRightIcon, CartIcon, CheckIcon, ChevronDownIcon, CoinIcon, GiftIcon, LinkIcon, PersonIcon } from '../../components/Icons'
+import { ArrowRightIcon, CartIcon, CheckIcon, ChevronDownIcon, CloseIcon, CoinIcon, GiftIcon, LinkIcon, PersonIcon } from '../../components/Icons'
 import ScreenHeader from '../../components/ScreenHeader'
 import { startOAuthAuthorization, type OAuthProvider } from '../../oauth'
+import { selectorsTermsFor } from './selectorsTerms'
 
 const flowSteps = [
   { label: '상품 큐레이션', icon: <CartIcon size={26} /> },
@@ -80,11 +81,63 @@ const snsChannels = [
 type ConnectedAccount = {
   provider: Exclude<OAuthProvider, 'facebook'>
   accountId: string
+  verificationToken?: string
   followerCount: number | null
+  contentCount?: number | null
   label: string
 }
 
 const DUPLICATE_APPLICATION_MESSAGE = '이미 해당 기수에 신청하셨습니다.'
+
+const consentDetails = {
+  hyundai: {
+    title: '현대백화점 이용약관',
+    content: selectorsTermsFor('㈜현대백화점'),
+  },
+  hanmoo: {
+    title: '한무쇼핑 이용약관',
+    content: selectorsTermsFor('한무쇼핑㈜'),
+  },
+  contentCollection: {
+    title: 'SNS 콘텐츠 자동 수집 및 활용 동의',
+    content: '본인은 셀렉터스 활동 검증 및 성과 관리를 위해, 본인이 등록한 SNS 계정(유튜브·인스타그램 등)의 공개 게시물과 관련 정보(게시물 내용, 이미지·영상, 조회수·좋아요·댓글 수 등 성과 지표)를 현대백화점이 주기적으로 자동 수집·저장·이용하는 것에 동의합니다.',
+  },
+  copyright: {
+    title: '게시물 저작권 및 제3자 정보 확인',
+    content: '본인은 수집 대상 게시물이 본인의 저작물이거나 정당한 이용 권한을 보유하고 있으며, 게시물에 포함된 제3자의 정보에 대해 필요한 동의를 확보했음을 확인합니다.',
+  },
+  alimtalk: {
+    title: '카카오 알림톡 수신 동의',
+    content: `셀렉터스 서비스 운영을 위한 카카오 알림톡 수신 동의
+
+① 수신 목적: 셀렉터스 신청 접수 및 심사 결과, 활동 및 캠페인, 정산 등 서비스 운영에 필요한 안내
+② 수신 채널: 카카오 알림톡(알림톡 발송이 어려운 경우 동일한 내용이 SMS 또는 LMS로 발송될 수 있습니다.)
+③ 이용 정보: 회원정보에 등록된 휴대전화번호
+④ 동의 기간: 동의 철회 또는 셀렉터스 서비스 이용 종료 시까지
+
+본 동의는 셀렉터스 서비스 제공에 필요한 필수 안내를 위한 것으로, 광고성 정보 수신 동의와는 별개입니다. 동의를 거부할 권리가 있으나, 거부 시 셀렉터스 신청 및 서비스 이용이 제한될 수 있습니다.`,
+  },
+} as const
+
+type ConsentDetailKey = keyof typeof consentDetails
+
+function ConsentDocument({ content }: { content: string }) {
+  return content.split('\n').filter((line) => line.trim()).map((line, index) => {
+    if (line === '더현대Hi 셀렉터스 프로그램 이용약관') {
+      return <strong className="terms-document-lead" key={line}>{line}</strong>
+    }
+    if (/^(제\d+조|\[부칙\])/.test(line)) {
+      return <h3 key={`${index}-${line}`}>{line}</h3>
+    }
+    if (/^\(\d+\)/.test(line)) {
+      return <p className="terms-document-list-item" key={`${index}-${line}`}>{line}</p>
+    }
+    if (/^\d+\)/.test(line)) {
+      return <p className="terms-document-nested-item" key={`${index}-${line}`}>{line}</p>
+    }
+    return <p key={`${index}-${line}`}>{line}</p>
+  })
+}
 
 function extractErrorMessage(payload: string): string {
   if (!payload.trim()) {
@@ -113,6 +166,9 @@ export function ApplyFormScreen() {
   const [isSnsMenuOpen, setIsSnsMenuOpen] = useState(false)
   const [privacyAgreed, setPrivacyAgreed] = useState(false)
   const [shopTermsAgreed, setShopTermsAgreed] = useState(false)
+  const [contentCollectionAgreed, setContentCollectionAgreed] = useState(false)
+  const [copyrightConfirmed, setCopyrightConfirmed] = useState(false)
+  const [openConsentDetail, setOpenConsentDetail] = useState<ConsentDetailKey | null>(null)
   const [alarmAgreed, setAlarmAgreed] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
@@ -154,7 +210,14 @@ export function ApplyFormScreen() {
     }
   }, [isUserSessionValid])
 
-  const canSubmit = !isSubmitting && isCurrentChannelConnected && privacyAgreed && shopTermsAgreed && (hasAlimtalkConsent || alarmAgreed)
+  const canSubmit =
+    !isSubmitting &&
+    isCurrentChannelConnected &&
+    privacyAgreed &&
+    shopTermsAgreed &&
+    contentCollectionAgreed &&
+    copyrightConfirmed &&
+    (hasAlimtalkConsent || alarmAgreed)
 
   const hydrateVerifiedAccount = () => {
     const verifiedJson = sessionStorage.getItem('oauthVerified')
@@ -230,6 +293,21 @@ export function ApplyFormScreen() {
     }
   }, [selectedChannel, connectedAccount])
 
+  useEffect(() => {
+    if (!openConsentDetail) {
+      return undefined
+    }
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setOpenConsentDetail(null)
+      }
+    }
+
+    window.addEventListener('keydown', closeOnEscape)
+    return () => window.removeEventListener('keydown', closeOnEscape)
+  }, [openConsentDetail])
+
   if (!isUserSessionValid) {
     return null
   }
@@ -270,8 +348,16 @@ export function ApplyFormScreen() {
   }
 
   const handleSubmit = async () => {
-    if (!selectedChannel || !session || !isUserSessionValid) {
+    if (!selectedChannel || !connectedAccount || !session || !isUserSessionValid) {
       redirectToLoginScreen()
+      return
+    }
+
+    if (!connectedAccount.verificationToken?.trim()) {
+      setConnectedAccount(null)
+      setOauthStatus('')
+      sessionStorage.removeItem('oauthVerified')
+      setSubmitError('SNS 계정을 다시 인증해 주세요.')
       return
     }
 
@@ -279,11 +365,13 @@ export function ApplyFormScreen() {
     setSubmitError('')
 
     try {
-      const snsCode = connectedAccount?.provider === 'instagram' ? 'INSTAGRAM' : connectedAccount?.provider === 'youtube' ? 'YOUTUBE' : selectedChannel.provider === 'instagram' ? 'INSTAGRAM' : 'YOUTUBE'
+      const snsCode = connectedAccount.provider === 'instagram' ? 'INSTAGRAM' : 'YOUTUBE'
       const payload = {
         snsCode,
-        snsAccountId: connectedAccount?.label || session.loginId || selectedChannel.label,
-        followerCount: connectedAccount?.followerCount ?? 0,
+        snsAccountId: connectedAccount.accountId,
+        verificationToken: connectedAccount.verificationToken,
+        followerCount: connectedAccount.followerCount ?? null,
+        contentCount: connectedAccount.contentCount ?? null,
         privacyAgreed,
         alarmAgreed: hasAlimtalkConsent || alarmAgreed,
       }
@@ -404,7 +492,7 @@ export function ApplyFormScreen() {
               <span className="custom-check"><CheckIcon size={16} /></span>
               <span>현대백화점 이용약관 (필수)</span>
             </label>
-            <button aria-label="현대백화점 이용약관 내용 보기" type="button"><ArrowRightIcon size={18} /></button>
+            <button aria-label="현대백화점 이용약관 내용 보기" onClick={() => setOpenConsentDetail('hyundai')} type="button"><ArrowRightIcon size={24} /></button>
           </div>
           <div className="term-row">
             <label>
@@ -412,7 +500,23 @@ export function ApplyFormScreen() {
               <span className="custom-check"><CheckIcon size={16} /></span>
               <span>한무쇼핑 이용약관 (필수)</span>
             </label>
-            <button aria-label="한무쇼핑 이용약관 내용 보기" type="button"><ArrowRightIcon size={18} /></button>
+            <button aria-label="한무쇼핑 이용약관 내용 보기" onClick={() => setOpenConsentDetail('hanmoo')} type="button"><ArrowRightIcon size={24} /></button>
+          </div>
+          <div className="term-row consent-term-row">
+            <label>
+              <input checked={contentCollectionAgreed} onChange={(event) => setContentCollectionAgreed(event.target.checked)} type="checkbox" />
+              <span className="custom-check"><CheckIcon size={16} /></span>
+              <span>SNS 콘텐츠 자동 수집 및 활용 동의 (필수)</span>
+            </label>
+            <button aria-label="SNS 콘텐츠 자동 수집 및 활용 동의 내용 보기" onClick={() => setOpenConsentDetail('contentCollection')} type="button"><ArrowRightIcon size={24} /></button>
+          </div>
+          <div className="term-row consent-term-row">
+            <label>
+              <input checked={copyrightConfirmed} onChange={(event) => setCopyrightConfirmed(event.target.checked)} type="checkbox" />
+              <span className="custom-check"><CheckIcon size={16} /></span>
+              <span>게시물 저작권 및 제3자 정보 확인 (필수)</span>
+            </label>
+            <button aria-label="게시물 저작권 및 제3자 정보 확인 내용 보기" onClick={() => setOpenConsentDetail('copyright')} type="button"><ArrowRightIcon size={24} /></button>
           </div>
           {hasAlimtalkConsent ? null : (
             <div className="term-row">
@@ -421,13 +525,31 @@ export function ApplyFormScreen() {
                 <span className="custom-check"><CheckIcon size={16} /></span>
                 <span>카카오 알림톡 수신 동의 (필수)</span>
               </label>
-              <button aria-label="카카오 알림톡 수신 동의 내용 보기" type="button"><ArrowRightIcon size={18} /></button>
+              <button aria-label="카카오 알림톡 수신 동의 내용 보기" onClick={() => setOpenConsentDetail('alimtalk')} type="button"><ArrowRightIcon size={24} /></button>
             </div>
           )}
         </section>
 
       </div>
       <BottomActionBar disabled={!canSubmit} label="셀렉터스 신청하기" onClick={handleSubmit} />
+      {openConsentDetail ? (
+        <div className="consent-detail-backdrop">
+          <section
+            aria-labelledby="consent-detail-title"
+            aria-modal="true"
+            className="consent-detail-modal"
+            role="dialog"
+          >
+            <div className="consent-detail-header">
+              <h2 id="consent-detail-title">{consentDetails[openConsentDetail].title}</h2>
+              <button autoFocus aria-label="닫기" onClick={() => setOpenConsentDetail(null)} type="button"><CloseIcon size={24} /></button>
+            </div>
+            <div className="consent-detail-body">
+              <ConsentDocument content={consentDetails[openConsentDetail].content} />
+            </div>
+          </section>
+        </div>
+      ) : null}
       {oauthError ? (
         <div aria-modal="true" className="auth-gate-backdrop" role="dialog" aria-labelledby="oauth-error-title">
           <div className="auth-gate-modal">

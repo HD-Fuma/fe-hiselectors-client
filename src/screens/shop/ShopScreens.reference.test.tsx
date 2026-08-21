@@ -98,7 +98,7 @@ describe('service sidebar and public shop reference contract', () => {
   })
 
   it('locks the reference shop geometry', () => {
-    expect(compactGlobalCss).toMatch(/\.screen-header \{[^}]*flex: 0 0 52px;[^}]*height: 52px;[^}]*padding: 0 16px;/)
+    expect(compactGlobalCss).toMatch(/\.screen-header \{[^}]*flex: 0 0 52px;[^}]*height: 52px;[^}]*padding: 0 16px 0 12px;/)
     expect(compactShopCss).toMatch(/\.public-shop-screen \{[^}]*padding: 0 16px;/)
     expect(compactShopCss).toMatch(/\.selector-profile \{[^}]*align-items: flex-start;[^}]*gap: 16px;[^}]*padding: 16px 0 24px;/)
     expect(compactShopCss).toMatch(/\.selector-profile-thumb \{[^}]*position: relative;[^}]*width: 74px;[^}]*height: 79px;/)
@@ -139,7 +139,9 @@ describe('service sidebar and public shop reference contract', () => {
   })
 
   it('uses the live upload-style share icon at the accessible 22px header placement', () => {
-    localStorage.setItem('selectors-auth', JSON.stringify({ accessToken: 'owner.token', role: 'USER' }))
+    localStorage.setItem('selectors-auth', JSON.stringify({
+      accessToken: 'owner.token', role: 'USER', selectorAccessLevel: 'CURRENT',
+    }))
     window.location.hash = '#/shop/RC000003200T'
     render(<App />)
 

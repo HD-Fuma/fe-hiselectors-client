@@ -9,6 +9,7 @@ export type SelectorProfile = {
 
 export type ShopProduct = {
   readonly id: string
+  readonly code?: string
   readonly category: string
   readonly brand: string
   readonly name: string
@@ -52,6 +53,7 @@ export const selectorProfile = {
 export const selectorProducts = [
   {
     id: 'knit-ivory',
+    code: '40B1342672',
     category: '패션',
     brand: '알투더블유',
     name: '[더현대Hi 단독] Cale ribbed half sleeve KN (Ivory)',
@@ -63,6 +65,7 @@ export const selectorProducts = [
   },
   {
     id: 'knit-blue',
+    code: '40B1342714',
     category: '패션',
     brand: '알투더블유',
     name: '[더현대Hi 단독] Cale ribbed half sleeve KN (Soft blue)',
@@ -74,6 +77,7 @@ export const selectorProducts = [
   },
   {
     id: 'knit-midnight',
+    code: '40B1342730',
     category: '패션',
     brand: '알투더블유',
     name: '[더현대Hi 단독] Cale ribbed half sleeve KN (Midnight blue)',
@@ -85,6 +89,7 @@ export const selectorProducts = [
   },
   {
     id: 'cologne-blackberry',
+    code: '40A2250746',
     category: '뷰티',
     brand: '조 말론 런던',
     name: '[단독] 블랙베리 앤 베이 코롱 100ml (+바디 워시 30ml 증정)',
@@ -96,6 +101,7 @@ export const selectorProducts = [
   },
   {
     id: 'cologne-pear',
+    code: '40A2250850',
     category: '뷰티',
     brand: '조 말론 런던',
     name: '잉글리쉬 페어 앤 프리지아 코롱 30ml (+코롱 1.5ml 1종 +바디 사쉐 1종 증정)',
@@ -107,6 +113,7 @@ export const selectorProducts = [
   },
   {
     id: 'cologne-frangipani',
+    code: '40A2320469',
     category: '뷰티',
     brand: '조 말론 런던',
     name: '프랑지파니 플라워 코롱 30ml',
@@ -118,6 +125,7 @@ export const selectorProducts = [
   },
   {
     id: 'jewelry-fullmoon',
+    code: '60A2084362',
     category: '주얼리',
     brand: '이에르로르',
     name: '샴페인 풀문 (Y) 빅 보울 귀걸이 HL2E53215YBXXX',
@@ -129,6 +137,7 @@ export const selectorProducts = [
   },
   {
     id: 'jewelry-flower',
+    code: '60A2285600',
     category: '주얼리',
     brand: '이에르로르',
     name: '에센스 실버(W) 모이사나이트 플라워 스테이션 팔찌 HL4B61404W9175',
@@ -140,6 +149,7 @@ export const selectorProducts = [
   },
   {
     id: 'jewelry-hlink',
+    code: '60B1123482',
     category: '주얼리',
     brand: '이에르로르',
     name: '[이에르로르] [Premium Plating] H링크 AB(W) 듀오 라인 파베 뱅글 HL3B63304WB',
@@ -151,6 +161,7 @@ export const selectorProducts = [
   },
   {
     id: 'earring-essence',
+    code: '60A2099341',
     category: '주얼리',
     brand: '이에르로르',
     name: '에센스 실버(W) 모이사나이트 쁘띠 원터치 귀걸이 HL4E54406W9XXX',
@@ -162,6 +173,7 @@ export const selectorProducts = [
   },
   {
     id: 'earring-souvenir',
+    code: '60B1123606',
     category: '주얼리',
     brand: '',
     name: '[이에르로르] 수브니 플로우 실버(W) 원터치 귀걸이 S HL6E64607W9XXX',

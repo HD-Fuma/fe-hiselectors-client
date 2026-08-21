@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 // @ts-expect-error The app intentionally has no Node type dependency; Vitest runs this file in Node.
 import { readFileSync } from 'node:fs'
 
@@ -24,6 +24,7 @@ afterEach(() => {
   cleanup()
   window.location.hash = ''
   document.title = 'Selectors Client'
+  vi.restoreAllMocks()
 })
 
 describe('quality regression contracts', () => {
@@ -59,12 +60,36 @@ describe('quality regression contracts', () => {
     })
   })
 
-  it('preserves accessible mobile metric labels while visually compacting the table', () => {
+  it('preserves accessible mobile metric labels while visually compacting the table', async () => {
+    localStorage.setItem('selectors-auth', JSON.stringify({
+      accessToken: 'test.jwt', role: 'USER', selectorAccessLevel: 'CURRENT',
+    }))
+    vi.spyOn(globalThis, 'fetch').mockImplementation((input) => Promise.resolve(
+      String(input).includes('/api/performance/products')
+        ? new Response(JSON.stringify({ data: {
+          activityMonth: '2026-08',
+          conversionCount: 92,
+          totalProductCount: 1,
+          products: [{
+            productId: 1,
+            productCode: 'PRODUCT-1',
+            productName: '테스트 상품',
+            brandName: '테스트 브랜드',
+            thumbnailUrl: '/product.jpg',
+            clickCount: 2840,
+            conversionCount: 92,
+            conversionAmount: 10_826_667,
+            conversionRate: 3.24,
+            estimatedSettlementAmount: 324_800,
+          }],
+        } }))
+        : new Response(JSON.stringify({ data: { accessLevel: 'CURRENT' } })),
+    ))
     window.location.hash = '#/performance/products'
     render(<App />)
 
     const table = screen.getByRole('table', { name: '상품별 성과 지표' })
-    expect(within(table).getByRole('cell', { name: '클릭 2,840' })).toBeTruthy()
+    expect(await within(table).findByRole('cell', { name: '클릭 2,840' })).toBeTruthy()
     expect(within(table).getByRole('cell', { name: '예상 수수료 324,800원' })).toBeTruthy()
 
     const mobileRules = globalCss.slice(globalCss.indexOf('@media (max-width: 480px)'))
@@ -73,6 +98,9 @@ describe('quality regression contracts', () => {
   })
 
   it('does not expose a fake search landmark without a search control', () => {
+    localStorage.setItem('selectors-auth', JSON.stringify({
+      accessToken: 'test.jwt', role: 'USER', selectorAccessLevel: 'CURRENT',
+    }))
     window.location.hash = '#/campaigns'
     render(<App />)
 
