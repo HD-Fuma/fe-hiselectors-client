@@ -104,6 +104,7 @@ describe('selector access refresh', () => {
     const navigation = screen.getByRole('navigation', { name: '셀렉터스 메뉴' })
     expect(within(navigation).getAllByRole('link').map((link) => link.getAttribute('href'))).toEqual([
       '#/settlement',
+      '#/mypage/member',
     ])
 
     await new Promise((resolve) => window.setTimeout(resolve, 0))
