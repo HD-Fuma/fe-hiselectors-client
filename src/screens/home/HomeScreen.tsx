@@ -14,6 +14,7 @@ const staticHomeMenus = [
   { href: '#/campaigns', label: '캠페인', description: '진행 중인 캠페인과 상품을 확인해요.', Icon: GiftIcon },
   { href: '#/performance', label: '성과', description: '클릭과 구매 전환 성과를 확인해요.', Icon: ChartIcon },
   { href: '#/settlement/check', label: '정산 관리', description: '정산 정보와 지급 내역을 관리해요.', Icon: CoinIcon },
+  { href: '#/mypage/member', label: '회원정보 변경', description: '회원정보와 카카오 메시지 연결을 관리해요.', Icon: PersonIcon },
 ] as const
 
 const settlementHistoryMenu = {

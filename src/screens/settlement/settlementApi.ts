@@ -8,6 +8,11 @@ export type SettlementStatus =
   | 'SETTLED'
   | 'EXPIRED'
 
+export type SettlementProvisionalEstimate = {
+  purchaseCount: number
+  settlementAmount: number
+}
+
 export type SettlementEstimate = {
   settlementId: number
   selectorsId: number
@@ -23,6 +28,7 @@ export type SettlementEstimate = {
   status: SettlementStatus
   calculatedAt: string
   updatedAt: string
+  provisionalEstimate?: SettlementProvisionalEstimate | null
 }
 
 export type SettlementHistories = {
@@ -104,11 +110,22 @@ async function request<T>(
   return payload as T
 }
 
-function isSettlementEstimate(value: unknown): value is SettlementEstimate {
+function isProvisionalEstimate(value: unknown): value is SettlementProvisionalEstimate {
   return typeof value === 'object'
     && value !== null
-    && typeof (value as SettlementEstimate).activityMonth === 'string'
-    && typeof (value as SettlementEstimate).settlementAmount === 'number'
+    && typeof (value as SettlementProvisionalEstimate).purchaseCount === 'number'
+    && typeof (value as SettlementProvisionalEstimate).settlementAmount === 'number'
+}
+
+function isSettlementEstimate(value: unknown): value is SettlementEstimate {
+  if (typeof value !== 'object' || value === null) return false
+
+  const estimate = value as SettlementEstimate
+  if (typeof estimate.activityMonth !== 'string' || typeof estimate.settlementAmount !== 'number') {
+    return false
+  }
+
+  return estimate.provisionalEstimate == null || isProvisionalEstimate(estimate.provisionalEstimate)
 }
 
 export async function getSettlementEstimate(activityMonth?: string): Promise<SettlementEstimate> {
