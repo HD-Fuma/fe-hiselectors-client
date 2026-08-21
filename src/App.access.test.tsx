@@ -200,21 +200,31 @@ describe('selector access refresh', () => {
     const countHashChange = () => { hashChangeCount += 1 }
     window.addEventListener('hashchange', countHashChange)
 
-    render(<App />)
-    await vi.waitFor(() => expect(window.location.hash).toBe('#/home'))
-    await new Promise((resolve) => window.setTimeout(resolve, 20))
-    expect(hashChangeCount).toBeLessThanOrEqual(2)
+    try {
+      render(<App />)
+      let previousHashChangeCount = -1
+      await vi.waitFor(() => {
+        const previousCount = previousHashChangeCount
+        previousHashChangeCount = hashChangeCount
+        expect(window.location.hash).toBe('#/home')
+        expect(hashChangeCount).toBeGreaterThan(0)
+        expect(hashChangeCount).toBe(previousCount)
+        expect(hashChangeCount).toBeLessThanOrEqual(2)
+      })
 
-    resolveVerification(json({
-      data: {
-        verified: true,
-        verificationToken: 'verification-token',
-        username: 'creator',
-      },
-    }))
-    await vi.waitFor(() => expect(window.location.search).toBe(''))
-    expect(window.location.hash).toBe('#/home')
-    window.removeEventListener('hashchange', countHashChange)
+      resolveVerification(json({
+        data: {
+          verified: true,
+          verificationToken: 'verification-token',
+          username: 'creator',
+        },
+      }))
+      await vi.waitFor(() => expect(window.location.search).toBe(''))
+      expect(window.location.hash).toBe('#/home')
+      expect(hashChangeCount).toBeLessThanOrEqual(2)
+    } finally {
+      window.removeEventListener('hashchange', countHashChange)
+    }
   })
 
   it('keeps a legacy applicant OAuth callback on the form while NONE access resolves', async () => {

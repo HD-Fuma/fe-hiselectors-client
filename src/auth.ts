@@ -89,6 +89,12 @@ export function hasValidUserSession(session: AuthSession | null): boolean {
   return Boolean(session && session.accessToken && session.role)
 }
 
+export function isSelectorAccessPending(session: AuthSession | null): boolean {
+  return hasValidUserSession(session)
+    && session?.role === 'USER'
+    && session.selectorAccessLevel === undefined
+}
+
 export function getSelectorAccessLevel(session: AuthSession | null): SelectorAccessLevel {
   return hasValidUserSession(session) && session?.role === 'USER'
     ? session.selectorAccessLevel ?? 'NONE'
@@ -116,6 +122,7 @@ export async function fetchSelectorAccessLevel(
     headers: {
       Authorization: `${tokenType || 'Bearer'} ${accessToken}`,
     },
+    signal: AbortSignal.timeout(10_000),
   })
 
   if (!response.ok) {

@@ -33,6 +33,7 @@ afterEach(() => {
   cleanup()
   window.location.hash = ''
   localStorage.clear()
+  sessionStorage.clear()
   vi.unstubAllGlobals()
   vi.restoreAllMocks()
 
@@ -130,18 +131,56 @@ describe('public selectors shop', () => {
     )
   })
 
-  it('keeps a previous generation shop read-only', () => {
+  it('keeps a previous generation shop read-only after access resolves', async () => {
     localStorage.setItem('selectors-auth', JSON.stringify({
-      accessToken: 'owner.token', role: 'USER', selectorAccessLevel: 'PREVIOUS',
+      accessToken: 'owner.token', role: 'USER',
     }))
     sessionStorage.setItem('selectors-shop-view-mode', 'owner')
+    vi.mocked(globalThis.fetch).mockImplementation(() => Promise.resolve(new Response(JSON.stringify({
+      data: { accessLevel: 'PREVIOUS' },
+    }))))
     window.location.hash = shopHash
 
     render(<App />)
 
+    await waitFor(() => {
+      expect(JSON.parse(localStorage.getItem('selectors-auth') ?? '{}')).toMatchObject({
+        selectorAccessLevel: 'PREVIOUS',
+      })
+      expect(sessionStorage.getItem('selectors-shop-view-mode')).toBe('public')
+    })
     expect(screen.getByRole('heading', { level: 1, name: '셀렉터스샵' })).toBeTruthy()
     expect(screen.queryByRole('button', { name: '관리자' })).toBeNull()
     expect(screen.queryByRole('link', { name: '관리하기' })).toBeNull()
+  })
+
+  it('preserves a legacy owner preference until current access resolves', async () => {
+    localStorage.setItem('selectors-auth', JSON.stringify({
+      accessToken: 'owner.token', role: 'USER',
+    }))
+    sessionStorage.setItem('selectors-shop-view-mode', 'owner')
+    let resolveAccess!: (response: Response) => void
+    const accessResponse = new Promise<Response>((resolve) => { resolveAccess = resolve })
+    vi.mocked(globalThis.fetch).mockImplementation((input) => (
+      String(input).endsWith('/api/me/selector-access')
+        ? accessResponse
+        : Promise.resolve(new Response(JSON.stringify({ data: {} })))
+    ))
+    window.location.hash = shopHash
+
+    const app = render(<App />)
+
+    expect(sessionStorage.getItem('selectors-shop-view-mode')).toBe('owner')
+    expect(screen.queryByRole('button', { name: '관리자' })).toBeNull()
+
+    resolveAccess(new Response(JSON.stringify({ data: { accessLevel: 'CURRENT' } })))
+    await waitFor(() => expect(JSON.parse(localStorage.getItem('selectors-auth') ?? '{}')).toMatchObject({
+      selectorAccessLevel: 'CURRENT',
+    }))
+    expect(sessionStorage.getItem('selectors-shop-view-mode')).toBe('owner')
+
+    app.rerender(<App />)
+    await waitFor(() => expect(screen.getByRole('link', { name: '관리하기' })).toBeTruthy())
   })
 
   it('announces only actual shop statuses', () => {

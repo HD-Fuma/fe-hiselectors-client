@@ -112,6 +112,16 @@ function canManageOwnedSelectorShop(): boolean {
   return canManageSelectorOperations(readAuthSession())
 }
 
+function requireOwnedShopMutationAccess(expectedAccessToken?: string): string {
+  const session = readAuthSession()
+  if (!canManageSelectorOperations(session)
+    || !session?.accessToken
+    || (expectedAccessToken && session.accessToken !== expectedAccessToken)) {
+    throw new Error('현재 기수 셀렉터스만 상품 그룹을 관리할 수 있습니다.')
+  }
+  return session.accessToken
+}
+
 export function createInitialShopDemoState(): ShopDemoState {
   return {
     profile: { ...selectorProfile },
@@ -377,7 +387,8 @@ function ApiShopProvider({ children }: { children: ReactNode }) {
     productIds: group.products.map(({ id }) => String(id)),
   }), [])
 
-  const applyApiGroup = useCallback((group: ProductGroupApiResponse) => {
+  const applyApiGroup = useCallback((group: ProductGroupApiResponse, accessToken: string) => {
+    requireOwnedShopMutationAccess(accessToken)
     mergeProducts(group.products.map((product) => mapApiProduct(product, String(group.campaignId))))
     dispatch({ type: 'upsertGroup', group: mapApiGroup(group) })
   }, [mapApiGroup, mapApiProduct, mergeProducts])
@@ -576,33 +587,34 @@ function ApiShopProvider({ children }: { children: ReactNode }) {
   }, [products])
   const renameGroup = useCallback(async (groupId: string, name: string) => {
     const group = state.groups.find(({ id }) => id === groupId)
-    if (!canManageOwnedSelectorShop()) throw new Error('현재 기수 셀렉터스만 상품 그룹을 관리할 수 있습니다.')
+    const accessToken = requireOwnedShopMutationAccess()
     if (!group?.campaignId) throw new Error('상품 그룹의 캠페인 정보를 찾을 수 없습니다.')
     applyApiGroup(await updateProductGroup(groupId, {
       campaignId: Number(group.campaignId), title: name, productIds: group.productIds.map(Number),
-    }))
+    }), accessToken)
   }, [applyApiGroup, state.groups])
   const updateGroupProducts = useCallback(async (groupId: string, input: GroupInput) => {
-    if (!canManageOwnedSelectorShop()) throw new Error('현재 기수 셀렉터스만 상품 그룹을 관리할 수 있습니다.')
+    const accessToken = requireOwnedShopMutationAccess()
     if (!input.campaignId) throw new Error('캠페인을 선택해 주세요.')
     applyApiGroup(await updateProductGroup(groupId, {
       campaignId: Number(input.campaignId), title: input.name, productIds: input.productIds.map(Number),
-    }))
+    }), accessToken)
   }, [applyApiGroup])
   const createGroup = useCallback(async (input: GroupInput) => {
-    if (!canManageOwnedSelectorShop()) throw new Error('현재 기수 셀렉터스만 상품 그룹을 관리할 수 있습니다.')
+    const accessToken = requireOwnedShopMutationAccess()
     if (!input.campaignId) throw new Error('캠페인을 선택해 주세요.')
     applyApiGroup(await createProductGroup({
       campaignId: Number(input.campaignId), title: input.name, productIds: input.productIds.map(Number),
-    }))
+    }), accessToken)
   }, [applyApiGroup])
   const addProductsToGroup = useCallback(async (groupId: string, productIds: string[]) => {
-    if (!canManageOwnedSelectorShop()) throw new Error('현재 기수 셀렉터스만 상품 그룹을 관리할 수 있습니다.')
-    applyApiGroup(await addProductGroupItems(groupId, productIds.map(Number)))
+    const accessToken = requireOwnedShopMutationAccess()
+    applyApiGroup(await addProductGroupItems(groupId, productIds.map(Number)), accessToken)
   }, [applyApiGroup])
   const deleteGroup = useCallback(async (groupId: string) => {
-    if (!canManageOwnedSelectorShop()) throw new Error('현재 기수 셀렉터스만 상품 그룹을 관리할 수 있습니다.')
+    const accessToken = requireOwnedShopMutationAccess()
     await deleteProductGroup(groupId)
+    requireOwnedShopMutationAccess(accessToken)
     dispatch({ type: 'deleteGroup', groupId })
   }, [])
   const setQuickAddDraft = useCallback((draft: QuickAddDraft) => {

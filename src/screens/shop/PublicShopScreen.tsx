@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 
 import { ArrowRightIcon, ShareIcon } from '../../components/Icons'
 import ScreenHeader from '../../components/ScreenHeader'
-import { canManageSelectorOperations, readAuthSession } from '../../auth'
+import { canManageSelectorOperations, isSelectorAccessPending, readAuthSession } from '../../auth'
 import ShareShopSheet from './ShareShopSheet'
 import ShopGroupSection from './ShopGroupSection'
 import { useShopDemo } from './ShopDemoContext'
@@ -19,7 +19,7 @@ type ShopViewMode = 'public' | 'owner'
 function getInitialViewMode(): ShopViewMode {
   const wantsOwnerView = sessionStorage.getItem(viewModeStorageKey) === 'owner'
   const session = readAuthSession()
-  if (wantsOwnerView && canManageSelectorOperations(session)) return 'owner'
+  if (wantsOwnerView && (canManageSelectorOperations(session) || isSelectorAccessPending(session))) return 'owner'
 
   if (wantsOwnerView) sessionStorage.setItem(viewModeStorageKey, 'public')
   return 'public'
@@ -34,17 +34,19 @@ export default function PublicShopScreen() {
   const [viewMode, setViewMode] = useState<ShopViewMode>(getInitialViewMode)
   const shareTriggerRef = useRef<HTMLButtonElement>(null)
   const session = readAuthSession()
-  const canUseOwnerView = canManageSelectorOperations(session)
+  const canManage = canManageSelectorOperations(session)
+  const accessPending = isSelectorAccessPending(session)
+  const canUseOwnerView = canManage
     && Boolean(ownedSelectorsCode)
     && ownedSelectorsCode === selectorsCode
   const isOwner = canUseOwnerView && viewMode === 'owner'
   useShopViewLog(selectorsCode, 'SHOP', undefined, Boolean(selectorsCode) && !isProductGroupLoading && !productGroupError)
 
   useEffect(() => {
-    if (canUseOwnerView) return
+    if (canManage || accessPending) return
     setViewMode('public')
     sessionStorage.setItem(viewModeStorageKey, 'public')
-  }, [canUseOwnerView])
+  }, [accessPending, canManage])
 
   const changeViewMode = (mode: ShopViewMode) => {
     if (mode === 'owner' && !canUseOwnerView) return

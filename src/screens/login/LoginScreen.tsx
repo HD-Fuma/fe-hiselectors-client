@@ -2,6 +2,7 @@ import { useState } from 'react'
 
 import {
   API_BASE_URL,
+  clearAuthSession,
   fetchSelectorAccessLevel,
   persistAuthSession,
   SelectorAccessRequestError,
@@ -135,6 +136,7 @@ export default function LoginScreen() {
         selectorAccessLevel = await fetchSelectorAccessLevel(payload.accessToken, payload.tokenType)
       } catch (error) {
         if (error instanceof SelectorAccessRequestError && [401, 403].includes(error.status)) {
+          clearAuthSession()
           throw error
         }
         console.warn('셀렉터스 권한을 확인하지 못해 일반 회원으로 로그인합니다.', error)

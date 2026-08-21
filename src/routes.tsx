@@ -3,7 +3,9 @@ import type { ComponentType } from 'react'
 import {
   canManageSelectorOperations,
   canViewSettlementHistory,
+  getSelectorAccessLevel,
   hasValidUserSession,
+  isSelectorAccessPending,
   type AuthSession,
 } from './auth'
 import { ApplyFormScreen, ApplyIntroScreen, ApplyStatusScreen } from './screens/apply/ApplyScreens'
@@ -171,7 +173,7 @@ export function selectRouteByHash(hash: string): AppRoute {
 
 export function canAccessRoute(route: AppRoute, session: AuthSession | null): boolean {
   if (route.access === 'public') return true
-  if (route.access === 'applicant') return !hasValidUserSession(session) || session?.selectorAccessLevel === 'NONE'
+  if (route.access === 'applicant') return !hasValidUserSession(session) || getSelectorAccessLevel(session) === 'NONE'
   if (route.access === 'current') return canManageSelectorOperations(session)
   if (route.access === 'settlement-history') return canViewSettlementHistory(session)
   return canViewSettlementHistory(session)
@@ -179,8 +181,8 @@ export function canAccessRoute(route: AppRoute, session: AuthSession | null): bo
 
 export function getRouteRedirect(route: AppRoute, session: AuthSession | null): HashPath | null {
   if (canAccessRoute(route, session)) return null
-  if (hasValidUserSession(session) && session?.role === 'USER' && session.selectorAccessLevel === undefined) return null
+  if (isSelectorAccessPending(session)) return null
   if (!hasValidUserSession(session)) return '#/login'
-  if (session?.selectorAccessLevel === 'NONE') return '#/apply'
+  if (getSelectorAccessLevel(session) === 'NONE') return '#/apply'
   return '#/home'
 }

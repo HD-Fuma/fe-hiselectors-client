@@ -88,4 +88,17 @@ describe('routes', () => {
   it('sends an anonymous protected-route request to login', () => {
     expect(getRouteRedirect(selectRouteByHash('#/campaigns'), null)).toBe('#/login')
   })
+
+  it('treats a non-user role as having no selector access', () => {
+    const session: AuthSession = {
+      accessToken: 'admin.jwt',
+      tokenType: 'Bearer',
+      role: 'ADMIN',
+      loginId: 'admin',
+      selectorAccessLevel: 'CURRENT',
+    }
+
+    expect(getRouteRedirect(selectRouteByHash('#/home'), session)).toBe('#/apply')
+    expect(getRouteRedirect(selectRouteByHash('#/apply'), session)).toBeNull()
+  })
 })

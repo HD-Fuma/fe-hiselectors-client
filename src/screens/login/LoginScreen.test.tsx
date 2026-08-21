@@ -98,9 +98,10 @@ describe('The Hyundai login reference contract', () => {
     await vi.waitFor(() => {
       expect(fetchSpy).toHaveBeenCalledWith(
         'https://api.hiselectors.shop/api/me/selector-access',
-        {
+        expect.objectContaining({
           headers: { Authorization: 'Bearer test.jwt' },
-        },
+          signal: expect.any(AbortSignal),
+        }),
       )
     })
 
@@ -313,6 +314,10 @@ describe('The Hyundai login reference contract', () => {
       .mockResolvedValueOnce(new Response(null, { status }))
 
     render(<App />)
+    localStorage.setItem('selectors-auth', JSON.stringify({
+      accessToken: 'previous.jwt', tokenType: 'Bearer', role: 'USER', loginId: 'previous-user',
+      selectorAccessLevel: 'CURRENT',
+    }))
     fireEvent.change(screen.getByLabelText('아이디'), { target: { value: 'selector-user' } })
     fireEvent.change(screen.getByLabelText('비밀번호'), { target: { value: 'demo-pass' } })
     fireEvent.click(screen.getByRole('button', { name: '로그인' }))

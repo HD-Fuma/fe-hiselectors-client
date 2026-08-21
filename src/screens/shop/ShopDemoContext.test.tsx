@@ -546,6 +546,25 @@ function OwnedDataProbe() {
   )
 }
 
+let mutationResult: string | null = null
+
+function OwnedMutationControl() {
+  const { renameGroup } = useShopDemo()
+  return (
+    <button
+      onClick={() => {
+        void renameGroup('1', '늦은 응답').then(
+          () => { mutationResult = 'resolved' },
+          (error: unknown) => { mutationResult = error instanceof Error ? error.message : 'rejected' },
+        )
+      }}
+      type="button"
+    >
+      rename owned group
+    </button>
+  )
+}
+
 function readOwnedDataProbe() {
   return JSON.parse(screen.getByTestId('owned-shop-state').textContent ?? '') as {
     profileName: string
@@ -713,6 +732,79 @@ describe('shop provider', () => {
       groupCount: 0,
     }))
     expect(fetchSpy.mock.calls.filter(([input]) => String(input).endsWith('/api/product-groups/me/shop'))).toHaveLength(1)
+  })
+
+  it('discards an in-flight mutation response after selector access is revoked', async () => {
+    vi.stubEnv('MODE', 'production')
+    mutationResult = null
+    localStorage.setItem('selectors-auth', JSON.stringify({
+      accessToken: 'selector.jwt', tokenType: 'Bearer', role: 'USER', loginId: 'selector-user',
+      selectorAccessLevel: 'CURRENT',
+    }))
+    window.location.hash = '#/home'
+    let resolveUpdate!: (response: Response) => void
+    const updateResponse = new Promise<Response>((resolve) => { resolveUpdate = resolve })
+    const ownedGroup = {
+      id: 1,
+      selectorsId: 1,
+      campaignId: 1,
+      groupNo: 1,
+      title: '소유 상품 그룹',
+      createdAt: '2026-08-20T00:00:00',
+      products: [],
+    }
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation((input, init) => {
+      const url = String(input)
+      if (url.endsWith('/api/product-groups/me/shop')) {
+        return Promise.resolve(new Response(JSON.stringify({
+          data: {
+            selectorsCode: 'SEL-001',
+            nickname: 'loaded-selector',
+            profileImageUrl: null,
+            generationName: '1기',
+            userName: '셀렉터',
+            snsId: 'selector-sns',
+            groups: [ownedGroup],
+          },
+        }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+      }
+      if (url.endsWith('/api/product-groups/1') && init?.method === 'PUT') return updateResponse
+      if (url.endsWith('/api/campaigns')) {
+        return Promise.resolve(new Response(JSON.stringify({ data: [] }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }))
+      }
+      return Promise.resolve(new Response('{}', { status: 404 }))
+    })
+
+    render(
+      <ShopDemoProvider>
+        <OwnedDataProbe />
+        <OwnedMutationControl />
+      </ShopDemoProvider>,
+    )
+
+    await waitFor(() => expect(readOwnedDataProbe().groupCount).toBe(1))
+    fireEvent.click(screen.getByRole('button', { name: 'rename owned group' }))
+    await waitFor(() => expect(fetchSpy.mock.calls.some(([input, init]) => (
+      String(input).endsWith('/api/product-groups/1') && init?.method === 'PUT'
+    ))).toBe(true))
+
+    localStorage.setItem('selectors-auth', JSON.stringify({
+      accessToken: 'selector.jwt', tokenType: 'Bearer', role: 'USER', loginId: 'selector-user',
+      selectorAccessLevel: 'BLACKLIST',
+    }))
+    window.dispatchEvent(new CustomEvent('auth:changed'))
+    await waitFor(() => expect(readOwnedDataProbe().groupCount).toBe(0))
+
+    resolveUpdate(new Response(JSON.stringify({ data: { ...ownedGroup, title: '늦은 응답' } }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    }))
+
+    await waitFor(() => expect(mutationResult).toContain('현재 기수 셀렉터스만'))
+    expect(readOwnedDataProbe().groupCount).toBe(0)
   })
 
   it('throws a clear error when the hook is used outside the provider', () => {

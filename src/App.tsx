@@ -8,6 +8,7 @@ import {
   fetchSelectorAccessLevel,
   hasValidUserSession,
   isLocalApplyTestMode,
+  isSelectorAccessPending,
   persistAuthSession,
   readAuthSession,
   SelectorAccessRequestError,
@@ -342,9 +343,8 @@ function RoutedApp({ shopProbe }: AppProps) {
   }, [route])
 
   const { Screen } = route
-  const isSelectorAccessPending = route.access !== 'public'
-    && authSession?.role === 'USER'
-    && authSession.selectorAccessLevel === undefined
+  const isAccessPending = route.access !== 'public'
+    && isSelectorAccessPending(authSession)
 
   const handleGoToLogin = () => {
     setShowAuthGateModal(false)
@@ -356,7 +356,7 @@ function RoutedApp({ shopProbe }: AppProps) {
       <AppShell
         screenId={route.id}
       >
-        {isSelectorAccessPending ? (
+        {isAccessPending ? (
           <p aria-live="polite" role="status">권한을 확인하고 있습니다.</p>
         ) : (
           <>
