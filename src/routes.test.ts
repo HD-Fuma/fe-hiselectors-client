@@ -24,7 +24,7 @@ const expectedScreens = [
     path: '#/shop/groups/new/campaign/1',
     title: '상품 그룹 만들기',
   },
-  { id: 'performance-summary', path: '#/performance', title: '성과 요약' },
+  { id: 'performance-summary', path: '#/performance', title: '셀렉터스 성과' },
   { id: 'product-performance', path: '#/performance/products', title: '상품별 성과' },
   { id: 'settlement-entry', path: '#/settlement/check', title: '정산' },
   { id: 'settlement-info', path: '#/settlement/info', title: '정산 정보' },

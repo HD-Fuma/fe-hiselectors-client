@@ -137,8 +137,43 @@ describe('shared panel and campaign fidelity', () => {
     localStorage.setItem('selectors-auth', JSON.stringify({
       accessToken: 'test.jwt', role: 'USER', selectorAccessLevel: 'CURRENT',
     }))
+    const product = {
+      productId: 1,
+      productCode: 'PRODUCT-1',
+      productName: '테스트 상품',
+      brandName: '테스트 브랜드',
+      thumbnailUrl: '/product.jpg',
+      clickCount: 2840,
+      conversionCount: 92,
+      conversionAmount: 10_826_667,
+      conversionRate: 3.24,
+      estimatedSettlementAmount: 324_800,
+    }
+    vi.spyOn(globalThis, 'fetch').mockImplementation((input) => Promise.resolve(
+      String(input).includes('/api/performance/products')
+        ? new Response(JSON.stringify({ data: { activityMonth: '2026-08', conversionCount: 386, totalProductCount: 1, products: [product] } }))
+        : String(input).includes('/api/performance/summary')
+        ? new Response(JSON.stringify({ data: {
+          activityMonth: '2026-08',
+          settlementRate: 3,
+          metrics: { estimatedSettlementAmount: 1_284_600, conversionAmount: 42_820_000, conversionCount: 386, clickCount: 12_840, conversionRate: 3.01 },
+          previousMonthMetrics: { estimatedSettlementAmount: 1_057_300, conversionAmount: 36_660_000, conversionCount: 342, clickCount: 10_863, conversionRate: 2.61 },
+          trends: [{ date: '2026-08-01', clickCount: 420, conversionCount: 12, conversionAmount: 1_340_000 }],
+          topProducts: [product],
+        } }))
+        : new Response(JSON.stringify({ data: { accessLevel: 'CURRENT' } })),
+    ))
     window.location.hash = '#/performance'
     render(<App />)
+    expect(screen.getByRole('heading', { name: '셀렉터스 성과' })).toBeTruthy()
+    expect((screen.getByRole('combobox', { name: '조회 월 선택' }) as HTMLSelectElement).value).toBe('2026-08')
+    expect(screen.getByText('구매 전환 금액', { selector: '.metric-card > span' })).toBeTruthy()
+    expect(screen.getByText('구매 전환 수', { selector: '.metric-card > span' })).toBeTruthy()
+    expect(screen.getByText('누적 클릭 수', { selector: '.metric-card > span' })).toBeTruthy()
+    expect(screen.getByText('전환율')).toBeTruthy()
+    expect(await screen.findByRole('img', {
+      name: '2026년 8월 클릭, 구매 전환 수, 구매 전환 금액 추이',
+    })).toBeTruthy()
     const aggregateCommission = screen.getByText('예상 정산 수수료').closest('.metric-card') as HTMLElement
     expect(within(aggregateCommission).getByText('예상 정산 수수료')).toBeTruthy()
     expect(within(aggregateCommission).getByText('1,284,600')).toBeTruthy()
@@ -148,11 +183,11 @@ describe('shared panel and campaign fidelity', () => {
     window.location.hash = '#/performance/products'
     render(<App />)
     const productTable = screen.getByRole('table', { name: '상품별 성과 지표' })
-    expect(within(productTable).getByRole('cell', { name: '예상 수수료 324,800원' })).toBeTruthy()
+    expect(await within(productTable).findByRole('cell', { name: '예상 수수료 324,800원' })).toBeTruthy()
 
     cleanup()
     window.location.hash = '#/settlement'
-    vi.spyOn(globalThis, 'fetch').mockImplementation((input) => Promise.resolve(
+    vi.mocked(globalThis.fetch).mockImplementation((input) => Promise.resolve(
       String(input).endsWith('/api/me/selector-access')
         ? new Response(JSON.stringify({ data: { accessLevel: 'CURRENT' } }))
         : String(input).includes('/histories')
