@@ -1,33 +1,43 @@
-# Selectors Client
+# HI Selectors Client
 
-## 로컬 실행
+현대백화점 셀렉터스의 캠페인 참여와 상품 큐레이션 활동을 지원하는 웹 서비스입니다.
 
-```bash
-npm install
-npm run dev
-```
+## 주요 기능
 
-기본 주소: [http://127.0.0.1:4173/fe-selectors-client/](http://127.0.0.1:4173/fe-selectors-client/)
+- 셀렉터스 신청 및 SNS·카카오 계정 연동
+- 캠페인 탐색과 상품 큐레이션
+- 셀렉터스샵·프로필·상품 그룹 관리
+- 공개 샵 및 상품 공유
+- 판매 성과와 정산 관리
 
-## 화면 주소
+## 기술 스택
 
-| 화면 | 주소 |
+React · TypeScript · Vite
+
+## 화면 라우팅
+
+| 화면 | 경로 |
 | --- | --- |
-| 로그인 | [#/login](http://127.0.0.1:4173/fe-selectors-client/#/login) |
-| 셀렉터스 신청 안내 | [#/apply](http://127.0.0.1:4173/fe-selectors-client/#/apply) |
-| 셀렉터스 신청서 | [#/apply/form](http://127.0.0.1:4173/fe-selectors-client/#/apply/form) |
-| 신청 완료 | [#/apply/status](http://127.0.0.1:4173/fe-selectors-client/#/apply/status) |
-| 캠페인 목록 | [#/campaigns](http://127.0.0.1:4173/fe-selectors-client/#/campaigns) |
-| 캠페인 상세 | [#/campaigns/detail](http://127.0.0.1:4173/fe-selectors-client/#/campaigns/detail) |
-| 공개 셀렉터스샵 | [#/shop/RC000003200T](http://127.0.0.1:4173/fe-selectors-client/#/shop/RC000003200T) |
-| 셀렉터스샵 그룹 상세 | [#/shop/RC000003200T/1](http://127.0.0.1:4173/fe-selectors-client/#/shop/RC000003200T/1) |
-| 상품 그룹 목록 | [#/shop/groups](http://127.0.0.1:4173/fe-selectors-client/#/shop/groups) |
-| 상품 그룹 만들기 | [#/shop/groups/new](http://127.0.0.1:4173/fe-selectors-client/#/shop/groups/new) |
-| 상품 그룹 편집 | [#/shop/groups/1/edit](http://127.0.0.1:4173/fe-selectors-client/#/shop/groups/1/edit) |
-| 캠페인 상품으로 그룹 만들기 | [#/shop/groups/new/season-pick](http://127.0.0.1:4173/fe-selectors-client/#/shop/groups/new/season-pick) |
-| 성과 요약 | [#/performance](http://127.0.0.1:4173/fe-selectors-client/#/performance) |
-| 상품별 성과 | [#/performance/products](http://127.0.0.1:4173/fe-selectors-client/#/performance/products) |
-| 정산 정보 | [#/settlement/info](http://127.0.0.1:4173/fe-selectors-client/#/settlement/info) |
-| 정산 내역 | [#/settlement](http://127.0.0.1:4173/fe-selectors-client/#/settlement) |
+| 로그인 | `/login` |
+| 셀렉터스 홈 | `/home` |
+| 회원정보 변경 | `/mypage/member` |
+| 셀렉터스 신청 안내 | `/apply` |
+| 셀렉터스 신청서 | `/apply/form` |
+| 신청 완료 | `/apply/status` |
+| 캠페인 목록 | `/campaigns` |
+| 캠페인 상세 | `/campaigns/:campaignId` |
+| 공개 셀렉터스샵 | `/shop/:selectorsCode` |
+| 셀렉터스샵 그룹 상세 | `/shop/:selectorsCode/:groupId` |
+| 상품 상세 | `/product/:productCode?ptrsRefCd=:selectorsCode` |
+| 상품 그룹 목록 | `/shop/groups` |
+| 샵 프로필 수정 | `/shop/profile/edit` |
+| 상품 그룹 생성 | `/shop/groups/new` |
+| 상품 그룹 편집 | `/shop/groups/:groupId/edit` |
+| 캠페인 상품으로 그룹 생성 | `/shop/groups/new/campaign/:campaignId` |
+| 성과 요약 | `/performance` |
+| 상품별 성과 | `/performance/products` |
+| 정산 진입 | `/settlement/check` |
+| 정산 정보 입력 | `/settlement/info` |
+| 정산 내역 | `/settlement` |
 
 화면 경로의 기준은 [`src/routes.tsx`](src/routes.tsx)입니다.
