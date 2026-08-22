@@ -3,6 +3,7 @@ import { useRef, useState } from 'react'
 import { canManageSelectorOperations, readAuthSession } from '../../auth'
 import { ArrowRightIcon } from '../../components/Icons'
 import ScreenHeader from '../../components/ScreenHeader'
+import { getCurrentPath, navigate } from '../../navigation'
 import CampaignQuickAddSheet from '../shop/CampaignQuickAddSheet'
 import { useShopDemo } from '../shop/ShopDemoContext'
 import ShopStatus from '../shop/ShopStatus'
@@ -19,7 +20,7 @@ function formatPeriod(startDate?: string, endDate?: string) {
 }
 
 function getCampaignId() {
-  return decodeURIComponent(window.location.hash.match(/^#\/campaigns\/([^/]+)$/)?.[1] ?? '')
+  return decodeURIComponent(window.location.pathname.match(/^\/campaigns\/([^/]+)$/)?.[1] ?? '')
 }
 
 function CampaignLoginRequired({ backHref, redirect }: { backHref: string; redirect: string }) {
@@ -30,7 +31,7 @@ function CampaignLoginRequired({ backHref, redirect }: { backHref: string; redir
         <p className="campaign-feedback">캠페인은 셀렉터스 로그인 후 확인할 수 있습니다.</p>
         <a
           className="primary-action"
-          href="#/login"
+          href="/login"
           onClick={() => sessionStorage.setItem('postLoginRedirect', redirect)}
         >
           로그인하기
@@ -46,12 +47,12 @@ export function CampaignListScreen() {
   const canViewCampaigns = canManageSelectorOperations(session)
 
   if (!canViewCampaigns) {
-    return <CampaignLoginRequired backHref="#/home" redirect="#/campaigns" />
+    return <CampaignLoginRequired backHref="/home" redirect="/campaigns" />
   }
 
   return (
     <>
-      <ScreenHeader backHref="#/home" title="캠페인" />
+      <ScreenHeader backHref="/home" title="캠페인" />
       <div className="screen-scroll campaigns-screen">
         <div className="screen-lead">
           <h2>지금 소개하기 좋은 캠페인</h2>
@@ -61,7 +62,7 @@ export function CampaignListScreen() {
         {shop.campaignCatalogError ? <p className="campaign-feedback campaign-feedback-error">{shop.campaignCatalogError}</p> : null}
         <div className="campaign-list">
           {shop.campaigns.map((campaign, index) => (
-            <a className="campaign-card" href={`#/campaigns/${campaign.id}`} key={campaign.id}>
+            <a className="campaign-card" href={`/campaigns/${campaign.id}`} key={campaign.id}>
               {campaign.thumbnailUrl ? <img alt="" src={campaign.thumbnailUrl} /> : null}
               <div className="campaign-card-body">
                 <div className="campaign-card-topline">
@@ -91,13 +92,13 @@ export function CampaignDetailScreen() {
   const products = shop.getProducts(campaign?.productIds ?? [])
 
   if (!canManageProductGroups) {
-    return <CampaignLoginRequired backHref="#/campaigns" redirect={window.location.hash} />
+    return <CampaignLoginRequired backHref="/campaigns" redirect={getCurrentPath()} />
   }
 
   if (!campaign && !shop.isCampaignCatalogLoading) {
     return (
       <>
-        <ScreenHeader backHref="#/campaigns" title="캠페인 상세" />
+        <ScreenHeader backHref="/campaigns" title="캠페인 상세" />
         <div className="screen-scroll campaign-detail-screen"><p className="campaign-feedback">캠페인을 찾을 수 없습니다.</p></div>
       </>
     )
@@ -105,7 +106,7 @@ export function CampaignDetailScreen() {
 
   return (
     <>
-      <ScreenHeader backHref="#/campaigns" title={campaign?.name ?? '캠페인 상세'} />
+      <ScreenHeader backHref="/campaigns" title={campaign?.name ?? '캠페인 상세'} />
       <div className="screen-scroll campaign-detail-screen">
         {campaign ? (
           <>
@@ -166,7 +167,7 @@ export function CampaignDetailScreen() {
           onCreateGroup={(productIds) => {
             shop.setQuickAddDraft({ campaignId: campaign.id, productIds })
             setIsQuickAddOpen(false)
-            window.location.hash = `#/shop/groups/new/campaign/${campaign.id}`
+            navigate(`/shop/groups/new/campaign/${campaign.id}`)
           }}
           products={products}
         />

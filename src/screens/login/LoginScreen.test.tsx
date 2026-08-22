@@ -22,7 +22,7 @@ afterEach(() => {
 
 describe('The Hyundai login reference contract', () => {
   it('renders the complete H.Point member login form with native controls', () => {
-    window.location.hash = '#/login'
+    window.history.replaceState({}, '', '/login')
     render(<App />)
 
     expect(screen.getByRole('heading', { level: 1, name: '로그인' })).toBeTruthy()
@@ -55,7 +55,7 @@ describe('The Hyundai login reference contract', () => {
   })
 
   it('calls the user login API and surfaces the backend message only', async () => {
-    window.location.hash = '#/login'
+    window.history.replaceState({}, '', '/login')
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation((input) => Promise.resolve(
       new Response(JSON.stringify(String(input).endsWith('/api/me/selector-access')
         ? { data: { accessLevel: 'CURRENT' } }
@@ -111,7 +111,7 @@ describe('The Hyundai login reference contract', () => {
         role: 'USER',
         selectorAccessLevel: 'CURRENT',
       })
-      expect(window.location.hash).toBe('#/home')
+      expect(window.location.pathname).toBe('/home')
     })
 
     fetchSpy.mockResolvedValueOnce(
@@ -122,7 +122,7 @@ describe('The Hyundai login reference contract', () => {
     )
 
     localStorage.clear()
-    window.location.hash = '#/login'
+    window.history.replaceState({}, '', '/login')
     cleanup()
     render(<App />)
 
@@ -136,7 +136,7 @@ describe('The Hyundai login reference contract', () => {
   })
 
   it('explains how to allow local API access when the browser blocks fetch', async () => {
-    window.location.hash = '#/login'
+    window.history.replaceState({}, '', '/login')
     vi.spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('Failed to fetch'))
 
     render(<App />)
@@ -150,7 +150,7 @@ describe('The Hyundai login reference contract', () => {
   })
 
   it('sends a user without selectors membership to the application page', async () => {
-    window.location.hash = '#/login'
+    window.history.replaceState({}, '', '/login')
     vi.spyOn(globalThis, 'fetch')
       .mockResolvedValueOnce(new Response(JSON.stringify({
         data: { accessToken: 'user.jwt', tokenType: 'Bearer', role: 'USER' },
@@ -171,7 +171,7 @@ describe('The Hyundai login reference contract', () => {
     fireEvent.click(screen.getByRole('button', { name: '로그인' }))
 
     await vi.waitFor(() => {
-      expect(window.location.hash).toBe('#/apply')
+      expect(window.location.pathname).toBe('/apply')
       expect(JSON.parse(localStorage.getItem('selectors-auth') ?? '{}')).toMatchObject({
         accessToken: 'user.jwt',
         role: 'USER',
@@ -181,8 +181,8 @@ describe('The Hyundai login reference contract', () => {
   })
 
   it('returns to the requested application form after login', async () => {
-    sessionStorage.setItem('postLoginRedirect', '#/apply/form')
-    window.location.hash = '#/login'
+    sessionStorage.setItem('postLoginRedirect', '/apply/form')
+    window.history.replaceState({}, '', '/login')
     vi.spyOn(globalThis, 'fetch').mockImplementation((input) => Promise.resolve(
       String(input).endsWith('/api/generations/active')
         ? new Response(JSON.stringify({ data: { id: 1 } }), {
@@ -208,14 +208,14 @@ describe('The Hyundai login reference contract', () => {
     fireEvent.click(screen.getByRole('button', { name: '로그인' }))
 
     await vi.waitFor(() => {
-      expect(window.location.hash).toBe('#/apply/form')
+      expect(window.location.pathname).toBe('/apply/form')
       expect(sessionStorage.getItem('postLoginRedirect')).toBeNull()
     })
   })
 
   it('returns an existing selectors member to the protected page that requested login', async () => {
-    sessionStorage.setItem('postLoginRedirect', '#/campaigns')
-    window.location.hash = '#/login'
+    sessionStorage.setItem('postLoginRedirect', '/campaigns')
+    window.history.replaceState({}, '', '/login')
     vi.spyOn(globalThis, 'fetch')
       .mockResolvedValueOnce(new Response(JSON.stringify({
         data: { accessToken: 'selector.jwt', tokenType: 'Bearer', role: 'USER' },
@@ -234,7 +234,7 @@ describe('The Hyundai login reference contract', () => {
     fireEvent.click(screen.getByRole('button', { name: '로그인' }))
 
     await vi.waitFor(() => {
-      expect(window.location.hash).toBe('#/campaigns')
+      expect(window.location.pathname).toBe('/campaigns')
       expect(sessionStorage.getItem('postLoginRedirect')).toBeNull()
     })
   })
@@ -244,7 +244,7 @@ describe('The Hyundai login reference contract', () => {
       'postLoginRedirect',
       '/product/40B1342672?ptrsRefCd=RC000003200T',
     )
-    window.location.hash = '#/login'
+    window.history.replaceState({}, '', '/login')
     vi.spyOn(globalThis, 'fetch')
       .mockResolvedValueOnce(new Response(JSON.stringify({
         data: { accessToken: 'buyer.jwt', tokenType: 'Bearer', role: 'USER' },
@@ -276,7 +276,7 @@ describe('The Hyundai login reference contract', () => {
       'postLoginRedirect',
       '/product/40B1342672?ptrsRefCd=RC000003200T',
     )
-    window.location.hash = '#/login'
+    window.history.replaceState({}, '', '/login')
     vi.spyOn(console, 'warn').mockImplementation(() => undefined)
     vi.spyOn(globalThis, 'fetch')
       .mockResolvedValueOnce(new Response(JSON.stringify({
@@ -303,7 +303,7 @@ describe('The Hyundai login reference contract', () => {
   })
 
   it.each([401, 403])('does not keep a login session when the access check returns %s', async (status) => {
-    window.location.hash = '#/login'
+    window.history.replaceState({}, '', '/login')
     vi.spyOn(globalThis, 'fetch')
       .mockResolvedValueOnce(new Response(JSON.stringify({
         data: { accessToken: 'rejected.jwt', tokenType: 'Bearer', role: 'USER' },
@@ -325,11 +325,11 @@ describe('The Hyundai login reference contract', () => {
     const dialog = await screen.findByRole('dialog', { name: '로그인 실패' })
     expect(within(dialog).getByText('셀렉터스 권한 정보를 확인하지 못했습니다.')).toBeTruthy()
     expect(localStorage.getItem('selectors-auth')).toBeNull()
-    expect(window.location.hash).toBe('#/login')
+    expect(window.location.pathname).toBe('/login')
   })
 
   it('falls back to NONE when the access response is invalid', async () => {
-    window.location.hash = '#/login'
+    window.history.replaceState({}, '', '/login')
     vi.spyOn(console, 'warn').mockImplementation(() => undefined)
     vi.spyOn(globalThis, 'fetch')
       .mockResolvedValueOnce(new Response(JSON.stringify({
@@ -349,7 +349,7 @@ describe('The Hyundai login reference contract', () => {
     fireEvent.click(screen.getByRole('button', { name: '로그인' }))
 
     await vi.waitFor(() => {
-      expect(window.location.hash).toBe('#/apply')
+      expect(window.location.pathname).toBe('/apply')
       expect(JSON.parse(localStorage.getItem('selectors-auth') ?? '{}')).toMatchObject({
         accessToken: 'selector.jwt',
         selectorAccessLevel: 'NONE',
@@ -362,7 +362,7 @@ describe('The Hyundai login reference contract', () => {
     localStorage.setItem('selectors-auth', JSON.stringify({
       accessToken: 'keep.me', role: 'USER', selectorAccessLevel: 'CURRENT',
     }))
-    window.location.hash = '#/home'
+    window.history.replaceState({}, '', '/home')
 
     render(<App />)
 
@@ -371,7 +371,7 @@ describe('The Hyundai login reference contract', () => {
     fireEvent.click(logoutButton)
 
     expect(localStorage.getItem('selectors-auth')).toBeNull()
-    expect(window.location.hash).toBe('#/login')
+    expect(window.location.pathname).toBe('/login')
   })
 
   it('locks the compact reference form geometry', () => {

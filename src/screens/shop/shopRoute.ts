@@ -21,8 +21,8 @@ function decodeSegment(value: string): string {
   }
 }
 
-export function parsePublicShopHash(hash: string): PublicShopLocation | null {
-  const productMatch = hash.match(/^#\/shop\/([^/]+)\/products\/([^/]+)$/)
+export function parsePublicShopPath(path: string): PublicShopLocation | null {
+  const productMatch = path.match(/^\/shop\/([^/]+)\/products\/([^/]+)$/)
   if (productMatch && !managementSegments.has(productMatch[1])) {
     return {
       selectorsCode: decodeSegment(productMatch[1]),
@@ -30,7 +30,7 @@ export function parsePublicShopHash(hash: string): PublicShopLocation | null {
       productId: decodeSegment(productMatch[2]),
     }
   }
-  const match = hash.match(/^#\/shop\/([^/]+)(?:\/([^/]+))?$/)
+  const match = path.match(/^\/shop\/([^/]+)(?:\/([^/]+))?$/)
   if (!match || managementSegments.has(match[1])) return null
 
   return {
@@ -40,8 +40,8 @@ export function parsePublicShopHash(hash: string): PublicShopLocation | null {
   }
 }
 
-export function buildPublicShopHash(selectorsCode: string, groupId?: string): `#/shop/${string}` {
-  const base = `#/shop/${encodeURIComponent(selectorsCode)}` as const
+export function buildPublicShopPath(selectorsCode: string, groupId?: string): `/shop/${string}` {
+  const base = `/shop/${encodeURIComponent(selectorsCode)}` as const
   return groupId ? `${base}/${encodeURIComponent(groupId)}` : base
 }
 
@@ -54,8 +54,7 @@ export function readRememberedSelectorsCode(): string {
 }
 
 export function getPublicShopShareUrl(selectorsCode: string, groupId?: string): string {
-  const url = new URL(window.location.href)
-  url.hash = buildPublicShopHash(selectorsCode, groupId)
+  const url = new URL(buildPublicShopPath(selectorsCode, groupId), window.location.origin)
   return url.toString()
 }
 
@@ -76,8 +75,5 @@ export function parseProductDetailLocation(): ProductDetailLocation | null {
     return selectorsCode ? { productCode: decodeSegment(pathMatch[1]), selectorsCode } : null
   }
 
-  const hashMatch = window.location.hash.match(/^#\/product\/([^?]+)(?:\?(.*))?$/)
-  if (!hashMatch) return null
-  const selectorsCode = new URLSearchParams(hashMatch[2] ?? '').get('ptrsRefCd')
-  return selectorsCode ? { productCode: decodeSegment(hashMatch[1]), selectorsCode } : null
+  return null
 }

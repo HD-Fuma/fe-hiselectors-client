@@ -117,7 +117,7 @@ export default function ShopGroupMenu({
           <button onClick={() => closeAndRun(onRename)} role="menuitem" tabIndex={-1} type="button">
             그룹명 수정
           </button>
-          <a href={`#/shop/groups/${groupId}/edit`} onClick={() => setOpen(false)} role="menuitem" tabIndex={-1}>
+          <a href={`/shop/groups/${groupId}/edit`} onClick={() => setOpen(false)} role="menuitem" tabIndex={-1}>
             상품 추가·편집
           </a>
           <button onClick={() => closeAndRun(onDelete)} role="menuitem" tabIndex={-1} type="button">

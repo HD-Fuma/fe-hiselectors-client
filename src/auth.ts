@@ -1,3 +1,5 @@
+import { navigate } from './navigation'
+
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://api.hiselectors.shop'
 
 export type SelectorAccessLevel = 'CURRENT' | 'PREVIOUS' | 'NONE' | 'BLACKLIST'
@@ -159,11 +161,11 @@ export function isLocalApplyTestMode(): boolean {
 }
 
 export function redirectToMainScreen() {
-  window.location.hash = '#/home'
+  navigate('/home')
 }
 
 export function redirectToLoginScreen() {
-  window.location.hash = '#/login'
+  navigate('/login')
 }
 
 export function clearAuthSession() {
@@ -173,8 +175,8 @@ export function clearAuthSession() {
 
 export function logout() {
   clearAuthSession()
-  if (window.location.hash !== '#/login') {
-    window.location.hash = '#/login'
+  if (window.location.pathname !== '/login') {
+    navigate('/login')
   }
 }
 

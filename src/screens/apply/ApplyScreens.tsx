@@ -11,6 +11,7 @@ import {
 import BottomActionBar from '../../components/BottomActionBar'
 import { ArrowRightIcon, CartIcon, CheckIcon, ChevronDownIcon, CloseIcon, CoinIcon, GiftIcon, LinkIcon, PersonIcon } from '../../components/Icons'
 import ScreenHeader from '../../components/ScreenHeader'
+import { navigate } from '../../navigation'
 import { startOAuthAuthorization, type OAuthProvider } from '../../oauth'
 import { selectorsTermsFor } from './selectorsTerms'
 
@@ -30,7 +31,7 @@ const benefits = [
 export function ApplyIntroScreen() {
   return (
     <div className="panel-page">
-      <ScreenHeader backHref="#/login" title="셀렉터스 신청하기" />
+      <ScreenHeader backHref="/login" title="셀렉터스 신청하기" />
       <div className="screen-scroll apply-intro-screen">
         <section className="apply-hero">
           <h2>당신의 감각을 보여주세요!<br />여러분의 큐레이션이<br />기분 좋은 수익으로 이어집니다.</h2>
@@ -58,10 +59,10 @@ export function ApplyIntroScreen() {
               </article>
             ))}
           </div>
-          <a className="detail-link" href="#/apply/form">자세히 알아보기 <ArrowRightIcon size={14} /></a>
+          <a className="detail-link" href="/apply/form">자세히 알아보기 <ArrowRightIcon size={14} /></a>
         </section>
       </div>
-      <BottomActionBar href="#/apply/form" label="셀렉터스 신청하기" />
+      <BottomActionBar href="/apply/form" label="셀렉터스 신청하기" />
     </div>
   )
 }
@@ -205,7 +206,7 @@ export function ApplyFormScreen() {
 
   useEffect(() => {
     if (!isUserSessionValid) {
-      sessionStorage.setItem('postLoginRedirect', '#/apply/form')
+      sessionStorage.setItem('postLoginRedirect', '/apply/form')
       window.dispatchEvent(new CustomEvent('auth:required'))
     }
   }, [isUserSessionValid])
@@ -273,11 +274,11 @@ export function ApplyFormScreen() {
       setOauthError(message || 'SNS 계정 연동에 실패했습니다.')
     }
 
-    window.addEventListener('hashchange', handleOAuthCallback)
+    window.addEventListener('popstate', handleOAuthCallback)
     window.addEventListener('oauth-verified', handleVerifiedEvent)
     window.addEventListener('oauth-verification-failed', handleVerificationFailedEvent)
     return () => {
-      window.removeEventListener('hashchange', handleOAuthCallback)
+      window.removeEventListener('popstate', handleOAuthCallback)
       window.removeEventListener('oauth-verified', handleVerifiedEvent)
       window.removeEventListener('oauth-verification-failed', handleVerificationFailedEvent)
     }
@@ -392,7 +393,7 @@ export function ApplyFormScreen() {
         throw new Error(extractErrorMessage(rawMessage))
       }
 
-      window.location.hash = '#/apply/status'
+      navigate('/apply/status')
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : '지원서 제출 중 오류가 발생했습니다.')
     } finally {
@@ -402,7 +403,7 @@ export function ApplyFormScreen() {
 
   return (
     <div className="panel-page">
-      <ScreenHeader backHref="#/apply" title="셀렉터스 신청하기" />
+      <ScreenHeader backHref="/apply" title="셀렉터스 신청하기" />
       <div className="screen-scroll apply-form-screen">
         <section className="form-intro">
           <h2>나의 대표 SNS</h2>
@@ -585,13 +586,13 @@ export function ApplyFormScreen() {
 export function ApplyStatusScreen() {
   return (
     <div className="panel-page">
-      <ScreenHeader backHref="#/campaigns" title="신청 완료" />
+      <ScreenHeader backHref="/campaigns" title="신청 완료" />
       <div className="screen-scroll apply-status-screen">
         <span aria-hidden="true">✓</span>
         <h2>셀렉터스 신청을 완료했어요.</h2>
         <p>심사가 끝나면 결과를 안내해 드릴게요.<br />승인 후 캠페인부터 시작할 수 있어요.</p>
       </div>
-      <BottomActionBar href="#/campaigns" label="캠페인으로 이동" />
+      <BottomActionBar href="/campaigns" label="캠페인으로 이동" />
     </div>
   )
 }

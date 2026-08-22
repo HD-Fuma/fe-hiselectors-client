@@ -1,7 +1,7 @@
 import { API_BASE_URL, authFetch } from '../../auth'
 
 export const KAKAO_OAUTH_PENDING_KEY = 'kakaoOauthPending'
-export const MEMBER_INFO_PATH = '#/mypage/member'
+export const MEMBER_INFO_PATH = '/mypage/member'
 
 export type KakaoRecipientStatus = 'READY' | 'REAUTH_REQUIRED' | 'INACTIVE'
 

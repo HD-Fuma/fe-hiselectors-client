@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { redirectToLoginScreen } from '../../auth'
 import BottomActionBar from '../../components/BottomActionBar'
 import ScreenHeader from '../../components/ScreenHeader'
+import { navigate } from '../../navigation'
 import {
   getSettlementAccount,
   getSettlementErrorMessage,
@@ -55,7 +56,7 @@ export default function SettlementInfoScreen() {
     setSaveError(null)
     try {
       await upsertSettlementAccount({ bankName, accountNumber, accountHolder })
-      window.location.hash = '#/settlement'
+      navigate('/settlement')
     } catch (error) {
       setSaveError(error)
     } finally {
@@ -65,7 +66,7 @@ export default function SettlementInfoScreen() {
 
   return (
     <div className="panel-page">
-      <ScreenHeader backHref="#/home" title="정산 정보 입력" />
+      <ScreenHeader backHref="/home" title="정산 정보 입력" />
       <div className="screen-scroll settlement-info-screen">
         <section className="settlement-info-intro">
           <h2>정산 정보를 입력해 주세요</h2>

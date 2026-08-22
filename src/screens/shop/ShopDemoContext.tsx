@@ -32,7 +32,7 @@ import {
   type MyShopApiResponse,
   type ProductGroupApiResponse,
 } from './productGroupApi'
-import { parsePublicShopHash, readRememberedSelectorsCode, rememberSelectorsCode } from './shopRoute'
+import { parsePublicShopPath, readRememberedSelectorsCode, rememberSelectorsCode } from './shopRoute'
 
 export type ShopDemoGroup = Omit<ShopGroup, 'productIds'> & { productIds: string[] }
 
@@ -300,12 +300,12 @@ function ApiShopProvider({ children }: { children: ReactNode }) {
   const [authRevision, setAuthRevision] = useState(0)
   const shopDataRequestRef = useRef(0)
   const ownedIdentityRequestRef = useRef(0)
-  const [shopHash, setShopHash] = useState(window.location.hash)
-  const publicShopLocation = parsePublicShopHash(shopHash)
+  const [shopPath, setShopPath] = useState(window.location.pathname)
+  const publicShopLocation = parsePublicShopPath(shopPath)
   const publicSelectorsCode = publicShopLocation?.selectorsCode ?? null
-  const isManagementShopRoute = /^#\/shop\/(?:groups|profile)(?:\/|$)/.test(shopHash)
-  const isCampaignRoute = /^#\/campaigns(?:\/|$)/.test(shopHash)
-  const isHomeRoute = shopHash === '#/home'
+  const isManagementShopRoute = /^\/shop\/(?:groups|profile)(?:\/|$)/.test(shopPath)
+  const isCampaignRoute = /^\/campaigns(?:\/|$)/.test(shopPath)
+  const isHomeRoute = shopPath === '/home'
   const needsOwnedGroups = isHomeRoute || isManagementShopRoute || isCampaignRoute
   const shopRequestKey = publicSelectorsCode
     ? `public:${publicSelectorsCode}`
@@ -342,9 +342,9 @@ function ApiShopProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
-    const refreshHash = () => setShopHash(window.location.hash)
-    window.addEventListener('hashchange', refreshHash)
-    return () => window.removeEventListener('hashchange', refreshHash)
+    const refreshPath = () => setShopPath(window.location.pathname)
+    window.addEventListener('popstate', refreshPath)
+    return () => window.removeEventListener('popstate', refreshPath)
   }, [])
 
   const mergeProducts = useCallback((incoming: readonly ShopProduct[]) => {
@@ -691,7 +691,7 @@ function DemoShopProvider({ children }: { children: ReactNode }) {
     createInitialShopDemoState,
   )
   const session = readAuthSession()
-  const selectorsCode = parsePublicShopHash(window.location.hash)?.selectorsCode ?? 'RC000003200T'
+  const selectorsCode = parsePublicShopPath(window.location.pathname)?.selectorsCode ?? 'RC000003200T'
   const ownedSelectorsCode = canViewSelectorShop(session)
     ? 'RC000003200T'
     : null

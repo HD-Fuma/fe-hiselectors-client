@@ -23,7 +23,7 @@ describe('selector access refresh', () => {
     localStorage.setItem('selectors-auth', JSON.stringify({
       accessToken: 'legacy.jwt', tokenType: 'Bearer', role: 'USER', loginId: 'legacy-user',
     }))
-    window.location.hash = '#/campaigns'
+    window.history.replaceState({}, '', '/campaigns')
     let resolveAccess!: (response: Response) => void
     const accessResponse = new Promise<Response>((resolve) => { resolveAccess = resolve })
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation((input) => (
@@ -34,14 +34,14 @@ describe('selector access refresh', () => {
 
     render(<App />)
 
-    expect(window.location.hash).toBe('#/campaigns')
+    expect(window.location.pathname).toBe('/campaigns')
     expect(screen.getByRole('status').textContent).toBe('권한을 확인하고 있습니다.')
     expect(screen.queryByRole('heading', { level: 1, name: '캠페인' })).toBeNull()
     expect(fetchSpy.mock.calls.filter(([input]) => !String(input).endsWith('/api/me/selector-access'))).toHaveLength(0)
 
     resolveAccess(json({ data: { accessLevel: 'CURRENT' } }))
     await vi.waitFor(() => {
-      expect(window.location.hash).toBe('#/campaigns')
+      expect(window.location.pathname).toBe('/campaigns')
       expect(JSON.parse(localStorage.getItem('selectors-auth') ?? '{}')).toMatchObject({
         selectorAccessLevel: 'CURRENT',
       })
@@ -53,7 +53,7 @@ describe('selector access refresh', () => {
     localStorage.setItem('selectors-auth', JSON.stringify({
       accessToken: 'legacy.jwt', tokenType: 'Bearer', role: 'USER', loginId: 'legacy-user',
     }))
-    window.location.hash = '#/home'
+    window.history.replaceState({}, '', '/home')
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation((input) => Promise.resolve(
       String(input).endsWith('/api/me/selector-access')
         ? json({ data: { accessLevel: 'CURRENT' } })
@@ -63,7 +63,7 @@ describe('selector access refresh', () => {
     render(<App />)
 
     await vi.waitFor(() => {
-      expect(window.location.hash).toBe('#/home')
+      expect(window.location.pathname).toBe('/home')
       expect(JSON.parse(localStorage.getItem('selectors-auth') ?? '{}')).toMatchObject({
         selectorAccessLevel: 'CURRENT',
       })
@@ -77,7 +77,7 @@ describe('selector access refresh', () => {
       accessToken: 'selector.jwt', tokenType: 'Bearer', role: 'USER', loginId: 'selector-user',
       selectorAccessLevel: 'CURRENT',
     }))
-    window.location.hash = '#/campaigns'
+    window.history.replaceState({}, '', '/campaigns')
     let accessRequestCount = 0
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation((input) => {
       if (String(input).endsWith('/api/me/selector-access')) {
@@ -96,15 +96,15 @@ describe('selector access refresh', () => {
     window.dispatchEvent(new Event('focus'))
 
     await vi.waitFor(() => {
-      expect(window.location.hash).toBe('#/home')
+      expect(window.location.pathname).toBe('/home')
       expect(JSON.parse(localStorage.getItem('selectors-auth') ?? '{}')).toMatchObject({
         selectorAccessLevel: 'BLACKLIST',
       })
     })
     const navigation = screen.getByRole('navigation', { name: '셀렉터스 메뉴' })
     expect(within(navigation).getAllByRole('link').map((link) => link.getAttribute('href'))).toEqual([
-      '#/settlement',
-      '#/mypage/member',
+      '/settlement',
+      '/mypage/member',
     ])
 
     await new Promise((resolve) => window.setTimeout(resolve, 0))
@@ -119,7 +119,7 @@ describe('selector access refresh', () => {
       accessToken: `header.${payload}.signature`, tokenType: 'Bearer', role: 'USER', loginId: 'selector-user',
       selectorAccessLevel: 'CURRENT',
     }))
-    window.location.hash = '#/campaigns'
+    window.history.replaceState({}, '', '/campaigns')
     vi.spyOn(globalThis, 'fetch').mockImplementation((input) => Promise.resolve(
       String(input).endsWith('/api/me/selector-access')
         ? json({ data: { accessLevel: 'CURRENT' } })
@@ -127,14 +127,14 @@ describe('selector access refresh', () => {
     ))
 
     render(<App />)
-    await vi.waitFor(() => expect(window.location.hash).toBe('#/campaigns'))
+    await vi.waitFor(() => expect(window.location.pathname).toBe('/campaigns'))
 
     now += 2_000
     window.dispatchEvent(new Event('focus'))
 
     await vi.waitFor(() => {
       expect(localStorage.getItem('selectors-auth')).toBeNull()
-      expect(window.location.hash).toBe('#/login')
+      expect(window.location.pathname).toBe('/login')
     })
   })
 
@@ -143,7 +143,7 @@ describe('selector access refresh', () => {
       accessToken: 'selector.jwt', tokenType: 'Bearer', role: 'USER', loginId: 'selector-user',
       selectorAccessLevel: 'CURRENT',
     }))
-    window.location.hash = '#/campaigns'
+    window.history.replaceState({}, '', '/campaigns')
     vi.spyOn(globalThis, 'fetch').mockImplementation((input) => Promise.resolve(
       String(input).endsWith('/api/me/selector-access')
         ? new Response(null, { status })
@@ -154,7 +154,7 @@ describe('selector access refresh', () => {
 
     await vi.waitFor(() => {
       expect(localStorage.getItem('selectors-auth')).toBeNull()
-      expect(window.location.hash).toBe('#/login')
+      expect(window.location.pathname).toBe('/login')
     })
   })
 
@@ -163,7 +163,7 @@ describe('selector access refresh', () => {
       accessToken: 'selector.jwt', tokenType: 'Bearer', role: 'USER', loginId: 'selector-user',
       selectorAccessLevel: 'CURRENT',
     }))
-    window.location.hash = '#/campaigns'
+    window.history.replaceState({}, '', '/campaigns')
     vi.spyOn(globalThis, 'fetch').mockImplementation((input) => (
       String(input).endsWith('/api/me/selector-access')
         ? Promise.reject(new TypeError('Failed to fetch'))
@@ -177,7 +177,7 @@ describe('selector access refresh', () => {
         accessToken: 'selector.jwt',
         selectorAccessLevel: 'NONE',
       })
-      expect(window.location.hash).toBe('#/apply')
+      expect(window.location.pathname).toBe('/apply')
     })
   })
 
@@ -187,7 +187,7 @@ describe('selector access refresh', () => {
       selectorAccessLevel: 'CURRENT',
     }))
     sessionStorage.setItem('oauthProvider', 'instagram')
-    window.history.replaceState({}, '', '/?code=oauth-code&state=oauth-state#/apply/form')
+    window.history.replaceState({}, '', '/?code=oauth-code&state=oauth-state')
     let resolveVerification!: (response: Response) => void
     const verification = new Promise<Response>((resolve) => { resolveVerification = resolve })
     vi.spyOn(globalThis, 'fetch').mockImplementation((input) => {
@@ -198,7 +198,7 @@ describe('selector access refresh', () => {
     })
     let hashChangeCount = 0
     const countHashChange = () => { hashChangeCount += 1 }
-    window.addEventListener('hashchange', countHashChange)
+    window.addEventListener('popstate', countHashChange)
 
     try {
       render(<App />)
@@ -206,7 +206,7 @@ describe('selector access refresh', () => {
       await vi.waitFor(() => {
         const previousCount = previousHashChangeCount
         previousHashChangeCount = hashChangeCount
-        expect(window.location.hash).toBe('#/home')
+        expect(window.location.pathname).toBe('/home')
         expect(hashChangeCount).toBeGreaterThan(0)
         expect(hashChangeCount).toBe(previousCount)
         expect(hashChangeCount).toBeLessThanOrEqual(2)
@@ -220,10 +220,10 @@ describe('selector access refresh', () => {
         },
       }))
       await vi.waitFor(() => expect(window.location.search).toBe(''))
-      expect(window.location.hash).toBe('#/home')
+      expect(window.location.pathname).toBe('/home')
       expect(hashChangeCount).toBeLessThanOrEqual(2)
     } finally {
-      window.removeEventListener('hashchange', countHashChange)
+      window.removeEventListener('popstate', countHashChange)
     }
   })
 
@@ -253,13 +253,13 @@ describe('selector access refresh', () => {
 
     render(<App />)
 
-    expect(window.location.hash).toBe('#/apply/form')
+    expect(window.location.pathname).toBe('/apply/form')
     expect(screen.getByRole('status').textContent).toBe('권한을 확인하고 있습니다.')
     resolveAccess(json({ data: { accessLevel: 'NONE' } }))
 
     await vi.waitFor(() => {
       expect(window.location.search).toBe('')
-      expect(window.location.hash).toBe('#/apply/form')
+      expect(window.location.pathname).toBe('/apply/form')
       expect(JSON.parse(localStorage.getItem('selectors-auth') ?? '{}')).toMatchObject({
         selectorAccessLevel: 'NONE',
       })

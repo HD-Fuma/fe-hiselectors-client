@@ -10,6 +10,7 @@ import {
 } from '../../auth'
 import { EyeIcon, LoginProviderIcon } from '../../components/Icons'
 import ScreenHeader from '../../components/ScreenHeader'
+import { navigate } from '../../navigation'
 
 const simpleLoginMethods = [
   ['휴대폰 인증 로그인', 'phone'],
@@ -166,12 +167,12 @@ export default function LoginScreen() {
           window.history.replaceState(window.history.state, '', postLoginRedirect)
           window.dispatchEvent(new PopStateEvent('popstate'))
         } else {
-          window.location.hash = postLoginRedirect
+          navigate(postLoginRedirect)
         }
       } else if (selectorAccessLevel === 'NONE') {
-        window.location.hash = '#/apply'
+        navigate('/apply')
       } else {
-        window.location.hash = '#/home'
+        navigate('/home')
       }
       window.dispatchEvent(new CustomEvent('auth:changed', { detail: authState }))
     } catch (error) {
@@ -227,7 +228,7 @@ export default function LoginScreen() {
             </div>
           </form>
           <div className="login-link-row">
-            <a href="#/apply">셀렉터스 지원하기</a>
+            <a href="/apply">셀렉터스 지원하기</a>
             <button type="button">아이디/비밀번호 찾기</button>
           </div>
         </section>

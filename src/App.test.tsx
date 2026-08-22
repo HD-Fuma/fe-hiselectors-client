@@ -6,109 +6,109 @@ import { useShopDemo } from './screens/shop/ShopDemoContext'
 
 const screenExpectations = [
   {
-    path: '#/login',
+    path: '/login',
     id: 'login',
     heading: '로그인',
     content: 'H.Point 통합회원 로그인',
   },
   {
-    path: '#/home',
+    path: '/home',
     id: 'home',
     heading: '셀렉터스',
     content: '회원정보 변경',
   },
   {
-    path: '#/mypage/member',
+    path: '/mypage/member',
     id: 'member-info',
     heading: '회원정보 변경',
     content: '카카오 메시지',
   },
   {
-    path: '#/apply',
+    path: '/apply',
     id: 'apply-intro',
     heading: '셀렉터스 신청하기',
     content: '당신의 감각을 보여주세요!',
   },
   {
-    path: '#/apply/form',
+    path: '/apply/form',
     id: 'apply-form',
     heading: '셀렉터스 신청하기',
     content: '카카오 알림톡 수신 동의 (필수)',
   },
   {
-    path: '#/apply/status',
+    path: '/apply/status',
     id: 'apply-status',
     heading: '신청 완료',
     content: '심사가 끝나면 결과를 안내해 드릴게요.',
   },
   {
-    path: '#/campaigns',
+    path: '/campaigns',
     id: 'campaign-list',
     heading: '캠페인',
     content: '진행 중',
   },
   {
-    path: '#/campaigns/season-pick',
+    path: '/campaigns/season-pick',
     id: 'campaign-detail',
     heading: '여름의 결을 고르는 시즌 픽',
     content: '캠페인 상품',
   },
   {
-    path: '#/shop/RC000003200T',
+    path: '/shop/RC000003200T',
     id: 'public-shop',
     heading: '셀렉터스샵',
     content: 'byunjjii',
   },
   {
-    path: '#/shop/RC000003200T/1',
+    path: '/shop/RC000003200T/1',
     id: 'owner-shop-group',
     heading: '셀렉터스샵',
     content: '귀걸이',
   },
   {
-    path: '#/shop/groups',
+    path: '/shop/groups',
     id: 'shop-groups',
     heading: '셀렉터스 샵 관리하기',
     content: '한 그룹에는 하나의 캠페인 상품만 담을 수 있어요.',
   },
   {
-    path: '#/shop/groups/new',
+    path: '/shop/groups/new',
     id: 'group-create',
     heading: '상품 그룹 만들기',
     content: '캠페인 상품 선택',
   },
   {
-    path: '#/shop/groups/1/edit',
+    path: '/shop/groups/1/edit',
     id: 'group-edit',
     heading: '상품 그룹 편집',
     content: '캠페인 상품 선택',
   },
   {
-    path: '#/shop/groups/new/campaign/season-pick',
+    path: '/shop/groups/new/campaign/season-pick',
     id: 'group-campaign-create',
     heading: '상품 그룹 만들기',
     content: '캠페인 상품 선택',
   },
   {
-    path: '#/performance',
+    path: '/performance',
     id: 'performance-summary',
     heading: '셀렉터스 성과',
     content: '누적 클릭 수',
   },
   {
-    path: '#/performance/products',
+    path: '/performance/products',
     id: 'product-performance',
     heading: '상품별 성과',
     content: '구매 전환 수',
   },
   {
-    path: '#/settlement/info',
+    path: '/settlement/info',
     id: 'settlement-info',
     heading: '정산 정보 입력',
     content: '정산 정보를 입력해 주세요',
   },
   {
-    path: '#/settlement',
+    path: '/settlement',
     id: 'settlement',
     heading: '정산 내역',
     content: 'Toss Payments',
@@ -117,25 +117,25 @@ const screenExpectations = [
 
 const editorRoutes = [
   {
-    path: '#/shop/groups/new',
+    path: '/shop/groups/new',
     mode: 'create',
     groupId: '',
     initialCampaign: '',
-    backHref: '#/shop/groups',
+    backHref: '/shop/groups',
   },
   {
-    path: '#/shop/groups/1/edit',
+    path: '/shop/groups/1/edit',
     mode: 'edit',
     groupId: '1',
     initialCampaign: '',
-    backHref: '#/shop/RC000003200T/1',
+    backHref: '/shop/RC000003200T/1',
   },
   {
-    path: '#/shop/groups/new/campaign/season-pick',
+    path: '/shop/groups/new/campaign/season-pick',
     mode: 'campaign-create',
     groupId: '',
     initialCampaign: 'season-pick',
-    backHref: '#/campaigns/season-pick',
+    backHref: '/campaigns/season-pick',
   },
 ] as const
 
@@ -177,7 +177,7 @@ afterEach(() => {
   cleanup()
   localStorage.clear()
   sessionStorage.clear()
-  window.location.hash = ''
+  window.history.replaceState({}, '', '/')
   vi.restoreAllMocks()
 })
 
@@ -185,7 +185,7 @@ describe('Selectors client routes', () => {
   it.each(screenExpectations)(
     'renders the unique heading and representative content for $path',
     ({ path, id, heading, content }) => {
-      if (path.startsWith('#/apply')) {
+      if (path.startsWith('/apply')) {
         localStorage.setItem('selectors-auth', JSON.stringify({
           accessToken: 'test.jwt',
           tokenType: 'Bearer',
@@ -194,7 +194,7 @@ describe('Selectors client routes', () => {
           selectorAccessLevel: 'NONE',
         }))
       }
-      window.location.hash = path
+      window.history.replaceState({}, '', path)
 
       render(<App />)
 
@@ -209,29 +209,29 @@ describe('Selectors client routes', () => {
   )
 
   it('links each main work area without a screen catalog', () => {
-    window.location.hash = '#/home'
+    window.history.replaceState({}, '', '/home')
 
     render(<App />)
 
     const navigation = screen.getByRole('navigation', { name: '셀렉터스 메뉴' })
     expect(within(navigation).getAllByRole('link').map((link) => link.getAttribute('href'))).toEqual([
-      '#/shop/RC000003200T',
-      '#/campaigns',
-      '#/performance',
-      '#/settlement/check',
-      '#/mypage/member',
+      '/shop/RC000003200T',
+      '/campaigns',
+      '/performance',
+      '/settlement/check',
+      '/mypage/member',
     ])
     expect(document.querySelector('[data-screen-id="catalog"]')).toBeNull()
   })
 
   it.each([
-    ['PREVIOUS', ['#/shop/RC000003200T', '#/settlement', '#/mypage/member']],
-    ['BLACKLIST', ['#/settlement', '#/mypage/member']],
+    ['PREVIOUS', ['/shop/RC000003200T', '/settlement', '/mypage/member']],
+    ['BLACKLIST', ['/settlement', '/mypage/member']],
   ] as const)('shows only %s home actions', (selectorAccessLevel, expectedHrefs) => {
     localStorage.setItem('selectors-auth', JSON.stringify({
       accessToken: 'test.jwt', role: 'USER', selectorAccessLevel,
     }))
-    window.location.hash = '#/home'
+    window.history.replaceState({}, '', '/home')
 
     render(<App />)
 
@@ -240,15 +240,15 @@ describe('Selectors client routes', () => {
   })
 
   it('opens the public shop from navigation without requiring login', () => {
-    window.location.hash = '#/home'
+    window.history.replaceState({}, '', '/home')
     render(<App />)
 
     const shopLink = screen.getByRole('link', { name: /셀렉터스 샵/ })
-    expect(shopLink.getAttribute('href')).toBe('#/shop/RC000003200T')
-    window.location.hash = shopLink.getAttribute('href') ?? ''
-    fireEvent(window, new HashChangeEvent('hashchange'))
+    expect(shopLink.getAttribute('href')).toBe('/shop/RC000003200T')
+    window.history.replaceState({}, '', shopLink.getAttribute('href') ?? '')
+    fireEvent(window, new PopStateEvent('popstate'))
 
-    expect(window.location.hash).toBe('#/shop/RC000003200T')
+    expect(window.location.pathname).toBe('/shop/RC000003200T')
     expect(screen.getByRole('main').getAttribute('data-screen-id')).toBe('public-shop')
     expect(screen.getByRole('heading', { level: 1, name: '셀렉터스샵' })).toBeTruthy()
     expect(screen.queryByRole('dialog', { name: '로그인이 필요합니다' })).toBeNull()
@@ -257,7 +257,7 @@ describe('Selectors client routes', () => {
   it.each(editorRoutes)(
     'provides the exact $mode editor route mode for $path',
     ({ path, mode, groupId, initialCampaign, backHref }) => {
-      window.location.hash = path
+      window.history.replaceState({}, '', path)
 
       const { container } = render(<App />)
 
@@ -270,7 +270,7 @@ describe('Selectors client routes', () => {
   )
 
   it('renders the owner missing-group state from live provider state', () => {
-    window.location.hash = '#/shop/RC000003200T/1'
+    window.history.replaceState({}, '', '/shop/RC000003200T/1')
 
     const { container } = render(<App shopProbe={<DeleteGroupOneControl />} />)
     expect(screen.getByText('귀걸이')).toBeTruthy()
@@ -281,13 +281,13 @@ describe('Selectors client routes', () => {
     expect(screen.getByText('상품 그룹을 찾을 수 없습니다.')).toBeTruthy()
     expect(
       screen.getByRole('link', { name: '셀렉터스샵으로 돌아가기' }).getAttribute('href'),
-    ).toBe('#/shop/RC000003200T')
+    ).toBe('/shop/RC000003200T')
     expect(screen.queryByText('귀걸이')).toBeNull()
     expect(container.querySelector('.public-product')).toBeNull()
   })
 
   it('renders the edit missing-group state from live provider state', () => {
-    window.location.hash = '#/shop/groups/1/edit'
+    window.history.replaceState({}, '', '/shop/groups/1/edit')
 
     const { container } = render(<App shopProbe={<DeleteGroupOneControl />} />)
     expect(container.querySelector('[data-editor-mode="edit"]')).toBeTruthy()
@@ -298,23 +298,23 @@ describe('Selectors client routes', () => {
     expect(screen.getByText('상품 그룹을 찾을 수 없습니다.')).toBeTruthy()
     expect(
       screen.getByRole('link', { name: '셀렉터스샵으로 돌아가기' }).getAttribute('href'),
-    ).toBe('#/shop/RC000003200T')
+    ).toBe('/shop/RC000003200T')
     expect(container.querySelector('.group-editor-screen')).toBeNull()
     expect(container.querySelector('.picker-row')).toBeNull()
     expect(container.querySelector('#group-name')).toBeNull()
   })
 
   it('redirects an unknown legacy route to login without resetting shop state', () => {
-    window.location.hash = '#/shop/groups'
+    window.history.replaceState({}, '', '/shop/groups')
     render(<App shopProbe={<ShopContinuityProbe />} />)
     fireEvent.click(screen.getByRole('button', { name: '테스트 그룹 이름 변경' }))
     expect(screen.getByRole('status', { name: '상품 그룹 1 이름' }).textContent).toBe('별칭 유지')
 
     const replaceState = vi.spyOn(window.history, 'replaceState')
-    window.location.hash = '#/shop/groups/edit'
-    fireEvent(window, new HashChangeEvent('hashchange'))
+    window.history.replaceState({}, '', '/shop/groups/edit')
+    fireEvent(window, new PopStateEvent('popstate'))
 
-    expect(window.location.hash).toBe('#/login')
+    expect(window.location.pathname).toBe('/login')
     expect(screen.getByRole('status', { name: '상품 그룹 1 이름' }).textContent).toBe('별칭 유지')
     expect(replaceState).toHaveBeenCalledTimes(1)
 

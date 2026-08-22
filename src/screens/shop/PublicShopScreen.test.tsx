@@ -4,10 +4,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from '../../App'
 import { useShopDemo } from './ShopDemoContext'
 
-const shopHash = '#/shop/RC000003200T'
+const shopPath = '/shop/RC000003200T'
 const badgeImage = 'https://image.thehyundai.com/images/badge/badge_manager_large.png?SF=webp&AO=1'
 const disclosure = '셀렉터스샵에서 상품을 구매하는 경우, 상품 구매로 발생한 수익의 일부가 셀렉터스에게 제공됩니다.'
-const shareUrl = 'http://localhost:3000/#/shop/RC000003200T'
+const shareUrl = 'http://localhost:3000/shop/RC000003200T'
 
 let clipboardDescriptor: PropertyDescriptor | undefined
 let shareDescriptor: PropertyDescriptor | undefined
@@ -31,7 +31,7 @@ function SetShopStatusControl() {
 
 afterEach(() => {
   cleanup()
-  window.location.hash = ''
+  window.history.replaceState({}, '', '/')
   localStorage.clear()
   sessionStorage.clear()
   vi.unstubAllGlobals()
@@ -58,12 +58,12 @@ afterEach(() => {
 
 describe('public selectors shop', () => {
   it('renders the public reference content', () => {
-    window.location.hash = shopHash
+    window.history.replaceState({}, '', shopPath)
 
     const { container } = render(<App />)
 
     expect(screen.getByRole('heading', { level: 1, name: '셀렉터스샵' })).toBeTruthy()
-    expect(screen.getByRole('link', { name: '뒤로 가기' }).getAttribute('href')).toBe('#/home')
+    expect(screen.getByRole('link', { name: '뒤로 가기' }).getAttribute('href')).toBe('/home')
     expect(screen.queryByRole('button', { name: '셀렉터스샵 공유' })).toBeNull()
 
     const badge = screen.getByAltText('인플루언서 뱃지')
@@ -120,14 +120,14 @@ describe('public selectors shop', () => {
       role: 'USER',
       selectorAccessLevel: 'CURRENT',
     }))
-    window.location.hash = shopHash
+    window.history.replaceState({}, '', shopPath)
 
     render(<App />)
 
     fireEvent.click(screen.getByRole('button', { name: '관리자' }))
 
     expect(screen.getByRole('link', { name: '관리하기' }).getAttribute('href')).toBe(
-      '#/shop/groups',
+      '/shop/groups',
     )
   })
 
@@ -139,7 +139,7 @@ describe('public selectors shop', () => {
     vi.mocked(globalThis.fetch).mockImplementation(() => Promise.resolve(new Response(JSON.stringify({
       data: { accessLevel: 'PREVIOUS' },
     }))))
-    window.location.hash = shopHash
+    window.history.replaceState({}, '', shopPath)
 
     render(<App />)
 
@@ -166,7 +166,7 @@ describe('public selectors shop', () => {
         ? accessResponse
         : Promise.resolve(new Response(JSON.stringify({ data: {} })))
     ))
-    window.location.hash = shopHash
+    window.history.replaceState({}, '', shopPath)
 
     const app = render(<App />)
 
@@ -187,7 +187,7 @@ describe('public selectors shop', () => {
     localStorage.setItem('selectors-auth', JSON.stringify({
       accessToken: 'owner.token', role: 'USER', selectorAccessLevel: 'CURRENT',
     }))
-    window.location.hash = shopHash
+    window.history.replaceState({}, '', shopPath)
     render(<App shopProbe={<SetShopStatusControl />} />)
 
     fireEvent.click(screen.getByRole('button', { name: '관리자' }))
@@ -200,7 +200,7 @@ describe('public selectors shop', () => {
   })
 
   it('expands groups without remounting existing sections or resetting scroll', () => {
-    window.location.hash = shopHash
+    window.history.replaceState({}, '', shopPath)
     const { container } = render(<App />)
     const scrollContainer = container.querySelector<HTMLElement>('.screen-scroll')
     const firstSixSections = [
@@ -253,7 +253,7 @@ describe('public selectors shop', () => {
       value: nativeShare,
     })
     vi.stubGlobal('fetch', fetchSpy)
-    window.location.hash = shopHash
+    window.history.replaceState({}, '', shopPath)
     render(<App />)
 
     fireEvent.click(screen.getByRole('button', { name: '관리자' }))

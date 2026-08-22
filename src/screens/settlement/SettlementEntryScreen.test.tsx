@@ -13,7 +13,7 @@ function json(data: unknown, status = 200) {
 afterEach(() => {
   cleanup()
   localStorage.clear()
-  window.location.hash = ''
+  window.history.replaceState({}, '', '/')
   vi.restoreAllMocks()
 })
 
@@ -25,7 +25,7 @@ describe('SettlementEntryScreen', () => {
 
     render(<SettlementEntryScreen />)
 
-    await waitFor(() => expect(window.location.hash).toBe('#/settlement'))
+    await waitFor(() => expect(window.location.pathname).toBe('/settlement'))
   })
 
   it('opens the information form when account information is not registered', async () => {
@@ -35,7 +35,7 @@ describe('SettlementEntryScreen', () => {
 
     render(<SettlementEntryScreen />)
 
-    await waitFor(() => expect(window.location.hash).toBe('#/settlement/info'))
+    await waitFor(() => expect(window.location.pathname).toBe('/settlement/info'))
   })
 
   it('opens the information form when the selectors account has not been created yet', async () => {
@@ -45,7 +45,7 @@ describe('SettlementEntryScreen', () => {
 
     render(<SettlementEntryScreen />)
 
-    await waitFor(() => expect(window.location.hash).toBe('#/settlement/info'))
+    await waitFor(() => expect(window.location.pathname).toBe('/settlement/info'))
   })
 
   it('sends unauthorized retries to the login screen', async () => {
@@ -55,6 +55,6 @@ describe('SettlementEntryScreen', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: '로그인하기' }))
 
-    expect(window.location.hash).toBe('#/login')
+    expect(window.location.pathname).toBe('/login')
   })
 })

@@ -22,7 +22,7 @@ function relativeLuminance(hex: string) {
 
 afterEach(() => {
   cleanup()
-  window.location.hash = ''
+  window.history.replaceState({}, '', '/')
   document.title = 'Selectors Client'
   vi.restoreAllMocks()
 })
@@ -37,11 +37,11 @@ describe('quality regression contracts', () => {
   })
 
   it('announces and focuses a newly selected hash screen', async () => {
-    window.location.hash = '#/login'
+    window.history.replaceState({}, '', '/login')
     render(<App />)
 
-    window.location.hash = '#/apply'
-    fireEvent(window, new HashChangeEvent('hashchange'))
+    window.history.replaceState({}, '', '/apply')
+    fireEvent(window, new PopStateEvent('popstate'))
 
     const heading = await screen.findByRole('heading', { level: 1, name: '셀렉터스 신청하기' })
     await waitFor(() => expect(document.activeElement).toBe(heading))
@@ -85,7 +85,7 @@ describe('quality regression contracts', () => {
         } }))
         : new Response(JSON.stringify({ data: { accessLevel: 'CURRENT' } })),
     ))
-    window.location.hash = '#/performance/products'
+    window.history.replaceState({}, '', '/performance/products')
     render(<App />)
 
     const table = screen.getByRole('table', { name: '상품별 성과 지표' })
@@ -101,7 +101,7 @@ describe('quality regression contracts', () => {
     localStorage.setItem('selectors-auth', JSON.stringify({
       accessToken: 'test.jwt', role: 'USER', selectorAccessLevel: 'CURRENT',
     }))
-    window.location.hash = '#/campaigns'
+    window.history.replaceState({}, '', '/campaigns')
     render(<App />)
 
     expect(screen.queryByRole('search')).toBeNull()

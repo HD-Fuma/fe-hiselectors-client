@@ -114,7 +114,7 @@ export default function MemberInfoScreen() {
 
     const clearCallback = () => {
       sessionStorage.removeItem(KAKAO_OAUTH_PENDING_KEY)
-      window.history.replaceState(window.history.state, '', window.location.pathname + window.location.hash)
+      window.history.replaceState(window.history.state, '', window.location.pathname)
     }
 
     void connectKakaoAccount(code, state)
@@ -135,13 +135,13 @@ export default function MemberInfoScreen() {
   if (!canView) {
     return (
       <div className="panel-page">
-        <ScreenHeader backHref="#/home" title="회원정보 변경" />
+        <ScreenHeader backHref="/home" title="회원정보 변경" />
         <div className="screen-scroll member-info-screen">
           <p className="member-info-feedback">회원정보는 로그인 후 확인할 수 있습니다.</p>
           <a
             className="primary-action"
-            href="#/login"
-            onClick={() => sessionStorage.setItem('postLoginRedirect', '#/mypage/member')}
+            href="/login"
+            onClick={() => sessionStorage.setItem('postLoginRedirect', '/mypage/member')}
           >
             로그인하기
           </a>
@@ -198,7 +198,7 @@ export default function MemberInfoScreen() {
 
   return (
     <div className="panel-page">
-      <ScreenHeader backHref="#/home" title="회원정보 변경" />
+      <ScreenHeader backHref="/home" title="회원정보 변경" />
       <div className="screen-scroll member-info-screen">
         {loadError ? (
           <div className="member-info-feedback member-info-feedback-error" role="alert">

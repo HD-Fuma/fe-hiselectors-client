@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 
 import { ShareIcon } from '../../components/Icons'
 import ScreenHeader from '../../components/ScreenHeader'
+import { navigate } from '../../navigation'
 import { canManageSelectorOperations, readAuthSession } from '../../auth'
 import DeleteGroupDialog from './DeleteGroupDialog'
 import RenameGroupDialog from './RenameGroupDialog'
@@ -11,15 +12,15 @@ import ShopGroupSection from './ShopGroupSection'
 import { useShopDemo } from './ShopDemoContext'
 import ShopStatus from './ShopStatus'
 import { MissingShopGroup } from './GroupEditorScreen'
-import { buildPublicShopHash, getPublicProductShareUrl, getPublicShopShareUrl, parsePublicShopHash } from './shopRoute'
+import { buildPublicShopPath, getPublicProductShareUrl, getPublicShopShareUrl, parsePublicShopPath } from './shopRoute'
 import { useShopViewLog } from './useShopViewLog'
 
 const disclosure = '셀렉터스샵에서 상품을 구매하는 경우, 상품 구매로 발생한 수익의 일부가 셀렉터스에게 제공됩니다.'
 export default function OwnerShopGroupScreen() {
   const { campaigns, deleteGroup, getGroup, isProductGroupLoading, ownedSelectorsCode, productGroupError, renameGroup, selectorsCode: loadedSelectorsCode, setStatus, state } = useShopDemo()
-  const location = parsePublicShopHash(window.location.hash)
+  const location = parsePublicShopPath(window.location.pathname)
   const selectorsCode = location?.selectorsCode ?? ''
-  const shopPath = buildPublicShopHash(selectorsCode)
+  const shopPath = buildPublicShopPath(selectorsCode)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [renameOpen, setRenameOpen] = useState(false)
   const [shareOpen, setShareOpen] = useState(false)
@@ -117,7 +118,7 @@ export default function OwnerShopGroupScreen() {
             void deleteGroup(group.id).then(() => {
               setStatus('상품 그룹을 삭제했어요.')
               setDeleteOpen(false)
-              window.location.hash = shopPath
+              navigate(shopPath)
             }).catch((error) => setStatus(error instanceof Error ? error.message : '상품 그룹을 삭제하지 못했습니다.'))
           }}
         />

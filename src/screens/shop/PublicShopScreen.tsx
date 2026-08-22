@@ -9,7 +9,7 @@ import { useShopDemo } from './ShopDemoContext'
 import ShopStatus from './ShopStatus'
 import OwnerGroupControls from './OwnerGroupControls'
 import { useShopViewLog } from './useShopViewLog'
-import { buildPublicShopHash, getPublicProductShareUrl, getPublicShopShareUrl, parsePublicShopHash } from './shopRoute'
+import { buildPublicShopPath, getPublicProductShareUrl, getPublicShopShareUrl, parsePublicShopPath } from './shopRoute'
 
 const initialGroupCount = 6
 const disclosure = '셀렉터스샵에서 상품을 구매하는 경우, 상품 구매로 발생한 수익의 일부가 셀렉터스에게 제공됩니다.'
@@ -27,7 +27,7 @@ function getInitialViewMode(): ShopViewMode {
 
 export default function PublicShopScreen() {
   const { isProductGroupLoading, ownedSelectorsCode, productGroupError, profile, setStatus, state } = useShopDemo()
-  const selectorsCode = parsePublicShopHash(window.location.hash)?.selectorsCode ?? ''
+  const selectorsCode = parsePublicShopPath(window.location.pathname)?.selectorsCode ?? ''
   const shareUrl = selectorsCode ? getPublicShopShareUrl(selectorsCode) : ''
   const [visibleGroupCount, setVisibleGroupCount] = useState(initialGroupCount)
   const [shareOpen, setShareOpen] = useState(false)
@@ -68,7 +68,7 @@ export default function PublicShopScreen() {
             <ShareIcon size={22} />
           </button>
         ) : undefined}
-        backHref="#/home"
+        backHref="/home"
         title="셀렉터스샵"
       />
       <div className="screen-scroll public-shop-screen">
@@ -118,7 +118,7 @@ export default function PublicShopScreen() {
         </button>
 
         {isOwner ? (
-          <a className="shop-manage-button" href="#/shop/groups">관리하기</a>
+          <a className="shop-manage-button" href="/shop/groups">관리하기</a>
         ) : null}
 
         <div className="shop-group-list">
@@ -128,7 +128,7 @@ export default function PublicShopScreen() {
               key={group.id}
               getProductShareUrl={isOwner ? (productId) => getPublicProductShareUrl(selectorsCode, productId) : undefined}
               ownerAction={isOwner ? <OwnerGroupControls group={group} /> : undefined}
-              titleHref={buildPublicShopHash(selectorsCode, group.id)}
+              titleHref={buildPublicShopPath(selectorsCode, group.id)}
             />
           ))}
         </div>

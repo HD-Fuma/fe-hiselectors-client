@@ -28,7 +28,7 @@ describe('shop product detail', () => {
     expect(sessionStorage.getItem('postLoginRedirect')).toBe(
       '/product/40B1342672?ptrsRefCd=RC000003200T',
     )
-    expect(window.location.hash).toBe('#/login')
+    expect(window.location.pathname).toBe('/login')
   })
 
   it('records a purchase conversion for the logged-in member', async () => {

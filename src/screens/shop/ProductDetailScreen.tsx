@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 
 import ScreenHeader from '../../components/ScreenHeader'
+import { navigate } from '../../navigation'
 import { hasValidUserSession, readAuthSession } from '../../auth'
 import { getPublicProduct } from './productGroupApi'
 import { purchaseProduct } from './purchaseApi'
 import { useShopDemo } from './ShopDemoContext'
 import type { ShopProduct } from './shopData'
-import { buildPublicShopHash, parseProductDetailLocation } from './shopRoute'
+import { buildPublicShopPath, parseProductDetailLocation } from './shopRoute'
 import { useShopViewLog } from './useShopViewLog'
 
 function mapProduct(product: Awaited<ReturnType<typeof getPublicProduct>>): ShopProduct {
@@ -73,7 +74,7 @@ export default function ProductDetailScreen() {
     return () => { cancelled = true }
   }, [contextProduct, productCode, selectorsCode])
 
-  const backHref = useMemo(() => buildPublicShopHash(selectorsCode), [selectorsCode])
+  const backHref = useMemo(() => buildPublicShopPath(selectorsCode), [selectorsCode])
 
   const handlePurchase = async () => {
     if (!product) return
@@ -83,7 +84,7 @@ export default function ProductDetailScreen() {
         'postLoginRedirect',
         `/product/${encodeURIComponent(productCode)}?ptrsRefCd=${encodeURIComponent(selectorsCode)}`,
       )
-      window.location.hash = '#/login'
+      navigate('/login')
       return
     }
 

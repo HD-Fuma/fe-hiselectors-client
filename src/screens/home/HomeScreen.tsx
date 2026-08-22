@@ -8,17 +8,17 @@ import {
 import { ArrowRightIcon, CartIcon, ChartIcon, CoinIcon, GiftIcon, PersonIcon } from '../../components/Icons'
 import ScreenHeader from '../../components/ScreenHeader'
 import { useShopDemo } from '../shop/ShopDemoContext'
-import { buildPublicShopHash } from '../shop/shopRoute'
+import { buildPublicShopPath } from '../shop/shopRoute'
 
 const staticHomeMenus = [
-  { href: '#/campaigns', label: '캠페인', description: '진행 중인 캠페인과 상품을 확인해요.', Icon: GiftIcon },
-  { href: '#/performance', label: '성과', description: '클릭과 구매 전환 성과를 확인해요.', Icon: ChartIcon },
-  { href: '#/settlement/check', label: '정산 관리', description: '정산 정보와 지급 내역을 관리해요.', Icon: CoinIcon },
-  { href: '#/mypage/member', label: '회원정보 변경', description: '회원정보와 카카오 메시지 연결을 관리해요.', Icon: PersonIcon },
+  { href: '/campaigns', label: '캠페인', description: '진행 중인 캠페인과 상품을 확인해요.', Icon: GiftIcon },
+  { href: '/performance', label: '성과', description: '클릭과 구매 전환 성과를 확인해요.', Icon: ChartIcon },
+  { href: '/settlement/check', label: '정산 관리', description: '정산 정보와 지급 내역을 관리해요.', Icon: CoinIcon },
+  { href: '/mypage/member', label: '회원정보 변경', description: '회원정보와 카카오 메시지 연결을 관리해요.', Icon: PersonIcon },
 ] as const
 
 const settlementHistoryMenu = {
-  href: '#/settlement',
+  href: '/settlement',
   label: '정산 내역',
   description: '이전 활동의 정산 내역을 확인해요.',
   Icon: CoinIcon,
@@ -30,7 +30,7 @@ export default function HomeScreen() {
   const canManage = canManageSelectorOperations(session)
   const canViewShop = canViewSelectorShop(session)
   const { isProductGroupLoading, ownedProfileMeta, productGroupError, profile, selectorsCode } = useShopDemo()
-  const shopHref = selectorsCode ? buildPublicShopHash(selectorsCode) : null
+  const shopHref = selectorsCode ? buildPublicShopPath(selectorsCode) : null
   const generationName = ownedProfileMeta.generationName?.trim() || '기수 정보 없음'
   const userName = ownedProfileMeta.userName?.trim() || session?.userName?.trim() || '이름 정보 없음'
   const savedSnsId = ownedProfileMeta.snsId?.trim()
@@ -48,7 +48,7 @@ export default function HomeScreen() {
     }] : []),
     ...(canManage ? staticHomeMenus : []),
     ...(accessLevel === 'PREVIOUS' || accessLevel === 'BLACKLIST' ? [settlementHistoryMenu] : []),
-    { href: '#/mypage/member', label: '회원정보 변경', description: '회원정보와 카카오 메시지 연결을 관리해요.', Icon: PersonIcon },
+    { href: '/mypage/member', label: '회원정보 변경', description: '회원정보와 카카오 메시지 연결을 관리해요.', Icon: PersonIcon },
   ]
   return (
     <div className="panel-page selectors-home-page">
@@ -81,7 +81,7 @@ export default function HomeScreen() {
           {homeMenus.map(({ Icon, description, href, label }) => (
             <a
               aria-disabled={!href || undefined}
-              href={href ?? '#/home'}
+              href={href ?? '/home'}
               key={label}
               onClick={(event) => {
                 if (!href) event.preventDefault()

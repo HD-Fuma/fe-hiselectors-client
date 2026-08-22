@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 
 import { redirectToLoginScreen } from '../../auth'
 import ScreenHeader from '../../components/ScreenHeader'
+import { navigate } from '../../navigation'
 import {
   getSettlementAccount,
   getSettlementErrorMessage,
@@ -16,10 +17,10 @@ export default function SettlementEntryScreen() {
     setError(null)
     try {
       await getSettlementAccount()
-      window.location.hash = '#/settlement'
+      navigate('/settlement')
     } catch (requestError) {
       if (isSettlementAccountNotRegistered(requestError)) {
-        window.location.hash = '#/settlement/info'
+        navigate('/settlement/info')
         return
       }
       setError(requestError)
@@ -32,7 +33,7 @@ export default function SettlementEntryScreen() {
 
   return (
     <>
-      <ScreenHeader backHref="#/home" title="정산" />
+      <ScreenHeader backHref="/home" title="정산" />
       <div className="screen-scroll settlement-screen">
         {error ? (
           <div className="settlement-content-feedback settlement-content-error" role="alert">

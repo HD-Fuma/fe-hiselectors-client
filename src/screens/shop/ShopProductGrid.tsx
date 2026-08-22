@@ -3,7 +3,7 @@ import { useRef, useState } from 'react'
 import { useShopDemo } from './ShopDemoContext'
 import { CopyIcon } from '../../components/Icons'
 import ShareShopSheet from './ShareShopSheet'
-import { buildPublicProductUrl, parsePublicShopHash } from './shopRoute'
+import { buildPublicProductUrl, parsePublicShopPath } from './shopRoute'
 
 type ShopProductGridProps = {
   productIds: readonly string[]
@@ -18,7 +18,7 @@ export default function ShopProductGrid({ getProductShareUrl, productIds }: Shop
   return (
     <div className="shop-product-grid">
       {getProducts(productIds).map((product) => {
-        const selectorsCode = parsePublicShopHash(window.location.hash)?.selectorsCode ?? ''
+        const selectorsCode = parsePublicShopPath(window.location.pathname)?.selectorsCode ?? ''
         const productCode = product.code ?? product.id
         const productUrl = buildPublicProductUrl(productCode, selectorsCode)
 

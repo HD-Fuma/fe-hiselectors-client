@@ -6,9 +6,9 @@ import { readFileSync } from 'node:fs'
 import App from '../../App'
 import { useShopDemo } from './ShopDemoContext'
 
-const ownerHash = '#/shop/RC000003200T/1'
+const ownerHash = '/shop/RC000003200T/1'
 const disclosure = '셀렉터스샵에서 상품을 구매하는 경우, 상품 구매로 발생한 수익의 일부가 셀렉터스에게 제공됩니다.'
-const groupShareUrl = 'http://localhost:3000/#/shop/RC000003200T/1'
+const groupShareUrl = 'http://localhost:3000/shop/RC000003200T/1'
 const workspaceRoot = (globalThis as typeof globalThis & {
   process: { cwd(): string }
 }).process.cwd()
@@ -58,7 +58,7 @@ function SetShopStatusControl() {
 
 afterEach(() => {
   cleanup()
-  window.location.hash = ''
+  window.history.replaceState({}, '', '/')
   localStorage.clear()
   sessionStorage.clear()
   vi.unstubAllGlobals()
@@ -85,7 +85,7 @@ afterEach(() => {
 
 describe('owner selectors shop group', () => {
   it('owner reference and menu keyboard', () => {
-    window.location.hash = ownerHash
+    window.history.replaceState({}, '', ownerHash)
 
     const { container } = render(<App />)
 
@@ -151,7 +151,7 @@ describe('owner selectors shop group', () => {
 
     const editItem = within(menu).getByRole('menuitem', { name: '상품 추가·편집' })
     expect(editItem.tagName).toBe('A')
-    expect(editItem.getAttribute('href')).toBe('#/shop/groups/1/edit')
+    expect(editItem.getAttribute('href')).toBe('/shop/groups/1/edit')
 
     fireEvent.pointerDown(container.querySelector('.owner-shop-group-screen') as Element)
     expect(screen.queryByRole('menu')).toBeNull()
@@ -167,7 +167,7 @@ describe('owner selectors shop group', () => {
   })
 
   it('opens every group through its own detail and edit route', async () => {
-    window.location.hash = '#/shop/RC000003200T/2'
+    window.history.replaceState({}, '', '/shop/RC000003200T/2')
     render(<App />)
 
     const group = screen.getByRole('region', { name: '여름의 결' })
@@ -176,22 +176,22 @@ describe('owner selectors shop group', () => {
     fireEvent.click(screen.getByRole('button', { name: '옵션 열기' }))
     const editLink = screen.getByRole('menuitem', { name: '상품 추가·편집' })
     expect(editLink.getAttribute('href')).toBe(
-      '#/shop/groups/2/edit',
+      '/shop/groups/2/edit',
     )
 
     fireEvent.click(editLink)
 
-    await waitFor(() => expect(window.location.hash).toBe('#/shop/groups/2/edit'))
+    await waitFor(() => expect(window.location.pathname).toBe('/shop/groups/2/edit'))
     expect((screen.getByRole('textbox', { name: '상품 그룹 이름' }) as HTMLInputElement).value).toBe(
       '여름의 결',
     )
     expect(screen.getByRole('link', { name: '뒤로 가기' }).getAttribute('href')).toBe(
-      '#/shop/RC000003200T/2',
+      '/shop/RC000003200T/2',
     )
   })
 
   it('closes the menu on Tab without trapping focus', () => {
-    window.location.hash = ownerHash
+    window.history.replaceState({}, '', ownerHash)
     render(<App />)
 
     const trigger = screen.getByRole('button', { name: '옵션 열기' })
@@ -211,7 +211,7 @@ describe('owner selectors shop group', () => {
   })
 
   it('activates the edit anchor with Space', async () => {
-    window.location.hash = ownerHash
+    window.history.replaceState({}, '', ownerHash)
     render(<App />)
 
     fireEvent.click(screen.getByRole('button', { name: '옵션 열기' }))
@@ -221,9 +221,9 @@ describe('owner selectors shop group', () => {
 
     expect(fireEvent.keyDown(editItem, { key: ' ' })).toBe(false)
     expect(clickSpy).toHaveBeenCalledTimes(1)
-    expect(editItem.getAttribute('href')).toBe('#/shop/groups/1/edit')
+    expect(editItem.getAttribute('href')).toBe('/shop/groups/1/edit')
     expect(screen.queryByRole('menu')).toBeNull()
-    await waitFor(() => expect(window.location.hash).toBe('#/shop/groups/1/edit'))
+    await waitFor(() => expect(window.location.pathname).toBe('/shop/groups/1/edit'))
   })
 
   it('shares from both owner entry points', async () => {
@@ -244,7 +244,7 @@ describe('owner selectors shop group', () => {
       value: nativeShare,
     })
     vi.stubGlobal('fetch', fetchSpy)
-    window.location.hash = ownerHash
+    window.history.replaceState({}, '', ownerHash)
     render(<App />)
 
     const assertShareSheet = async () => {
@@ -289,7 +289,7 @@ describe('owner selectors shop group', () => {
   })
 
   it('keeps a retained shop status above the share overlay', () => {
-    window.location.hash = ownerHash
+    window.history.replaceState({}, '', ownerHash)
     const { container } = render(<App shopProbe={<SetShopStatusControl />} />)
 
     fireEvent.click(screen.getByRole('button', { name: '테스트 상태 설정' }))
@@ -315,7 +315,7 @@ describe('owner selectors shop group', () => {
   })
 
   it('renames with accessible validation', async () => {
-    window.location.hash = ownerHash
+    window.history.replaceState({}, '', ownerHash)
     render(<App />)
 
     const menuTrigger = screen.getByRole('button', { name: '옵션 열기' })
@@ -364,7 +364,7 @@ describe('owner selectors shop group', () => {
   })
 
   it('cancels and confirms named deletion', async () => {
-    window.location.hash = ownerHash
+    window.history.replaceState({}, '', ownerHash)
     const { container } = render(<App />)
     const menuTrigger = screen.getByRole('button', { name: '옵션 열기' })
 
@@ -402,38 +402,38 @@ describe('owner selectors shop group', () => {
     fireEvent.click(within(confirmDialog).getByRole('button', { name: '삭제' }))
 
     await waitFor(() => {
-      expect(window.location.hash).toBe('#/shop/RC000003200T')
+      expect(window.location.pathname).toBe('/shop/RC000003200T')
       expect(screen.getByRole('main').getAttribute('data-screen-id')).toBe('public-shop')
     })
     expect(screen.getByRole('alertdialog', { name: '알림' }).textContent).toContain('상품 그룹을 삭제했어요.')
 
-    window.location.hash = ownerHash
-    fireEvent(window, new HashChangeEvent('hashchange'))
+    window.history.replaceState({}, '', ownerHash)
+    fireEvent(window, new PopStateEvent('popstate'))
 
     expect(screen.getByRole('heading', { level: 1, name: '셀렉터스샵' })).toBeTruthy()
     expect(screen.getByText('상품 그룹을 찾을 수 없습니다.')).toBeTruthy()
     expect(
       screen.getByRole('link', { name: '셀렉터스샵으로 돌아가기' }).getAttribute('href'),
-    ).toBe('#/shop/RC000003200T')
+    ).toBe('/shop/RC000003200T')
     expect(screen.queryByText('귀걸이')).toBeNull()
     expect(container.querySelector('.shop-product')).toBeNull()
     expect(screen.queryByRole('button', { name: '옵션 열기' })).toBeNull()
 
-    window.location.hash = '#/shop/groups/1/edit'
-    fireEvent(window, new HashChangeEvent('hashchange'))
+    window.history.replaceState({}, '', '/shop/groups/1/edit')
+    fireEvent(window, new PopStateEvent('popstate'))
 
     expect(screen.getByRole('heading', { level: 1, name: '상품 그룹 편집' })).toBeTruthy()
     expect(screen.getByText('상품 그룹을 찾을 수 없습니다.')).toBeTruthy()
     expect(
       screen.getByRole('link', { name: '셀렉터스샵으로 돌아가기' }).getAttribute('href'),
-    ).toBe('#/shop/RC000003200T')
+    ).toBe('/shop/RC000003200T')
     expect(container.querySelector('.group-editor-screen')).toBeNull()
     expect(container.querySelector('.picker-row')).toBeNull()
     expect(container.querySelector('#group-name')).toBeNull()
   })
 
   it('lists provider-backed overview', () => {
-    window.location.hash = '#/shop/groups'
+    window.history.replaceState({}, '', '/shop/groups')
     const { container } = render(<App />)
 
     expect(screen.getByRole('heading', { level: 1, name: '셀렉터스 샵 관리하기' })).toBeTruthy()
@@ -445,7 +445,7 @@ describe('owner selectors shop group', () => {
     ))).toEqual(overviewGroups.map(([name]) => name))
     overviewGroups.forEach(([name, productCount], index) => {
       expect(within(cards[index]).getByRole('link', { name }).getAttribute('href')).toBe(
-        `#/shop/RC000003200T/${index + 1}`,
+        `/shop/RC000003200T/${index + 1}`,
       )
       expect(
         within(cards[index]).getByText(`상품 ${productCount}개 · 2026.08.04 생성`),
@@ -460,12 +460,12 @@ describe('owner selectors shop group', () => {
     ))
     expect(ownerLinks).toHaveLength(1)
     const createLink = screen.getByRole('link', { name: '상품 그룹 만들기' })
-    expect(createLink.getAttribute('href')).toBe('#/shop/groups/new')
+    expect(createLink.getAttribute('href')).toBe('/shop/groups/new')
     expect(createLink.closest('.bottom-action-bar')).toBeTruthy()
   })
 
   it('keeps shop state for the App lifetime and resets it on remount', () => {
-    window.location.hash = ownerHash
+    window.history.replaceState({}, '', ownerHash)
     const app = render(<App />)
 
     const menuTrigger = screen.getByRole('button', { name: '옵션 열기' })
@@ -478,24 +478,24 @@ describe('owner selectors shop group', () => {
     fireEvent.click(within(renameDialog).getByRole('button', { name: '저장' }))
     expect(screen.getByRole('heading', { level: 2, name: 'SPA 유지' })).toBeTruthy()
 
-    window.location.hash = '#/shop/RC000003200T'
-    fireEvent(window, new HashChangeEvent('hashchange'))
+    window.history.replaceState({}, '', '/shop/RC000003200T')
+    fireEvent(window, new PopStateEvent('popstate'))
     expect(screen.getByRole('heading', { level: 2, name: 'SPA 유지' })).toBeTruthy()
 
-    window.location.hash = ownerHash
-    fireEvent(window, new HashChangeEvent('hashchange'))
+    window.history.replaceState({}, '', ownerHash)
+    fireEvent(window, new PopStateEvent('popstate'))
     expect(screen.getByRole('heading', { level: 2, name: 'SPA 유지' })).toBeTruthy()
 
-    window.location.hash = '#/shop/groups/edit'
-    fireEvent(window, new HashChangeEvent('hashchange'))
-    expect(window.location.hash).toBe('#/login')
+    window.history.replaceState({}, '', '/shop/groups/edit')
+    fireEvent(window, new PopStateEvent('popstate'))
+    expect(window.location.pathname).toBe('/login')
 
-    window.location.hash = ownerHash
-    fireEvent(window, new HashChangeEvent('hashchange'))
+    window.history.replaceState({}, '', ownerHash)
+    fireEvent(window, new PopStateEvent('popstate'))
     expect(screen.getByRole('heading', { level: 2, name: 'SPA 유지' })).toBeTruthy()
 
     app.unmount()
-    window.location.hash = '#/shop/groups'
+    window.history.replaceState({}, '', '/shop/groups')
     const freshApp = render(<App />)
 
     expect(freshApp.container.querySelectorAll('.group-card')).toHaveLength(13)

@@ -58,7 +58,7 @@ function RuntimeDisabledAction({
   return (
     <BottomActionBar
       disabled={disabled}
-      href="#/shop/groups"
+      href="/shop/groups"
       label="동적 액션"
       onClick={(event) => {
         event.preventDefault()
@@ -70,7 +70,7 @@ function RuntimeDisabledAction({
 
 afterEach(() => {
   cleanup()
-  window.location.hash = ''
+  window.history.replaceState({}, '', '/')
   localStorage.clear()
   vi.restoreAllMocks()
 })
@@ -92,7 +92,7 @@ describe('group editor', () => {
     )
 
     const link = screen.getByRole('link', { name: '동적 액션' })
-    expect(link.getAttribute('href')).toBe('#/shop/groups')
+    expect(link.getAttribute('href')).toBe('/shop/groups')
     fireEvent.click(link)
     expect(onActivate).toHaveBeenLastCalledWith('A')
 
@@ -108,7 +108,7 @@ describe('group editor', () => {
   it('initializes all editor modes', () => {
     const cases = [
       {
-        path: '#/shop/groups/new',
+        path: '/shop/groups/new',
         mode: 'create',
         groupId: '',
         initialCampaign: '',
@@ -116,11 +116,11 @@ describe('group editor', () => {
         name: '',
         campaignId: '',
         selectedCount: 0,
-        backHref: '#/shop/groups',
+        backHref: '/shop/groups',
         saveDisabled: true,
       },
       {
-        path: '#/shop/groups/1/edit',
+        path: '/shop/groups/1/edit',
         mode: 'edit',
         groupId: '1',
         initialCampaign: '',
@@ -128,11 +128,11 @@ describe('group editor', () => {
         name: '귀걸이',
         campaignId: 'jewelry-focus',
         selectedCount: 2,
-        backHref: '#/shop/RC000003200T/1',
+        backHref: '/shop/RC000003200T/1',
         saveDisabled: false,
       },
       {
-        path: '#/shop/groups/new/campaign/season-pick',
+        path: '/shop/groups/new/campaign/season-pick',
         mode: 'campaign-create',
         groupId: '',
         initialCampaign: 'season-pick',
@@ -140,13 +140,13 @@ describe('group editor', () => {
         name: '',
         campaignId: 'season-pick',
         selectedCount: 0,
-        backHref: '#/campaigns/season-pick',
+        backHref: '/campaigns/season-pick',
         saveDisabled: true,
       },
     ] as const
 
     for (const editorCase of cases) {
-      window.location.hash = editorCase.path
+      window.history.replaceState({}, '', editorCase.path)
       const { container, unmount } = render(<App />)
 
       const editor = container.querySelector<HTMLElement>('[data-editor-mode]')
@@ -185,7 +185,7 @@ describe('group editor', () => {
   it('clears selection when the campaign changes', () => {
     const knitName = '[더현대Hi 단독] Cale ribbed half sleeve KN (Ivory)'
     const earringName = earringNames[0]
-    window.location.hash = '#/shop/groups/new'
+    window.history.replaceState({}, '', '/shop/groups/new')
     const { unmount } = render(<App />)
 
     const campaign = screen.getByRole('combobox', { name: '캠페인 선택' })
@@ -211,7 +211,7 @@ describe('group editor', () => {
   })
 
   it('requires valid name and one product', () => {
-    window.location.hash = '#/shop/groups/new'
+    window.history.replaceState({}, '', '/shop/groups/new')
     render(<App shopProbe={<EditorStateProbe />} />)
 
     const input = screen.getByRole('textbox', { name: '상품 그룹 이름' }) as HTMLInputElement
@@ -238,7 +238,7 @@ describe('group editor', () => {
     expect(screen.getByRole('alert').textContent).toBe('상품을 1개 이상 선택해 주세요.')
     expect(input.getAttribute('aria-describedby')).toBe('group-name-count')
     fireEvent.click(save)
-    expect(window.location.hash).toBe('#/shop/groups/new')
+    expect(window.location.pathname).toBe('/shop/groups/new')
     expect(screen.getByRole('status', { name: '테스트 그룹 상태' }).textContent).toBe(
       initialState,
     )
@@ -246,7 +246,7 @@ describe('group editor', () => {
 
   it('creates a trimmed group', async () => {
     const productName = '[더현대Hi 단독] Cale ribbed half sleeve KN (Ivory)'
-    window.location.hash = '#/shop/groups/new'
+    window.history.replaceState({}, '', '/shop/groups/new')
     render(<App shopProbe={<GroupSaveProbe />} />)
 
     fireEvent.click(screen.getByRole('button', { name: '테스트 드래프트 설정' }))
@@ -260,7 +260,7 @@ describe('group editor', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: productName }))
     fireEvent.click(screen.getByRole('button', { name: '상품 그룹 저장하기' }))
 
-    await waitFor(() => expect(window.location.hash).toBe('#/shop/RC000003200T'))
+    await waitFor(() => expect(window.location.pathname).toBe('/shop/RC000003200T'))
     expect(JSON.parse(
       screen.getByRole('status', { name: '생성한 그룹' }).textContent ?? 'null',
     )).toEqual({
@@ -275,7 +275,7 @@ describe('group editor', () => {
 
   it('updates an existing group', async () => {
     const jewelryName = '샴페인 풀문 (Y) 빅 보울 귀걸이 HL2E53215YBXXX'
-    window.location.hash = '#/shop/groups/1/edit'
+    window.history.replaceState({}, '', '/shop/groups/1/edit')
     render(<App shopProbe={<GroupSaveProbe />} />)
 
     fireEvent.click(screen.getByRole('button', { name: '테스트 드래프트 설정' }))
@@ -288,7 +288,7 @@ describe('group editor', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: jewelryName }))
     fireEvent.click(screen.getByRole('button', { name: '상품 그룹 저장하기' }))
 
-    await waitFor(() => expect(window.location.hash).toBe('#/shop/RC000003200T/1'))
+    await waitFor(() => expect(window.location.pathname).toBe('/shop/RC000003200T/1'))
     expect(JSON.parse(
       screen.getByRole('status', { name: '편집한 그룹' }).textContent ?? 'null',
     )).toEqual({
@@ -307,25 +307,25 @@ describe('group editor', () => {
 
   it('Back clears draft and follows each mode destination', async () => {
     const cases = [
-      ['#/shop/groups/new', '#/shop/groups'],
-      ['#/shop/groups/1/edit', '#/shop/RC000003200T/1'],
-      ['#/shop/groups/new/campaign/season-pick', '#/campaigns/season-pick'],
+      ['/shop/groups/new', '/shop/groups'],
+      ['/shop/groups/1/edit', '/shop/RC000003200T/1'],
+      ['/shop/groups/new/campaign/season-pick', '/campaigns/season-pick'],
     ] as const
 
     for (const [path, destination] of cases) {
-      window.location.hash = path
+      window.history.replaceState({}, '', path)
       const { unmount } = render(<App shopProbe={<GroupSaveProbe />} />)
       fireEvent.click(screen.getByRole('button', { name: '테스트 드래프트 설정' }))
       expect(screen.getByRole('status', { name: '빠른 추가 드래프트' }).textContent).not.toBe('null')
 
       fireEvent.click(screen.getByRole('link', { name: '뒤로 가기' }))
 
-      await waitFor(() => expect(window.location.hash).toBe(destination))
+      await waitFor(() => expect(window.location.pathname).toBe(destination))
       expect(screen.getByRole('status', { name: '빠른 추가 드래프트' }).textContent).toBe('null')
       unmount()
     }
 
-    window.location.hash = '#/shop/groups/1/edit'
+    window.history.replaceState({}, '', '/shop/groups/1/edit')
     const { container } = render(<App shopProbe={<GroupSaveProbe />} />)
     fireEvent.click(screen.getByRole('button', { name: '테스트 그룹 삭제' }))
 
@@ -333,7 +333,7 @@ describe('group editor', () => {
     expect(screen.getByText('상품 그룹을 찾을 수 없습니다.')).toBeTruthy()
     expect(
       screen.getByRole('link', { name: '셀렉터스샵으로 돌아가기' }).getAttribute('href'),
-    ).toBe('#/shop/RC000003200T')
+    ).toBe('/shop/RC000003200T')
     expect(container.querySelector('.group-editor-screen')).toBeNull()
     expect(container.querySelector('#group-name')).toBeNull()
     expect(container.querySelector('.picker-list')).toBeNull()

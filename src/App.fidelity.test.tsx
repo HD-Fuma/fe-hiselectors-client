@@ -16,7 +16,7 @@ afterEach(() => {
   cleanup()
   localStorage.clear()
   sessionStorage.clear()
-  window.location.hash = ''
+  window.history.replaceState({}, '', '/')
   vi.restoreAllMocks()
 })
 
@@ -59,7 +59,7 @@ describe('reference typography and packaged font', () => {
   })
 
   it('keeps the approved login and application landmarks after the baseline change', () => {
-    window.location.hash = '#/login'
+    window.history.replaceState({}, '', '/login')
     render(<App />)
     expect(screen.getByRole('heading', { level: 1, name: '로그인' })).toBeTruthy()
     expect(screen.getByRole('button', { name: '로그인' })).toBeTruthy()
@@ -71,7 +71,7 @@ describe('reference typography and packaged font', () => {
       loginId: 'selector-user',
       selectorAccessLevel: 'NONE',
     }))
-    window.location.hash = '#/apply/form'
+    window.history.replaceState({}, '', '/apply/form')
     render(<App />)
     expect(screen.getByRole('heading', { level: 1, name: '셀렉터스 신청하기' })).toBeTruthy()
     expect(within(screen.getByRole('main')).getByText('나의 대표 SNS')).toBeTruthy()
@@ -116,7 +116,7 @@ describe('shared panel and campaign fidelity', () => {
     localStorage.setItem('selectors-auth', JSON.stringify({
       accessToken: 'test.jwt', role: 'USER', selectorAccessLevel: 'CURRENT',
     }))
-    window.location.hash = '#/campaigns/season-pick'
+    window.history.replaceState({}, '', '/campaigns/season-pick')
     render(<App />)
 
     expect(screen.queryByText('활동 수수료')).toBeNull()
@@ -163,7 +163,7 @@ describe('shared panel and campaign fidelity', () => {
         } }))
         : new Response(JSON.stringify({ data: { accessLevel: 'CURRENT' } })),
     ))
-    window.location.hash = '#/performance'
+    window.history.replaceState({}, '', '/performance')
     render(<App />)
     expect(screen.getByRole('heading', { name: '셀렉터스 성과' })).toBeTruthy()
     expect((screen.getByRole('combobox', { name: '조회 월 선택' }) as HTMLSelectElement).value).toBe('2026-08')
@@ -180,13 +180,13 @@ describe('shared panel and campaign fidelity', () => {
     expect(within(aggregateCommission).getByText('원')).toBeTruthy()
 
     cleanup()
-    window.location.hash = '#/performance/products'
+    window.history.replaceState({}, '', '/performance/products')
     render(<App />)
     const productTable = screen.getByRole('table', { name: '상품별 성과 지표' })
     expect(await within(productTable).findByRole('cell', { name: '예상 수수료 324,800원' })).toBeTruthy()
 
     cleanup()
-    window.location.hash = '#/settlement'
+    window.history.replaceState({}, '', '/settlement')
     vi.mocked(globalThis.fetch).mockImplementation((input) => Promise.resolve(
       String(input).endsWith('/api/me/selector-access')
         ? new Response(JSON.stringify({ data: { accessLevel: 'CURRENT' } }))

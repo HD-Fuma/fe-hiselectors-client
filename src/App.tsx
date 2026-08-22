@@ -13,7 +13,8 @@ import {
   readAuthSession,
   SelectorAccessRequestError,
 } from './auth'
-import { getRouteRedirect, routeMatchesHash, selectRouteByHash } from './routes'
+import { navigate } from './navigation'
+import { getRouteRedirect, routeMatchesPath, selectRouteByPath } from './routes'
 import { ShopDemoProvider } from './screens/shop/ShopDemoContext'
 import { verifyOAuth } from './oauth'
 import { KAKAO_OAUTH_PENDING_KEY, MEMBER_INFO_PATH } from './screens/mypage/kakaoApi'
@@ -29,59 +30,58 @@ function hasPendingOAuthCallback(): boolean {
   return Boolean(params.get('code') && params.get('state'))
 }
 
-function pendingOAuthHash() {
+function pendingOAuthPath() {
   if (!hasPendingOAuthCallback()) {
     return null
   }
-  return sessionStorage.getItem(KAKAO_OAUTH_PENDING_KEY) ? MEMBER_INFO_PATH : '#/apply/form'
+  return sessionStorage.getItem(KAKAO_OAUTH_PENDING_KEY) ? MEMBER_INFO_PATH : '/apply/form'
 }
 
 function selectCurrentRoute() {
   const productPathMatch = window.location.pathname.match(/\/product\/([^/]+)\/?$/)
-  if (!window.location.hash
-    && productPathMatch
+  if (productPathMatch
     && new URLSearchParams(window.location.search).has('ptrsRefCd')) {
-    return selectRouteByHash(`#/product/${productPathMatch[1]}`)
+    return selectRouteByPath(`/product/${productPathMatch[1]}`)
   }
 
   const session = readAuthSession()
-  let requestedHash = window.location.hash
-  const oauthHash = pendingOAuthHash()
-  if (oauthHash === MEMBER_INFO_PATH) {
-    requestedHash = oauthHash
-    if (window.location.hash !== requestedHash) {
-      window.location.hash = requestedHash
+  let requestedPath = window.location.pathname
+  const oauthPath = pendingOAuthPath()
+  if (oauthPath === MEMBER_INFO_PATH) {
+    requestedPath = oauthPath
+    if (window.location.pathname !== requestedPath) {
+      navigate(`${requestedPath}${window.location.search}`, { replace: true })
     }
-  } else if (oauthHash) {
+  } else if (oauthPath) {
     const isApplicant = !hasValidUserSession(session)
       || (session?.role === 'USER'
         && (session.selectorAccessLevel === undefined || session.selectorAccessLevel === 'NONE'))
     if (isApplicant) {
-      requestedHash = '#/apply/form'
-      if (window.location.hash !== requestedHash) {
-        window.location.hash = requestedHash
+      requestedPath = '/apply/form'
+      if (window.location.pathname !== requestedPath) {
+        navigate(`${requestedPath}${window.location.search}`, { replace: true })
       }
-    } else if (!requestedHash) {
-      requestedHash = '#/home'
+    } else if (requestedPath === '/') {
+      requestedPath = '/home'
+      navigate(`${requestedPath}${window.location.search}`, { replace: true })
     }
   }
 
-  const route = selectRouteByHash(requestedHash)
+  const route = selectRouteByPath(requestedPath)
   const routeRedirect = getRouteRedirect(route, session)
-  if (routeRedirect && routeRedirect !== requestedHash) {
+  if (routeRedirect && routeRedirect !== requestedPath) {
     if (!hasValidUserSession(session)) {
-      sessionStorage.setItem('postLoginRedirect', requestedHash)
+      sessionStorage.setItem('postLoginRedirect', requestedPath)
     }
-    window.history.replaceState(window.history.state, '', routeRedirect)
-    window.setTimeout(() => window.dispatchEvent(new HashChangeEvent('hashchange')), 0)
-    return selectRouteByHash(routeRedirect)
+    navigate(routeRedirect, { replace: true })
+    return selectRouteByPath(routeRedirect)
   }
 
-  if (!routeMatchesHash(route, window.location.hash)) {
+  if (!routeMatchesPath(route, requestedPath)) {
     const nextUrl = hasPendingOAuthCallback()
-      ? `${window.location.pathname}${window.location.search}${route.path}`
+      ? `${route.path}${window.location.search}`
       : route.path
-    window.history.replaceState(window.history.state, '', nextUrl)
+    navigate(nextUrl, { replace: true })
   }
 
   return route
@@ -205,7 +205,7 @@ function RoutedApp({ shopProbe }: AppProps) {
       }
 
       const clearOAuthQueryParams = () => {
-        window.history.replaceState(window.history.state, '', window.location.pathname + window.location.hash)
+        window.history.replaceState(window.history.state, '', window.location.pathname)
       }
 
       if (sessionStorage.getItem(KAKAO_OAUTH_PENDING_KEY)) {
@@ -261,12 +261,12 @@ function RoutedApp({ shopProbe }: AppProps) {
   }, [])
 
   useEffect(() => {
-    const handleHashChange = () => {
+    const handleLocationChange = () => {
       setRoute(selectCurrentRoute())
     }
 
     const handleApplyGateClick = (event: MouseEvent) => {
-      const anchor = (event.target as HTMLElement).closest('a[href="#/apply/form"]')
+      const anchor = (event.target as HTMLElement).closest('a[href="/apply/form"]')
       if (!anchor) {
         return
       }
@@ -279,13 +279,25 @@ function RoutedApp({ shopProbe }: AppProps) {
 
       if (!hasValidUserSession(readAuthSession())) {
         event.preventDefault()
-        sessionStorage.setItem('postLoginRedirect', '#/apply/form')
+        sessionStorage.setItem('postLoginRedirect', '/apply/form')
         setShowAuthGateModal(true)
       }
     }
 
     const handleAuthRequired = () => {
       setShowAuthGateModal(true)
+    }
+
+    const handleNavigationClick = (event: MouseEvent) => {
+      if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+      const anchor = (event.target as HTMLElement).closest<HTMLAnchorElement>('a[href]')
+      if (!anchor || anchor.target || anchor.hasAttribute('download')) return
+
+      const url = new URL(anchor.href, window.location.href)
+      if (url.origin !== window.location.origin || !url.pathname.startsWith('/')) return
+
+      event.preventDefault()
+      navigate(`${url.pathname}${url.search}`)
     }
 
     const handleAuthChanged = () => {
@@ -295,17 +307,17 @@ function RoutedApp({ shopProbe }: AppProps) {
       setRoute(selectCurrentRoute())
     }
 
-    window.addEventListener('hashchange', handleHashChange)
-    window.addEventListener('popstate', handleHashChange)
+    window.addEventListener('popstate', handleLocationChange)
     document.addEventListener('click', handleApplyGateClick, true)
+    document.addEventListener('click', handleNavigationClick)
     window.addEventListener('auth:required', handleAuthRequired)
     window.addEventListener('auth:changed', handleAuthChanged)
     window.addEventListener('storage', handleAuthChanged)
 
     return () => {
-      window.removeEventListener('hashchange', handleHashChange)
-      window.removeEventListener('popstate', handleHashChange)
+      window.removeEventListener('popstate', handleLocationChange)
       document.removeEventListener('click', handleApplyGateClick, true)
+      document.removeEventListener('click', handleNavigationClick)
       window.removeEventListener('auth:required', handleAuthRequired)
       window.removeEventListener('auth:changed', handleAuthChanged)
       window.removeEventListener('storage', handleAuthChanged)
@@ -322,7 +334,7 @@ function RoutedApp({ shopProbe }: AppProps) {
       return
     }
 
-    sessionStorage.setItem('postLoginRedirect', '#/apply/form')
+    sessionStorage.setItem('postLoginRedirect', '/apply/form')
     setShowAuthGateModal(true)
   }, [currentRouteId])
 
@@ -348,7 +360,7 @@ function RoutedApp({ shopProbe }: AppProps) {
 
   const handleGoToLogin = () => {
     setShowAuthGateModal(false)
-    window.location.hash = '#/login'
+    navigate('/login')
   }
 
   return (

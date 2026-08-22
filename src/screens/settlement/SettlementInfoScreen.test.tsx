@@ -47,19 +47,19 @@ function fillAccountFields() {
 
 afterEach(() => {
   cleanup()
-  window.location.hash = ''
+  window.history.replaceState({}, '', '/')
   vi.restoreAllMocks()
 })
 
 describe('SettlementInfoScreen', () => {
   it('switches identifier fields without sending them to the account API', async () => {
     const fetchSpy = mockAccountFetch()
-    window.location.hash = '#/settlement/info'
+    window.history.replaceState({}, '', '/settlement/info')
 
     render(<SettlementInfoScreen />)
 
     await waitFor(() => expect(fetchSpy).toHaveBeenCalled())
-    expect(screen.getByRole('link', { name: '뒤로 가기' }).getAttribute('href')).toBe('#/home')
+    expect(screen.getByRole('link', { name: '뒤로 가기' }).getAttribute('href')).toBe('/home')
     expect(screen.getAllByRole('radio').map((radio) => radio.parentElement?.textContent)).toEqual([
       '개인',
       '개인사업자',
@@ -77,7 +77,7 @@ describe('SettlementInfoScreen', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: '저장하기' }))
 
-    await waitFor(() => expect(window.location.hash).toBe('#/settlement'))
+    await waitFor(() => expect(window.location.pathname).toBe('/settlement'))
 
     const putCall = fetchSpy.mock.calls.find(([, init]) => init?.method === 'PUT')
     expect(requestUrl(putCall?.[0] as RequestInfo | URL)).toContain('/api/settlements/account')
@@ -129,6 +129,6 @@ describe('SettlementInfoScreen', () => {
     render(<SettlementInfoScreen />)
     fireEvent.click(await screen.findByRole('button', { name: '로그인하기' }))
 
-    expect(window.location.hash).toBe('#/login')
+    expect(window.location.pathname).toBe('/login')
   })
 })

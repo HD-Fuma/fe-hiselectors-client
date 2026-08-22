@@ -2,6 +2,7 @@ import { useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 
 import BottomActionBar from '../../components/BottomActionBar'
 import ScreenHeader from '../../components/ScreenHeader'
+import { navigate } from '../../navigation'
 import { useShopDemo } from './ShopDemoContext'
 
 export default function ProfileEditScreen() {
@@ -26,12 +27,12 @@ export default function ProfileEditScreen() {
     if (!canSave) return
     updateProfile(trimmedName, avatarImage)
     setStatus('프로필을 수정했어요.')
-    window.location.hash = '#/shop/groups'
+    navigate('/shop/groups')
   }
 
   return (
     <div className="panel-page">
-      <ScreenHeader backHref="#/shop/groups" title="프로필 수정" />
+      <ScreenHeader backHref="/shop/groups" title="프로필 수정" />
       <div className="screen-scroll shop-profile-edit-screen">
         <form onSubmit={handleSubmit} ref={formRef}>
           <section className="profile-image-editor">

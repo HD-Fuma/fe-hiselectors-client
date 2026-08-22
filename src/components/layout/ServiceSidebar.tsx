@@ -28,7 +28,7 @@ export default function ServiceSidebar() {
 
       <nav className="aside-tile-grid" aria-label="서비스 메뉴">
         {asideTiles.map((tile) => (
-          <a className="aside-tile" href={tile.label === '셀렉터스' ? '#/home' : '#/campaigns'} key={tile.label}>
+          <a className="aside-tile" href={tile.label === '셀렉터스' ? '/home' : '/campaigns'} key={tile.label}>
             <span>{tile.label}</span>
             <img alt="" src={tile.image} />
           </a>

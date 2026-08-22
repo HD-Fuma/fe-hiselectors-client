@@ -33,7 +33,7 @@ afterEach(() => {
   localStorage.clear()
   sessionStorage.clear()
   vi.restoreAllMocks()
-  window.location.hash = ''
+  window.history.replaceState({}, '', '/')
 })
 
 describe('reference shell contract', () => {
@@ -42,7 +42,7 @@ describe('reference shell contract', () => {
   })
 
   it('renders the shared screen landmarks', () => {
-    window.location.hash = '#/apply/form'
+    window.history.replaceState({}, '', '/apply/form')
 
     render(<App />)
 
@@ -51,13 +51,13 @@ describe('reference shell contract', () => {
     expect(screen.getByRole('banner')).toBeTruthy()
 
     cleanup()
-    window.location.hash = '#/shop/RC000003200T'
+    window.history.replaceState({}, '', '/shop/RC000003200T')
     render(<App />)
     expect(screen.getByRole('link', { name: '뒤로 가기' })).toBeTruthy()
   })
 
   it('keeps visible proxy elements immediately after hidden checkboxes', () => {
-    window.location.hash = '#/apply/form'
+    window.history.replaceState({}, '', '/apply/form')
     const { container } = render(<App />)
 
     const customCheck = container.querySelector<HTMLInputElement>('.term-row input')
@@ -67,7 +67,7 @@ describe('reference shell contract', () => {
     localStorage.setItem('selectors-auth', JSON.stringify({
       accessToken: 'test.jwt', role: 'USER', selectorAccessLevel: 'CURRENT',
     }))
-    window.location.hash = '#/shop/groups/new'
+    window.history.replaceState({}, '', '/shop/groups/new')
     const editor = render(<App />)
     fireEvent.change(screen.getByLabelText('캠페인 선택'), { target: { value: 'season-pick' } })
     const productCheck = editor.container.querySelector<HTMLInputElement>('.picker-row input')
@@ -82,7 +82,7 @@ describe('reference shell contract', () => {
   })
 
   it('opens one SNS listbox from the combobox', () => {
-    window.location.hash = '#/apply/form'
+    window.history.replaceState({}, '', '/apply/form')
     render(<App />)
 
     const trigger = screen.getByRole('combobox', { name: '대표 SNS' })
@@ -125,7 +125,7 @@ describe('reference shell contract', () => {
   })
 
   it('renders the supplied inverse QR path', () => {
-    window.location.hash = '#/login'
+    window.history.replaceState({}, '', '/login')
     render(<App />)
 
     const qr = screen.getByRole('img', { name: '앱 설치 QR 코드' })

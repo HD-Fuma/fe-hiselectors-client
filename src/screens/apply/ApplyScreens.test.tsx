@@ -65,7 +65,7 @@ function chooseSns(label: string) {
 
 afterEach(() => {
   cleanup()
-  window.location.hash = ''
+  window.history.replaceState({}, '', '/')
   localStorage.clear()
   sessionStorage.clear()
   window.history.replaceState(window.history.state, '', window.location.pathname)
@@ -75,7 +75,7 @@ afterEach(() => {
 describe('apply flow', () => {
   it('matches the supplied intro and routes both calls to action into the form', () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse({ data: { id: 1 } }))
-    window.location.hash = '#/apply'
+    window.history.replaceState({}, '', '/apply')
 
     render(<App />)
 
@@ -86,13 +86,13 @@ describe('apply flow', () => {
       expect(screen.getByText(label)).toBeTruthy()
     })
     expect(screen.getByText('링크 공유').closest('li')?.classList.contains('is-active')).toBe(true)
-    expect(screen.getByRole('link', { name: '자세히 알아보기' }).getAttribute('href')).toBe('#/apply/form')
-    expect(screen.getByRole('link', { name: '셀렉터스 신청하기' }).getAttribute('href')).toBe('#/apply/form')
+    expect(screen.getByRole('link', { name: '자세히 알아보기' }).getAttribute('href')).toBe('/apply/form')
+    expect(screen.getByRole('link', { name: '셀렉터스 신청하기' }).getAttribute('href')).toBe('/apply/form')
   })
 
   it('blocks the form when there is no active cohort', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse({ data: null }))
-    window.location.hash = '#/apply'
+    window.history.replaceState({}, '', '/apply')
     render(<App />)
 
     await waitFor(() => {
@@ -101,7 +101,7 @@ describe('apply flow', () => {
         screen.getByRole('dialog', { name: '현재 모집 중인 기수가 없어 지원할 수 없습니다.' }),
       ).toBeTruthy()
     })
-    expect(window.location.hash).toBe('#/apply')
+    expect(window.location.pathname).toBe('/apply')
   })
 
   it('allows an explicit local OAuth test URL without an active cohort', async () => {
@@ -112,7 +112,7 @@ describe('apply flow', () => {
     window.history.replaceState(
       window.history.state,
       '',
-      `${window.location.pathname}?applyTest=1#/apply/form`,
+      '/apply/form?applyTest=1',
     )
 
     render(<App />)
@@ -130,14 +130,14 @@ describe('apply flow', () => {
     window.history.replaceState(
       window.history.state,
       '',
-      `${window.location.pathname}?applyTest=1#/apply/form`,
+      '/apply/form?applyTest=1',
     )
 
     render(<App />)
 
     expect(await screen.findByRole('dialog', { name: '로그인이 필요합니다' })).toBeTruthy()
     expect(screen.queryByRole('combobox', { name: '대표 SNS' })).toBeNull()
-    expect(sessionStorage.getItem('postLoginRedirect')).toBe('#/apply/form')
+    expect(sessionStorage.getItem('postLoginRedirect')).toBe('/apply/form')
     expect(
       screen.queryByRole('dialog', { name: '현재 모집 중인 기수가 없어 지원할 수 없습니다.' }),
     ).toBeNull()
@@ -147,22 +147,22 @@ describe('apply flow', () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       jsonResponse({ data: { generationId: 1 } }),
     )
-    window.location.hash = '#/apply'
+    window.history.replaceState({}, '', '/apply')
     render(<App />)
 
     await waitFor(() => expect(fetchSpy).toHaveBeenCalled())
     fireEvent.click(screen.getByRole('link', { name: '셀렉터스 신청하기' }))
 
     expect(screen.getByRole('dialog', { name: '로그인이 필요합니다' })).toBeTruthy()
-    expect(sessionStorage.getItem('postLoginRedirect')).toBe('#/apply/form')
-    expect(window.location.hash).toBe('#/apply')
+    expect(sessionStorage.getItem('postLoginRedirect')).toBe('/apply/form')
+    expect(window.location.pathname).toBe('/apply')
   })
 
   it('uses the styled SNS listbox and clears stale verification when the provider changes', () => {
     authenticate()
     verifyInstagram()
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse({ data: { id: 1 } }))
-    window.location.hash = '#/apply/form'
+    window.history.replaceState({}, '', '/apply/form')
     render(<App />)
 
     const trigger = screen.getByRole('combobox', { name: '대표 SNS' })
@@ -196,9 +196,9 @@ describe('apply flow', () => {
       configurable: true,
       value: {
         origin: originalLocation.origin,
-        pathname: originalLocation.pathname,
+        pathname: '/apply/form',
         href: originalLocation.href,
-        hash: '#/apply/form',
+        hash: '',
         search: originalLocation.search,
         assign: assignSpy,
       },
@@ -245,7 +245,7 @@ describe('apply flow', () => {
       }
       return jsonResponse({ message: '인증이 필요합니다.' }, 401)
     })
-    window.location.hash = '#/apply/form'
+    window.history.replaceState({}, '', '/apply/form')
     render(<App />)
 
     chooseSns('인스타그램')
@@ -253,7 +253,7 @@ describe('apply flow', () => {
 
     const dialog = await screen.findByRole('dialog', { name: '로그인이 필요합니다' })
     expect(within(dialog).getByText(/로그인 페이지로 이동할까요\?/)).toBeTruthy()
-    expect(window.location.hash).toBe('#/apply/form')
+    expect(window.location.pathname).toBe('/apply/form')
     expect(sessionStorage.getItem('oauthProvider')).toBeNull()
     expect(fetchSpy).toHaveBeenCalledWith(
       'https://api.hiselectors.shop/api/instagram/oauth/authorize',
@@ -320,7 +320,7 @@ describe('apply flow', () => {
     window.history.replaceState(
       window.history.state,
       '',
-      `${window.location.pathname}?code=abc123&state=state-1#/apply/form`,
+      '/apply/form?code=abc123&state=state-1',
     )
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const url = requestUrl(input)
@@ -353,7 +353,7 @@ describe('apply flow', () => {
       }
       throw new Error(`Unexpected request: ${url}`)
     })
-    window.location.hash = '#/apply/form'
+    window.history.replaceState({}, '', '/apply/form')
     render(<App />)
 
     const submit = screen.getByRole('button', { name: '셀렉터스 신청하기' })
@@ -364,7 +364,7 @@ describe('apply flow', () => {
 
     fireEvent.click(submit)
 
-    await waitFor(() => expect(window.location.hash).toBe('#/apply/status'))
+    await waitFor(() => expect(window.location.pathname).toBe('/apply/status'))
     const applicationCall = fetchSpy.mock.calls.find(([input]) => (
       requestUrl(input).endsWith('/api/applications')
     ))
@@ -388,7 +388,7 @@ describe('apply flow', () => {
     authenticate()
     verifyInstagram()
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse({ data: { id: 1 } }))
-    window.location.hash = '#/apply/form'
+    window.history.replaceState({}, '', '/apply/form')
     render(<App />)
 
     const contentCollectionConsent = screen.getByRole('checkbox', {
@@ -445,7 +445,7 @@ describe('apply flow', () => {
     authenticate()
     verifyInstagram()
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse({ data: { id: 1 } }))
-    window.location.hash = '#/apply/form'
+    window.history.replaceState({}, '', '/apply/form')
     render(<App />)
 
     const checkbox = screen.getByRole('checkbox', { name: '현대백화점 이용약관 (필수)' }) as HTMLInputElement
@@ -470,7 +470,7 @@ describe('apply flow', () => {
     authenticate()
     verifyInstagram()
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse({ data: { id: 1 } }))
-    window.location.hash = '#/apply/form'
+    window.history.replaceState({}, '', '/apply/form')
     render(<App />)
 
     fireEvent.click(screen.getByRole('button', { name: buttonName }))
@@ -486,7 +486,7 @@ describe('apply flow', () => {
     authenticate()
     verifyInstagram()
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse({ data: { id: 1 } }))
-    window.location.hash = '#/apply/form'
+    window.history.replaceState({}, '', '/apply/form')
     render(<App />)
 
     fireEvent.click(screen.getByRole('button', { name: '카카오 알림톡 수신 동의 내용 보기' }))
@@ -538,7 +538,7 @@ describe('apply flow', () => {
     window.history.replaceState(
       window.history.state,
       '',
-      `${window.location.pathname}?code=abc123&state=state-1#/apply/form`,
+      '/apply/form?code=abc123&state=state-1',
     )
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const url = requestUrl(input)
@@ -563,7 +563,7 @@ describe('apply flow', () => {
     screen.getAllByRole('checkbox').forEach((checkbox) => fireEvent.click(checkbox))
     fireEvent.click(screen.getByRole('button', { name: '셀렉터스 신청하기' }))
 
-    await waitFor(() => expect(window.location.hash).toBe('#/apply/status'))
+    await waitFor(() => expect(window.location.pathname).toBe('/apply/status'))
     const applicationCall = fetchSpy.mock.calls.find(([input]) => (
       requestUrl(input).endsWith('/api/applications')
     ))
@@ -594,7 +594,7 @@ describe('apply flow', () => {
       }
       throw new Error(`Unexpected request: ${url}`)
     })
-    window.location.hash = '#/apply/form'
+    window.history.replaceState({}, '', '/apply/form')
     render(<App />)
 
     screen.getAllByRole('checkbox').forEach((checkbox) => fireEvent.click(checkbox))
@@ -606,7 +606,7 @@ describe('apply flow', () => {
     expect(screen.queryByRole('dialog', { name: '로그인이 필요합니다' })).toBeNull()
     expect(screen.getByRole('button', { name: 'Instagram 계정 연결하기' })).toHaveProperty('disabled', false)
     expect(sessionStorage.getItem('oauthVerified')).toBeNull()
-    expect(window.location.hash).toBe('#/apply/form')
+    expect(window.location.pathname).toBe('/apply/form')
   })
 
   it.each([
@@ -622,7 +622,7 @@ describe('apply flow', () => {
       }
       return jsonResponse(body, status)
     })
-    window.location.hash = '#/apply/form'
+    window.history.replaceState({}, '', '/apply/form')
     render(<App />)
 
     screen.getAllByRole('checkbox').forEach((checkbox) => fireEvent.click(checkbox))
@@ -630,7 +630,7 @@ describe('apply flow', () => {
 
     const dialog = await screen.findByRole('dialog', { name: '제출 실패' })
     expect(within(dialog).getByText(message)).toBeTruthy()
-    expect(window.location.hash).toBe('#/apply/form')
+    expect(window.location.pathname).toBe('/apply/form')
   })
 
   it('renders the application status destination', () => {
@@ -638,6 +638,6 @@ describe('apply flow', () => {
 
     expect(screen.getByRole('heading', { level: 1, name: '신청 완료' })).toBeTruthy()
     expect(screen.getByRole('heading', { level: 2, name: '셀렉터스 신청을 완료했어요.' })).toBeTruthy()
-    expect(screen.getByRole('link', { name: '캠페인으로 이동' }).getAttribute('href')).toBe('#/campaigns')
+    expect(screen.getByRole('link', { name: '캠페인으로 이동' }).getAttribute('href')).toBe('/campaigns')
   })
 })

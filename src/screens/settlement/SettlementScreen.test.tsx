@@ -49,7 +49,7 @@ function setSession(selectorAccessLevel: 'CURRENT' | 'PREVIOUS' | 'BLACKLIST' = 
 afterEach(() => {
   cleanup()
   localStorage.clear()
-  window.location.hash = ''
+  window.history.replaceState({}, '', '/')
   vi.restoreAllMocks()
 })
 
@@ -163,7 +163,7 @@ describe('SettlementScreen', () => {
     render(<SettlementScreen />)
     fireEvent.click((await screen.findAllByRole('button', { name: '로그인하기' }))[0])
 
-    expect(window.location.hash).toBe('#/login')
+    expect(window.location.pathname).toBe('/login')
   })
 
   it.each(['PREVIOUS', 'BLACKLIST'] as const)('loads history only for %s access', async (accessLevel) => {

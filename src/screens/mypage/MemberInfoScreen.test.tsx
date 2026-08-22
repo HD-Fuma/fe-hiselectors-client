@@ -75,7 +75,7 @@ function mockMemberApis(options?: {
 
 afterEach(() => {
   cleanup()
-  window.location.hash = ''
+  window.history.replaceState({}, '', '/')
   localStorage.clear()
   sessionStorage.clear()
   window.history.replaceState(window.history.state, '', window.location.pathname)
@@ -86,7 +86,7 @@ describe('MemberInfoScreen', () => {
   it('renders the member information form from the profile API', async () => {
     authenticate()
     mockMemberApis()
-    window.location.hash = '#/mypage/member'
+    window.history.replaceState({}, '', '/mypage/member')
 
     render(<App />)
 
@@ -107,7 +107,7 @@ describe('MemberInfoScreen', () => {
     mockMemberApis({
       kakao: { status: 'READY' },
     })
-    window.location.hash = '#/mypage/member'
+    window.history.replaceState({}, '', '/mypage/member')
 
     render(<App />)
 
@@ -119,7 +119,7 @@ describe('MemberInfoScreen', () => {
   it('treats a raw READY status payload as connected', async () => {
     authenticate()
     mockMemberApis({ kakao: 'READY' })
-    window.location.hash = '#/mypage/member'
+    window.history.replaceState({}, '', '/mypage/member')
 
     render(<App />)
 
@@ -134,9 +134,9 @@ describe('MemberInfoScreen', () => {
       configurable: true,
       value: {
         origin: originalLocation.origin,
-        pathname: originalLocation.pathname,
+        pathname: '/mypage/member',
         href: originalLocation.href,
-        hash: '#/mypage/member',
+        hash: '',
         search: originalLocation.search,
         assign: assignSpy,
       },
@@ -162,9 +162,8 @@ describe('MemberInfoScreen', () => {
     window.history.replaceState(
       window.history.state,
       '',
-      `${window.location.pathname}?code=kakao-code&state=kakao-state`,
+      '/mypage/member?code=kakao-code&state=kakao-state',
     )
-    window.location.hash = '#/mypage/member'
 
     render(<App />)
 
@@ -184,7 +183,7 @@ describe('MemberInfoScreen', () => {
   it('keeps change actions as demo-only lookups', async () => {
     authenticate()
     const fetchSpy = mockMemberApis()
-    window.location.hash = '#/mypage/member'
+    window.history.replaceState({}, '', '/mypage/member')
     render(<App />)
 
     await screen.findByRole('button', { name: '카카오 인증하기' })
@@ -197,7 +196,7 @@ describe('MemberInfoScreen', () => {
   it('unmasks queried member fields', async () => {
     authenticate()
     mockMemberApis()
-    window.location.hash = '#/mypage/member'
+    window.history.replaceState({}, '', '/mypage/member')
     render(<App />)
 
     await screen.findByDisplayValue('hiu****')
@@ -210,11 +209,11 @@ describe('MemberInfoScreen', () => {
   })
 
   it('asks for login when the member page is opened anonymously', () => {
-    window.location.hash = '#/mypage/member'
+    window.history.replaceState({}, '', '/mypage/member')
     render(<App />)
 
     expect(screen.getByText('회원정보는 로그인 후 확인할 수 있습니다.')).toBeTruthy()
-    expect(screen.getByRole('link', { name: '로그인하기' }).getAttribute('href')).toBe('#/login')
+    expect(screen.getByRole('link', { name: '로그인하기' }).getAttribute('href')).toBe('/login')
     expect(screen.queryByRole('button', { name: '카카오 인증하기' })).toBeNull()
   })
 
@@ -226,7 +225,7 @@ describe('MemberInfoScreen', () => {
         message: '요청한 리소스를 찾을 수 없습니다.',
       }, 404),
     })
-    window.location.hash = '#/mypage/member'
+    window.history.replaceState({}, '', '/mypage/member')
     render(<App />)
 
     expect(await screen.findByText('확인 실패')).toBeTruthy()

@@ -20,7 +20,7 @@ import {
 afterEach(() => {
   cleanup()
   localStorage.clear()
-  window.location.hash = ''
+  window.history.replaceState({}, '', '/')
   vi.unstubAllEnvs()
   vi.restoreAllMocks()
 })
@@ -679,7 +679,7 @@ describe('shop provider', () => {
       accessToken: 'selector.jwt', tokenType: 'Bearer', role: 'USER', loginId: 'selector-user',
       selectorAccessLevel: 'CURRENT',
     }))
-    window.location.hash = '#/home'
+    window.history.replaceState({}, '', '/home')
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation((input) => {
       const url = String(input)
       if (url.endsWith('/api/product-groups/me/shop')) {
@@ -741,7 +741,7 @@ describe('shop provider', () => {
       accessToken: 'selector.jwt', tokenType: 'Bearer', role: 'USER', loginId: 'selector-user',
       selectorAccessLevel: 'CURRENT',
     }))
-    window.location.hash = '#/home'
+    window.history.replaceState({}, '', '/home')
     let resolveUpdate!: (response: Response) => void
     const updateResponse = new Promise<Response>((resolve) => { resolveUpdate = resolve })
     const ownedGroup = {

@@ -40,12 +40,12 @@ const expectedGroups = [
 
 afterEach(() => {
   cleanup()
-  window.location.hash = ''
+  window.history.replaceState({}, '', '/')
 })
 
 describe('service sidebar and public shop reference contract', () => {
   it('uses the service sidebar labels and installation copy', () => {
-    window.location.hash = '#/shop/RC000003200T'
+    window.history.replaceState({}, '', '/shop/RC000003200T')
     render(<App />)
 
     const aside = screen.getByRole('complementary', { name: '서비스 바로가기' })
@@ -68,7 +68,7 @@ describe('service sidebar and public shop reference contract', () => {
   })
 
   it('matches the avatar, badge, and byunjjii profile without the old category identity', () => {
-    window.location.hash = '#/shop/RC000003200T'
+    window.history.replaceState({}, '', '/shop/RC000003200T')
     const { container } = render(<App />)
 
     const badge = screen.getByAltText('인플루언서 뱃지')
@@ -85,7 +85,7 @@ describe('service sidebar and public shop reference contract', () => {
   })
 
   it('renders the first six provider-backed product groups in reference order', () => {
-    window.location.hash = '#/shop/RC000003200T'
+    window.history.replaceState({}, '', '/shop/RC000003200T')
     const { container } = render(<App />)
 
     const groups = [...container.querySelectorAll<HTMLElement>('[data-shop-group-id]')]
@@ -142,7 +142,7 @@ describe('service sidebar and public shop reference contract', () => {
     localStorage.setItem('selectors-auth', JSON.stringify({
       accessToken: 'owner.token', role: 'USER', selectorAccessLevel: 'CURRENT',
     }))
-    window.location.hash = '#/shop/RC000003200T'
+    window.history.replaceState({}, '', '/shop/RC000003200T')
     render(<App />)
 
     fireEvent.click(screen.getByRole('button', { name: '관리자' }))

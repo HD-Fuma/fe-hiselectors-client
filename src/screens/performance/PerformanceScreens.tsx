@@ -113,7 +113,7 @@ export function PerformanceSummaryScreen() {
 
   return (
     <>
-      <ScreenHeader backHref="#/home" title="셀렉터스 성과" />
+      <ScreenHeader backHref="/home" title="셀렉터스 성과" />
       <div className="screen-scroll performance-screen" aria-busy={loading}>
         <div className="period-row">
           <div><span>조회 기간</span><strong>월별 성과</strong></div>
@@ -162,7 +162,7 @@ export function PerformanceSummaryScreen() {
         </section>
 
         <section className="top-products-section">
-          <div className="section-link-heading"><div><h2>전환 상위 상품</h2><p>구매 전환 수를 기준으로 정렬했어요.</p></div><a href="#/performance/products">전체 보기 <ArrowRightIcon size={14} /></a></div>
+          <div className="section-link-heading"><div><h2>전환 상위 상품</h2><p>구매 전환 수를 기준으로 정렬했어요.</p></div><a href="/performance/products">전체 보기 <ArrowRightIcon size={14} /></a></div>
           <div className="top-product-list">
             {summary?.topProducts.length ? summary.topProducts.map((product, index) => (
               <article className="top-product-row" key={product.productId}>
@@ -201,7 +201,7 @@ export function ProductPerformanceScreen() {
 
   return (
     <>
-      <ScreenHeader backHref="#/performance" title="상품별 성과" />
+      <ScreenHeader backHref="/performance" title="상품별 성과" />
       <div className="screen-scroll product-performance-screen" aria-busy={loading}>
         <div className="period-row product-period-row">
           <div><span>조회 기간</span><strong>{monthLabel(selectedMonth)}</strong></div>
