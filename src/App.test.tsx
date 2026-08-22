@@ -312,6 +312,7 @@ describe('Selectors client routes', () => {
 
     const replaceState = vi.spyOn(window.history, 'replaceState')
     window.history.replaceState({}, '', '/shop/groups/edit')
+    replaceState.mockClear()
     fireEvent(window, new PopStateEvent('popstate'))
 
     expect(window.location.pathname).toBe('/login')

@@ -171,6 +171,7 @@ describe('campaign quick-add integration', () => {
     expect(draftOutput.textContent).toBe('null')
 
     window.history.replaceState({}, '', '/shop/groups/new/campaign/season-pick')
+    fireEvent(window, new PopStateEvent('popstate'))
     await waitFor(() => expect(
       screen.getByRole('heading', { level: 1, name: '상품 그룹 만들기' }),
     ).toBeTruthy())
@@ -219,6 +220,7 @@ describe('campaign quick-add integration', () => {
     expect(screen.getByRole('status', { name: '빠른 추가 드래프트' }).textContent).toBe('null')
 
     window.history.replaceState({}, '', '/shop/groups/new/campaign/season-pick')
+    fireEvent(window, new PopStateEvent('popstate'))
     await waitFor(() => expect(
       screen.getByRole('heading', { level: 1, name: '상품 그룹 만들기' }),
     ).toBeTruthy())
