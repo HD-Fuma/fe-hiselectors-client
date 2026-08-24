@@ -23,7 +23,7 @@ function relativeLuminance(hex: string) {
 afterEach(() => {
   cleanup()
   window.history.replaceState({}, '', '/')
-  document.title = 'Selectors Client'
+  document.title = '더현대Hi'
   vi.restoreAllMocks()
 })
 
@@ -39,6 +39,7 @@ describe('quality regression contracts', () => {
   it('announces and focuses a newly selected hash screen', async () => {
     window.history.replaceState({}, '', '/login')
     render(<App />)
+    expect(document.title).toBe('로그인 | 더현대Hi')
 
     window.history.replaceState({}, '', '/apply')
     fireEvent(window, new PopStateEvent('popstate'))
@@ -46,7 +47,7 @@ describe('quality regression contracts', () => {
     const heading = await screen.findByRole('heading', { level: 1, name: '셀렉터스 신청하기' })
     await waitFor(() => expect(document.activeElement).toBe(heading))
     expect(heading.getAttribute('tabindex')).toBe('-1')
-    expect(document.title).toBe('셀렉터스 신청하기 | Selectors Client')
+    expect(document.title).toBe('셀렉터스 신청하기 | 더현대Hi')
     expect(screen.getByText('셀렉터스 신청하기 화면', { selector: '.route-announcement' })).toBeTruthy()
   })
 

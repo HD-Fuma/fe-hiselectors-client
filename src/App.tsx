@@ -357,7 +357,7 @@ function RoutedApp({ shopProbe }: AppProps) {
   }, [currentRouteId, hasActiveCohort, isCohortStatusLoaded, localApplyTestMode])
 
   useEffect(() => {
-    document.title = `${route.title} | Selectors Client`
+    document.title = `${route.title} | 더현대Hi`
     document.querySelector<HTMLElement>('.client-panel h1')?.focus({ preventScroll: true })
   }, [route])
 
