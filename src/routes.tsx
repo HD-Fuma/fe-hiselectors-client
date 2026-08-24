@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react'
 
 import {
+  canManageSettlement,
   canManageSelectorOperations,
   canViewSettlementHistory,
   getSelectorAccessLevel,
@@ -38,7 +39,7 @@ type RouteDefinition = {
   access: RouteAccess
 }
 
-export type RouteAccess = 'public' | 'applicant' | 'selector' | 'current' | 'settlement-history'
+export type RouteAccess = 'public' | 'applicant' | 'selector' | 'current' | 'settlement' | 'settlement-history'
 
 export const routes = [
   { id: 'login', path: '/login', title: '로그인', Screen: LoginScreen, access: 'public' },
@@ -136,14 +137,14 @@ export const routes = [
     path: '/settlement/check',
     title: '정산',
     Screen: SettlementEntryScreen,
-    access: 'current',
+    access: 'settlement',
   },
   {
     id: 'settlement-info',
     path: '/settlement/info',
     title: '정산 정보',
     Screen: SettlementInfoScreen,
-    access: 'current',
+    access: 'settlement',
   },
   {
     id: 'settlement',
@@ -175,6 +176,7 @@ export function canAccessRoute(route: AppRoute, session: AuthSession | null): bo
   if (route.access === 'public') return true
   if (route.access === 'applicant') return !hasValidUserSession(session) || getSelectorAccessLevel(session) === 'NONE'
   if (route.access === 'current') return canManageSelectorOperations(session)
+  if (route.access === 'settlement') return canManageSettlement(session)
   if (route.access === 'settlement-history') return canViewSettlementHistory(session)
   return canViewSettlementHistory(session)
 }

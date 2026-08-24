@@ -852,6 +852,7 @@
   color: var(--gray-700);
   font-size: 13px;
   line-height: 20px;
+  white-space: pre-line;
 }
 
 .group-dialog-actions.shop-status-actions {
@@ -1322,6 +1323,14 @@
   color: var(--gray-700);
   font-size: 13px;
   line-height: 20px;
+}
+
+.selector-activity-end-dialog > p {
+  margin-top: 12px;
+  color: var(--gray-700);
+  font-size: 13px;
+  line-height: 20px;
+  white-space: pre-line;
 }
 
 .group-dialog-actions {

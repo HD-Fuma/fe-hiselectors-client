@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import App from '../../App'
@@ -8,6 +8,7 @@ const authSession = {
   tokenType: 'Bearer',
   role: 'USER',
   loginId: 'hiuser1',
+  selectorAccessLevel: 'CURRENT',
   userName: '홍길동',
   alimtalk: 'Y',
 }
@@ -33,7 +34,12 @@ function mockMemberApis(options?: {
   kakaoStatus?: Response
   authorizeUrl?: string
   connect?: unknown | Response
+  endActivity?: Response | Promise<Response> | Error
+  accessAfterEnd?: 'PREVIOUS' | 'BLACKLIST'
+  accessAfterEndResponse?: Promise<Response>
 }) {
+  let activityEnded = false
+  let deleteAttempted = false
   return vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
     const url = requestUrl(input)
     const method = (init?.method ?? 'GET').toUpperCase()
@@ -66,11 +72,35 @@ function mockMemberApis(options?: {
         data: options?.connect ?? { status: 'READY' },
       })
     }
+    if (url.endsWith('/api/me/selector-access')) {
+      if (method === 'DELETE') {
+        deleteAttempted = true
+        const configured = options?.endActivity ?? new Response(null, { status: 204 })
+        if (configured instanceof Error) throw configured
+        const response = await configured
+        activityEnded = response.ok
+        return response
+      }
+      if (deleteAttempted && options?.accessAfterEndResponse) {
+        return options.accessAfterEndResponse
+      }
+      return jsonResponse({
+        accessLevel: deleteAttempted && options?.accessAfterEnd
+          ? options.accessAfterEnd
+          : activityEnded ? 'PREVIOUS' : 'CURRENT',
+      })
+    }
     if (url.includes('/api/admin/')) {
       throw new Error(`Admin API must not be called: ${url}`)
     }
     return jsonResponse({ data: null })
   })
+}
+
+async function confirmSelectorActivityEnd() {
+  fireEvent.click(await screen.findByRole('button', { name: '셀렉터스 활동 종료하기' }))
+  const dialog = await screen.findByRole('dialog', { name: '셀렉터스 활동을 종료할까요?' })
+  fireEvent.click(within(dialog).getByRole('button', { name: '활동 종료' }))
 }
 
 afterEach(() => {
@@ -191,6 +221,214 @@ describe('MemberInfoScreen', () => {
 
     expect(screen.getByRole('alertdialog', { name: '알림' }).textContent).toContain('시연 화면에서는 조회만 가능합니다.')
     expect(fetchSpy.mock.calls.some(([input]) => requestUrl(input).includes('/change'))).toBe(false)
+  })
+
+  it('ends selector activity after confirmation and keeps settlement access', async () => {
+    authenticate()
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const fetchSpy = mockMemberApis()
+    window.history.replaceState({}, '', '/mypage/member')
+
+    render(<App />)
+    const pageButton = await screen.findByRole('button', { name: '셀렉터스 활동 종료하기' })
+    fireEvent.click(pageButton)
+    const dialog = await screen.findByRole('dialog', { name: '셀렉터스 활동을 종료할까요?' })
+    expect(confirmSpy).not.toHaveBeenCalled()
+    expect(dialog.getAttribute('aria-modal')).toBe('true')
+    const describedById = dialog.getAttribute('aria-describedby')
+    expect(describedById).toBeTruthy()
+    expect(describedById ? document.getElementById(describedById)?.textContent : null).toBe(
+      '종료 즉시 셀렉터스 자격이 사라지며 이 작업은 되돌릴 수 없습니다.\n미정산 금액은 예정대로 정산됩니다.',
+    )
+    fireEvent.click(within(dialog).getByRole('button', { name: '활동 종료' }))
+    expect(confirmSpy).not.toHaveBeenCalled()
+
+    await waitFor(() => expect(fetchSpy.mock.calls.some(([input, init]) => (
+      requestUrl(input).endsWith('/api/me/selector-access')
+      && init?.method === 'DELETE'
+    ))).toBe(true))
+    expect(confirmSpy).not.toHaveBeenCalled()
+    const deleteCall = fetchSpy.mock.calls.find(([input, init]) => (
+      requestUrl(input).endsWith('/api/me/selector-access') && init?.method === 'DELETE'
+    ))
+    expect((deleteCall?.[1]?.headers as Headers).get('Authorization')).toBe('Bearer demo.jwt')
+    expect(JSON.parse(localStorage.getItem('selectors-auth') ?? '{}').selectorAccessLevel).toBe('PREVIOUS')
+    await waitFor(() => expect(
+      screen.getByRole('alertdialog', { name: '알림' }).querySelector('p')?.textContent,
+    ).toBe('셀렉터스 활동이 종료되었습니다.\n미정산 금액은 예정대로 정산됩니다.'))
+    expect(confirmSpy).not.toHaveBeenCalled()
+    expect(screen.queryByRole('dialog', { name: '셀렉터스 활동을 종료할까요?' })).toBeNull()
+    expect(screen.queryByRole('button', { name: '셀렉터스 활동 종료하기' })).toBeNull()
+  })
+
+  it('does not end selector activity when confirmation is cancelled', async () => {
+    authenticate()
+    const fetchSpy = mockMemberApis()
+    window.history.replaceState({}, '', '/mypage/member')
+
+    render(<App />)
+    const pageButton = await screen.findByRole('button', { name: '셀렉터스 활동 종료하기' })
+    fireEvent.click(pageButton)
+    const dialog = await screen.findByRole('dialog', { name: '셀렉터스 활동을 종료할까요?' })
+    fireEvent.click(within(dialog).getByRole('button', { name: '취소' }))
+
+    expect(screen.queryByRole('dialog', { name: '셀렉터스 활동을 종료할까요?' })).toBeNull()
+    expect(fetchSpy.mock.calls.some(([, init]) => init?.method === 'DELETE')).toBe(false)
+    expect(JSON.parse(localStorage.getItem('selectors-auth') ?? '{}').selectorAccessLevel).toBe('CURRENT')
+    expect(document.activeElement).toBe(pageButton)
+  })
+
+  it('closes selector activity confirmation with Escape', async () => {
+    authenticate()
+    const fetchSpy = mockMemberApis()
+    window.history.replaceState({}, '', '/mypage/member')
+
+    render(<App />)
+    const pageButton = await screen.findByRole('button', { name: '셀렉터스 활동 종료하기' })
+    fireEvent.click(pageButton)
+    const dialog = await screen.findByRole('dialog', { name: '셀렉터스 활동을 종료할까요?' })
+    fireEvent.keyDown(dialog, { key: 'Escape' })
+
+    expect(screen.queryByRole('dialog', { name: '셀렉터스 활동을 종료할까요?' })).toBeNull()
+    expect(fetchSpy.mock.calls.some(([, init]) => init?.method === 'DELETE')).toBe(false)
+    expect(document.activeElement).toBe(pageButton)
+  })
+
+  it('prevents duplicate selector activity end requests while pending', async () => {
+    authenticate()
+    let resolveDelete!: (response: Response) => void
+    const pendingDelete = new Promise<Response>((resolve) => { resolveDelete = resolve })
+    const fetchSpy = mockMemberApis({ endActivity: pendingDelete })
+    window.history.replaceState({}, '', '/mypage/member')
+
+    render(<App />)
+    await confirmSelectorActivityEnd()
+    await waitFor(() => expect(fetchSpy.mock.calls.filter(([input, init]) => (
+      requestUrl(input).endsWith('/api/me/selector-access') && init?.method === 'DELETE'
+    ))).toHaveLength(1))
+
+    expect(screen.queryByRole('dialog', { name: '셀렉터스 활동을 종료할까요?' })).toBeNull()
+    const pendingButton = screen.getByRole('button', { name: '종료 처리 중...' })
+    expect((pendingButton as HTMLButtonElement).disabled).toBe(true)
+    fireEvent.click(pendingButton)
+    expect(fetchSpy.mock.calls.filter(([input, init]) => (
+      requestUrl(input).endsWith('/api/me/selector-access') && init?.method === 'DELETE'
+    ))).toHaveLength(1)
+
+    resolveDelete(new Response(null, { status: 204 }))
+    await waitFor(() => expect(screen.getByRole('alertdialog', { name: '알림' })).toBeTruthy())
+  })
+
+  it('keeps current access when ending selector activity fails', async () => {
+    authenticate()
+    mockMemberApis({
+      endActivity: jsonResponse({ message: '활동 종료 요청을 처리하지 못했습니다.' }, 500),
+    })
+    window.history.replaceState({}, '', '/mypage/member')
+
+    render(<App />)
+    await confirmSelectorActivityEnd()
+
+    expect((await screen.findByRole('alertdialog', { name: '알림' })).textContent)
+      .toContain('활동 종료 요청을 처리하지 못했습니다.')
+    expect(screen.queryByRole('dialog', { name: '셀렉터스 활동을 종료할까요?' })).toBeNull()
+    expect(JSON.parse(localStorage.getItem('selectors-auth') ?? '{}').selectorAccessLevel).toBe('CURRENT')
+  })
+
+  it('uses the authoritative access returned after an idempotent end request', async () => {
+    authenticate()
+    mockMemberApis({
+      endActivity: new Response(null, { status: 403 }),
+      accessAfterEnd: 'BLACKLIST',
+    })
+    window.history.replaceState({}, '', '/mypage/member')
+
+    render(<App />)
+    await confirmSelectorActivityEnd()
+
+    await waitFor(() => expect(JSON.parse(localStorage.getItem('selectors-auth') ?? '{}').selectorAccessLevel)
+      .toBe('BLACKLIST'))
+  })
+
+  it('reconciles a committed activity end after an ambiguous network failure', async () => {
+    authenticate()
+    mockMemberApis({
+      endActivity: new TypeError('Failed to fetch'),
+      accessAfterEnd: 'PREVIOUS',
+    })
+    window.history.replaceState({}, '', '/mypage/member')
+
+    render(<App />)
+    await confirmSelectorActivityEnd()
+
+    await waitFor(() => expect(JSON.parse(localStorage.getItem('selectors-auth') ?? '{}').selectorAccessLevel)
+      .toBe('PREVIOUS'))
+    expect(screen.getByRole('alertdialog', { name: '알림' }).textContent)
+      .toContain('셀렉터스 활동이 종료되었습니다.')
+  })
+
+  it('clears an expired session when the end request returns 401', async () => {
+    authenticate()
+    mockMemberApis({
+      endActivity: jsonResponse({ message: '인증이 필요합니다.' }, 401),
+      accessAfterEndResponse: Promise.resolve(jsonResponse({ message: '일시적인 오류입니다.' }, 500)),
+    })
+    window.history.replaceState({}, '', '/mypage/member')
+
+    render(<App />)
+    await confirmSelectorActivityEnd()
+
+    await waitFor(() => expect(localStorage.getItem('selectors-auth')).toBeNull())
+  })
+
+  it('does not overwrite a replacement login after an end request completes', async () => {
+    authenticate()
+    let resolveDelete!: (response: Response) => void
+    const pendingDelete = new Promise<Response>((resolve) => { resolveDelete = resolve })
+    const fetchSpy = mockMemberApis({ endActivity: pendingDelete })
+    window.history.replaceState({}, '', '/mypage/member')
+
+    render(<App />)
+    await confirmSelectorActivityEnd()
+    await waitFor(() => expect(fetchSpy.mock.calls.some(([, init]) => init?.method === 'DELETE')).toBe(true))
+
+    const replacementSession = {
+      ...authSession,
+      accessToken: 'replacement.jwt',
+      loginId: 'replacement-user',
+      selectorAccessLevel: 'BLACKLIST',
+    }
+    localStorage.setItem('selectors-auth', JSON.stringify(replacementSession))
+    window.dispatchEvent(new CustomEvent('auth:changed'))
+    resolveDelete(new Response(null, { status: 204 }))
+
+    await new Promise((resolve) => window.setTimeout(resolve, 0))
+    expect(JSON.parse(localStorage.getItem('selectors-auth') ?? '{}')).toMatchObject(replacementSession)
+  })
+
+  it('does not overwrite a newer same-token access update', async () => {
+    authenticate()
+    let resolveAccess!: (response: Response) => void
+    const pendingAccess = new Promise<Response>((resolve) => { resolveAccess = resolve })
+    const fetchSpy = mockMemberApis({ accessAfterEndResponse: pendingAccess })
+    window.history.replaceState({}, '', '/mypage/member')
+
+    render(<App />)
+    await confirmSelectorActivityEnd()
+    await waitFor(() => expect(fetchSpy.mock.calls.filter(([input]) => (
+      requestUrl(input).endsWith('/api/me/selector-access')
+    ))).toHaveLength(3))
+
+    localStorage.setItem('selectors-auth', JSON.stringify({
+      ...authSession,
+      selectorAccessLevel: 'BLACKLIST',
+    }))
+    window.dispatchEvent(new CustomEvent('auth:changed'))
+    resolveAccess(jsonResponse({ accessLevel: 'PREVIOUS' }))
+
+    await new Promise((resolve) => window.setTimeout(resolve, 0))
+    expect(JSON.parse(localStorage.getItem('selectors-auth') ?? '{}').selectorAccessLevel)
+      .toBe('BLACKLIST')
   })
 
   it('unmasks queried member fields', async () => {

@@ -1,14 +1,21 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useId, useRef, useState, type FormEvent, type RefObject } from 'react'
 
 import {
+  canManageSelectorOperations,
+  clearAuthSession,
+  endSelectorActivity,
+  fetchSelectorAccessLevel,
   hasValidUserSession,
+  persistAuthSession,
   readAuthSession,
   redirectToLoginScreen,
+  SelectorAccessRequestError,
 } from '../../auth'
 import BottomActionBar from '../../components/BottomActionBar'
 import { ArrowRightIcon, CheckIcon } from '../../components/Icons'
 import ScreenHeader from '../../components/ScreenHeader'
 import ShopStatus from '../shop/ShopStatus'
+import useModalFocus from '../shop/useModalFocus'
 import {
   KAKAO_OAUTH_PENDING_KEY,
   connectKakaoAccount,
@@ -52,6 +59,43 @@ function maskPhone(value: string) {
   return `${digits.slice(0, 3)}-****-${digits.slice(-4)}`
 }
 
+type SelectorActivityEndDialogProps = {
+  invokerRef: RefObject<HTMLElement | null>
+  onClose: () => void
+  onConfirm: () => void
+}
+
+function SelectorActivityEndDialog({
+  invokerRef,
+  onClose,
+  onConfirm,
+}: SelectorActivityEndDialogProps) {
+  const containerRef = useRef<HTMLElement>(null)
+  const titleId = useId()
+  const descriptionId = useId()
+  useModalFocus({ containerRef, invokerRef, onClose })
+
+  return (
+    <div className="group-dialog-backdrop">
+      <section
+        aria-describedby={descriptionId}
+        aria-labelledby={titleId}
+        aria-modal="true"
+        className="group-dialog selector-activity-end-dialog"
+        ref={containerRef}
+        role="dialog"
+      >
+        <h2 id={titleId}>셀렉터스 활동을 종료할까요?</h2>
+        <p id={descriptionId}>{'종료 즉시 셀렉터스 자격이 사라지며 이 작업은 되돌릴 수 없습니다.\n미정산 금액은 예정대로 정산됩니다.'}</p>
+        <div className="group-dialog-actions">
+          <button onClick={onClose} type="button">취소</button>
+          <button onClick={onConfirm} type="button">활동 종료</button>
+        </div>
+      </section>
+    </div>
+  )
+}
+
 export default function MemberInfoScreen() {
   const session = readAuthSession()
   const canView = hasValidUserSession(session) && session?.role === 'USER'
@@ -61,12 +105,15 @@ export default function MemberInfoScreen() {
   const [isMasked, setIsMasked] = useState(true)
   const [isLoading, setIsLoading] = useState(true)
   const [isConnecting, setIsConnecting] = useState(false)
+  const [isEndingActivity, setIsEndingActivity] = useState(false)
+  const [isEndActivityDialogOpen, setIsEndActivityDialogOpen] = useState(false)
   const [privacyAgreed, setPrivacyAgreed] = useState(true)
   const [emailMarketing, setEmailMarketing] = useState(false)
   const [pushMarketing, setPushMarketing] = useState(false)
   const [status, setStatus] = useState<string | null>(null)
   const [loadError, setLoadError] = useState<unknown>(null)
   const connectLock = useRef(false)
+  const endActivityButtonRef = useRef<HTMLButtonElement>(null)
 
   const hasKakaoCallback = () => {
     const params = new URLSearchParams(window.location.search)
@@ -194,6 +241,78 @@ export default function MemberInfoScreen() {
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setStatus('회원정보를 저장했어요.')
+  }
+
+  const handleEndActivity = async () => {
+    if (isEndingActivity) return
+
+    const requestSession = readAuthSession()
+    if (!requestSession) {
+      redirectToLoginScreen()
+      return
+    }
+    const isSameSession = () => {
+      const latestSession = readAuthSession()
+      return latestSession?.accessToken === requestSession.accessToken
+        && latestSession.selectorAccessLevel === requestSession.selectorAccessLevel
+    }
+    setIsEndingActivity(true)
+    try {
+      let endError: unknown = null
+      try {
+        await endSelectorActivity()
+      } catch (error) {
+        endError = error
+      }
+      if (!isSameSession()) return
+      if (endError instanceof SelectorAccessRequestError && endError.status === 401) {
+        clearAuthSession()
+        redirectToLoginScreen()
+        return
+      }
+
+      try {
+        const selectorAccessLevel = await fetchSelectorAccessLevel(
+          requestSession.accessToken,
+          requestSession.tokenType,
+        )
+        if (!isSameSession()) return
+        const latestSession = readAuthSession()
+        if (!latestSession) return
+        const nextSession = { ...latestSession, selectorAccessLevel }
+        persistAuthSession(nextSession)
+        window.dispatchEvent(new CustomEvent('auth:changed', { detail: nextSession }))
+        if (selectorAccessLevel !== 'CURRENT') {
+          setStatus(selectorAccessLevel === 'PREVIOUS'
+            ? '셀렉터스 활동이 종료되었습니다.\n미정산 금액은 예정대로 정산됩니다.'
+            : '셀렉터스 활동 상태가 갱신되었습니다.')
+          return
+        }
+      } catch (error) {
+        if (!isSameSession()) return
+        if (error instanceof SelectorAccessRequestError && [401, 403].includes(error.status)) {
+          clearAuthSession()
+          redirectToLoginScreen()
+          return
+        }
+        const latestSession = readAuthSession()
+        if (!latestSession) return
+        const nextSession = { ...latestSession, selectorAccessLevel: 'NONE' as const }
+        persistAuthSession(nextSession)
+        window.dispatchEvent(new CustomEvent('auth:changed', { detail: nextSession }))
+        setStatus(endError
+          ? '활동 종료 결과를 확인하지 못했습니다. 네트워크 연결 후 다시 확인해 주세요.'
+          : '셀렉터스 활동이 종료되었습니다.\n미정산 금액은 예정대로 정산됩니다.')
+        return
+      }
+
+      if (!isSameSession()) return
+      setStatus(endError instanceof SelectorAccessRequestError
+        ? endError.message
+        : '셀렉터스 활동 종료에 실패했습니다. 잠시 후 다시 시도해 주세요.')
+    } finally {
+      setIsEndingActivity(false)
+    }
   }
 
   return (
@@ -421,12 +540,37 @@ export default function MemberInfoScreen() {
               </button>
             </div>
           </section>
+
+          {canManageSelectorOperations(session) ? (
+            <section aria-labelledby="selector-activity-heading" className="member-info-activity-end">
+              <h2 className="field-label" id="selector-activity-heading">셀렉터스 활동</h2>
+              <p>활동 종료 즉시 셀렉터스 자격이 사라집니다. 미정산 금액은 예정대로 정산됩니다.</p>
+              <button
+                disabled={isEndingActivity}
+                onClick={() => setIsEndActivityDialogOpen(true)}
+                ref={endActivityButtonRef}
+                type="button"
+              >
+                {isEndingActivity ? '종료 처리 중...' : '셀렉터스 활동 종료하기'}
+              </button>
+            </section>
+          ) : null}
         </form>
       </div>
       <BottomActionBar label="저장하기" onClick={(event) => {
         event.preventDefault()
         setStatus('회원정보를 저장했어요.')
       }} />
+      {isEndActivityDialogOpen ? (
+        <SelectorActivityEndDialog
+          invokerRef={endActivityButtonRef}
+          onClose={() => setIsEndActivityDialogOpen(false)}
+          onConfirm={() => {
+            setIsEndActivityDialogOpen(false)
+            void handleEndActivity()
+          }}
+        />
+      ) : null}
       <ShopStatus onClose={() => setStatus(null)} status={status} />
     </div>
   )

@@ -114,11 +114,15 @@ function RoutedApp({ shopProbe }: AppProps) {
       if (inFlight || session?.role !== 'USER') return
 
       const accessToken = session.accessToken
+      const requestedAccessLevel = session.selectorAccessLevel
       inFlight = fetchSelectorAccessLevel(accessToken, session.tokenType)
         .then((selectorAccessLevel) => {
           if (disposed) return
           const latestSession = readAuthSession()
-          if (!latestSession || latestSession.accessToken !== accessToken || latestSession.role !== 'USER') return
+          if (!latestSession
+            || latestSession.accessToken !== accessToken
+            || latestSession.role !== 'USER'
+            || latestSession.selectorAccessLevel !== requestedAccessLevel) return
 
           const accessChanged = latestSession.selectorAccessLevel !== selectorAccessLevel
           const nextSession = { ...latestSession, selectorAccessLevel }
@@ -130,7 +134,10 @@ function RoutedApp({ shopProbe }: AppProps) {
         .catch((error) => {
           if (disposed) return
           const latestSession = readAuthSession()
-          if (!latestSession || latestSession.accessToken !== accessToken || latestSession.role !== 'USER') return
+          if (!latestSession
+            || latestSession.accessToken !== accessToken
+            || latestSession.role !== 'USER'
+            || latestSession.selectorAccessLevel !== requestedAccessLevel) return
 
           if (error instanceof SelectorAccessRequestError && [401, 403].includes(error.status)) {
             hadSession = false

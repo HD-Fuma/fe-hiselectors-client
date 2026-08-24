@@ -225,7 +225,7 @@ describe('Selectors client routes', () => {
   })
 
   it.each([
-    ['PREVIOUS', ['/shop/RC000003200T', '/settlement', '/mypage/member']],
+    ['PREVIOUS', ['/shop/RC000003200T', '/settlement/check', '/mypage/member']],
     ['BLACKLIST', ['/settlement', '/mypage/member']],
   ] as const)('shows only %s home actions', (selectorAccessLevel, expectedHrefs) => {
     localStorage.setItem('selectors-auth', JSON.stringify({
