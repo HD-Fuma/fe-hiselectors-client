@@ -84,6 +84,7 @@ afterEach(() => {
 
 describe('useModalFocus', () => {
   it('traps focus, closes on Escape, and restores the outside invoker', () => {
+    const focusSpy = vi.spyOn(HTMLElement.prototype, 'focus')
     render(<ModalFocusHarness />)
 
     const invoker = screen.getByRole('button', { name: '모달 열기' })
@@ -92,6 +93,7 @@ describe('useModalFocus', () => {
     const first = screen.getByRole('button', { name: '첫 번째' })
     const last = screen.getByRole('button', { name: '마지막' })
     expect(document.activeElement).toBe(first)
+    expect(focusSpy).toHaveBeenCalledWith({ preventScroll: true })
 
     fireEvent.keyDown(first, { key: 'Tab', shiftKey: true })
     expect(document.activeElement).toBe(last)
@@ -102,6 +104,7 @@ describe('useModalFocus', () => {
     fireEvent.keyDown(first, { key: 'Escape' })
     expect(screen.queryByRole('dialog', { name: '테스트 모달' })).toBeNull()
     expect(document.activeElement).toBe(invoker)
+    focusSpy.mockRestore()
   })
 
   it('keeps focus when the close callback identity changes and invokes the latest callback', () => {

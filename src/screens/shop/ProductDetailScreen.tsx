@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 
 import ScreenHeader from '../../components/ScreenHeader'
 import { navigate } from '../../navigation'
@@ -8,7 +8,8 @@ import { purchaseProduct } from './purchaseApi'
 import { useShopDemo } from './ShopDemoContext'
 import type { ShopProduct } from './shopData'
 import { buildPublicShopPath, parseProductDetailLocation } from './shopRoute'
-import { useShopViewLog } from './useShopViewLog'
+import useModalFocus from './useModalFocus'
+import { skipNextShopViewLog, useShopViewLog } from './useShopViewLog'
 
 function mapProduct(product: Awaited<ReturnType<typeof getPublicProduct>>): ShopProduct {
   const regularPrice = Number(product.regularPrice)
@@ -30,6 +31,102 @@ function mapProduct(product: Awaited<ReturnType<typeof getPublicProduct>>): Shop
   }
 }
 
+type PurchaseOptionSheetProps = {
+  invokerRef: RefObject<HTMLButtonElement | null>
+  onClose: () => void
+  onPurchase: () => void
+  product: ShopProduct
+  purchaseMessage: string | null
+  purchasing: boolean
+  quantity: number
+  setQuantity: (quantity: number) => void
+}
+
+function PurchaseOptionSheet({
+  invokerRef,
+  onClose,
+  onPurchase,
+  product,
+  purchaseMessage,
+  purchasing,
+  quantity,
+  setQuantity,
+}: PurchaseOptionSheetProps) {
+  const [closing, setClosing] = useState(false)
+  const [visible, setVisible] = useState(false)
+  const closeTimerRef = useRef<number>(undefined)
+  const containerRef = useRef<HTMLElement>(null)
+  const unitPrice = Number(product.salePrice.replace(/[^0-9]/g, ''))
+  const totalPrice = `${(unitPrice * quantity).toLocaleString('ko-KR')}원`
+  const requestClose = () => {
+    if (closing) return
+    setClosing(true)
+    setVisible(false)
+    const closeDelay = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 0 : 520
+    closeTimerRef.current = window.setTimeout(onClose, closeDelay)
+  }
+  useModalFocus({ containerRef, invokerRef, onClose: requestClose })
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => setVisible(true))
+    return () => window.cancelAnimationFrame(frame)
+  }, [])
+  useEffect(() => () => window.clearTimeout(closeTimerRef.current), [])
+
+  return (
+    <div
+      className={`product-option-backdrop${visible ? ' is-open' : ''}${closing ? ' is-closing' : ''}`}
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) requestClose()
+      }}
+    >
+      <section
+        aria-label="구매 옵션"
+        aria-modal="true"
+        className="product-option-sheet"
+        ref={containerRef}
+        role="dialog"
+      >
+        <button aria-label="구매 옵션 닫기" className="product-option-close" onClick={requestClose} type="button">
+          <span />
+        </button>
+        <div className="product-option-card">
+          <strong>{product.name}</strong>
+          <div className="product-option-row">
+            <div className="product-quantity-stepper">
+              <button
+                aria-label="수량 줄이기"
+                disabled={quantity === 1 || purchasing}
+                onClick={() => setQuantity(quantity - 1)}
+                type="button"
+              >
+                −
+              </button>
+              <output aria-label="수량">{quantity}</output>
+              <button
+                aria-label="수량 늘리기"
+                disabled={quantity === 5 || purchasing}
+                onClick={() => setQuantity(quantity + 1)}
+                type="button"
+              >
+                +
+              </button>
+            </div>
+            <strong>{totalPrice}</strong>
+          </div>
+        </div>
+        <div className="product-option-total">
+          <span>총</span>
+          <strong>{totalPrice}</strong>
+        </div>
+        {purchaseMessage ? <p aria-live="polite" className="product-purchase-message">{purchaseMessage}</p> : null}
+        <button className="product-option-purchase" disabled={purchasing} onClick={onPurchase} type="button">
+          {purchasing ? '처리 중…' : '구매하기'}
+        </button>
+      </section>
+    </div>
+  )
+}
+
 export default function ProductDetailScreen() {
   const location = parseProductDetailLocation()
   const selectorsCode = location?.selectorsCode ?? ''
@@ -40,8 +137,11 @@ export default function ProductDetailScreen() {
   const [loading, setLoading] = useState(!contextProduct)
   const [error, setError] = useState<string | null>(null)
   const [quantity, setQuantity] = useState(1)
+  const [purchaseOpen, setPurchaseOpen] = useState(false)
+  const [loginRequired, setLoginRequired] = useState(false)
   const [purchasing, setPurchasing] = useState(false)
   const [purchaseMessage, setPurchaseMessage] = useState<string | null>(null)
+  const purchaseTriggerRef = useRef<HTMLButtonElement>(null)
   const numericProductId = Number(product?.id)
   const canRecordView = Boolean(product) && Number.isFinite(numericProductId)
   useShopViewLog(selectorsCode, 'PRODUCT', numericProductId, canRecordView)
@@ -80,11 +180,7 @@ export default function ProductDetailScreen() {
     if (!product) return
     const session = readAuthSession()
     if (!hasValidUserSession(session) || session?.role !== 'USER') {
-      sessionStorage.setItem(
-        'postLoginRedirect',
-        `/product/${encodeURIComponent(productCode)}?ptrsRefCd=${encodeURIComponent(selectorsCode)}`,
-      )
-      navigate('/login')
+      setLoginRequired(true)
       return
     }
 
@@ -92,12 +188,22 @@ export default function ProductDetailScreen() {
     setPurchaseMessage(null)
     try {
       const result = await purchaseProduct(selectorsCode, product.code ?? product.id, quantity)
-      setPurchaseMessage(`구매가 기록되었습니다. 주문번호 ${result.orderNo}`)
+      window.alert(`구매 완료되었습니다. 주문번호 ${result.orderNo}`)
     } catch (purchaseError) {
       setPurchaseMessage(purchaseError instanceof Error ? purchaseError.message : '구매를 기록하지 못했습니다.')
     } finally {
       setPurchasing(false)
     }
+  }
+
+  const handleGoToLogin = () => {
+    sessionStorage.setItem(
+      'postLoginRedirect',
+      `/product/${encodeURIComponent(productCode)}?ptrsRefCd=${encodeURIComponent(selectorsCode)}`,
+    )
+    if (canRecordView) skipNextShopViewLog(selectorsCode, 'PRODUCT', numericProductId)
+    setLoginRequired(false)
+    navigate('/login')
   }
 
   return (
@@ -119,24 +225,42 @@ export default function ProductDetailScreen() {
               </div>
               <p className="product-detail-delivery">등록된 판매 상품 정보를 기준으로 제공됩니다.</p>
             </section>
-            <div className="product-purchase-bar">
-              <label htmlFor="purchase-quantity">수량</label>
-              <select
-                id="purchase-quantity"
-                onChange={(event) => setQuantity(Number(event.target.value))}
-                value={quantity}
-              >
-                {[1, 2, 3, 4, 5].map((value) => <option key={value} value={value}>{value}</option>)}
-              </select>
-              <button disabled={purchasing} onClick={() => void handlePurchase()} type="button">
-                {purchasing ? '처리 중…' : '구매하기'}
-              </button>
-            </div>
-            {purchaseMessage ? <p aria-live="polite" className="product-purchase-message">{purchaseMessage}</p> : null}
-            <p className="shop-disclosure">이 상품 구매로 발생한 수익의 일부가 셀렉터스에게 제공됩니다.</p>
           </>
         ) : null}
       </div>
+      {!loading && product ? (
+        <>
+          <div className="product-purchase-bar">
+            <button onClick={() => setPurchaseOpen(true)} ref={purchaseTriggerRef} type="button">
+              구매하기
+            </button>
+          </div>
+          {purchaseOpen ? (
+            <PurchaseOptionSheet
+              invokerRef={purchaseTriggerRef}
+              onClose={() => setPurchaseOpen(false)}
+              onPurchase={() => void handlePurchase()}
+              product={product}
+              purchaseMessage={purchaseMessage}
+              purchasing={purchasing}
+              quantity={quantity}
+              setQuantity={setQuantity}
+            />
+          ) : null}
+          {loginRequired ? (
+            <div aria-modal="true" className="auth-gate-backdrop" role="dialog" aria-labelledby="product-login-required-title">
+              <div className="auth-gate-modal">
+                <h3 id="product-login-required-title">로그인이 필요합니다</h3>
+                <p>상품 구매는 로그인한 더현대 HI 회원만 이용할 수 있어요. 로그인 페이지로 이동할까요?</p>
+                <div className="auth-gate-actions">
+                  <button className="secondary-action" onClick={() => setLoginRequired(false)} type="button">취소</button>
+                  <button className="primary-action" onClick={handleGoToLogin} type="button">로그인하기</button>
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </>
+      ) : null}
     </div>
   )
 }
