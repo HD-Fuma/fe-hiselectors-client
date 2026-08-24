@@ -74,6 +74,7 @@ describe('SettlementScreen', () => {
     render(<SettlementScreen />)
 
     expect(await screen.findByText('2026년 7월 활동 예상 수수료')).toBeTruthy()
+    expect(screen.queryByRole('link', { name: '정보 수정' })).toBeNull()
     expect(screen.getByText('취소나 환불에 따른 금액 변동 가능')).toBeTruthy()
     expect(screen.getByText('구매 확정 386건')).toBeTruthy()
     expect(screen.getByText('정산 예정일 2026.09.20')).toBeTruthy()
@@ -166,7 +167,7 @@ describe('SettlementScreen', () => {
     expect(window.location.pathname).toBe('/login')
   })
 
-  it('keeps estimate and account management available for previous access', async () => {
+  it('keeps the estimate available for previous access without an account management link', async () => {
     setSession('PREVIOUS')
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation((input) => Promise.resolve(
       requestUrl(input).includes('/histories')
@@ -177,7 +178,7 @@ describe('SettlementScreen', () => {
     render(<SettlementScreen />)
 
     expect(await screen.findByText('2026년 7월 활동 예상 수수료')).toBeTruthy()
-    expect(screen.getByRole('link', { name: '정보 수정' }).getAttribute('href')).toBe('/settlement/info')
+    expect(screen.queryByRole('link', { name: '정보 수정' })).toBeNull()
     expect(fetchSpy.mock.calls.some(([input]) => requestUrl(input).endsWith('/api/settlements/estimates'))).toBe(true)
   })
 

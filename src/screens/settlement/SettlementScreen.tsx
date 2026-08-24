@@ -162,11 +162,7 @@ export default function SettlementScreen() {
 
   return (
     <>
-      <ScreenHeader
-        action={canManage ? <a className="panel-text-action" href="/settlement/info">정보 수정</a> : undefined}
-        backHref="/home"
-        title="정산 내역"
-      />
+      <ScreenHeader backHref="/home" title="정산 내역" />
       <div className="screen-scroll settlement-screen">
         {canManage ? <section aria-busy={isSummaryLoading} className="settlement-summary">
           {isSummaryLoading ? <p className="settlement-feedback">정산 정보를 불러오는 중입니다.</p> : null}

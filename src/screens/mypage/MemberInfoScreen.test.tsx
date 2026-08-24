@@ -20,8 +20,8 @@ function jsonResponse(data: unknown, status = 200) {
   })
 }
 
-function authenticate() {
-  localStorage.setItem('selectors-auth', JSON.stringify(authSession))
+function authenticate(selectorAccessLevel: 'CURRENT' | 'PREVIOUS' | 'BLACKLIST' | 'NONE' = 'CURRENT') {
+  localStorage.setItem('selectors-auth', JSON.stringify({ ...authSession, selectorAccessLevel }))
 }
 
 function requestUrl(input: RequestInfo | URL) {
@@ -37,6 +37,9 @@ function mockMemberApis(options?: {
   endActivity?: Response | Promise<Response> | Error
   accessAfterEnd?: 'PREVIOUS' | 'BLACKLIST'
   accessAfterEndResponse?: Promise<Response>
+  accessLevel?: 'CURRENT' | 'PREVIOUS' | 'BLACKLIST' | 'NONE'
+  settlement?: unknown | Response
+  settlementPut?: unknown | Response
 }) {
   let activityEnded = false
   let deleteAttempted = false
@@ -72,6 +75,23 @@ function mockMemberApis(options?: {
         data: options?.connect ?? { status: 'READY' },
       })
     }
+    if (url.endsWith('/api/settlements/account')) {
+      if (method === 'PUT') {
+        if (options?.settlementPut instanceof Response) return options.settlementPut
+        const submitted = JSON.parse(String(init?.body))
+        return jsonResponse({ data: options?.settlementPut ?? submitted })
+      }
+      if (options?.settlement instanceof Response) return options.settlement
+      return jsonResponse({
+        data: options?.settlement ?? {
+          accountHolder: '홍길동',
+          accountNumber: '123-456-789',
+          bankName: '국민은행',
+          residentRegistrationNumber: '900101-1234567',
+          settlementType: 'INDIVIDUAL',
+        },
+      })
+    }
     if (url.endsWith('/api/me/selector-access')) {
       if (method === 'DELETE') {
         deleteAttempted = true
@@ -87,7 +107,7 @@ function mockMemberApis(options?: {
       return jsonResponse({
         accessLevel: deleteAttempted && options?.accessAfterEnd
           ? options.accessAfterEnd
-          : activityEnded ? 'PREVIOUS' : 'CURRENT',
+          : activityEnded ? 'PREVIOUS' : options?.accessLevel ?? 'CURRENT',
       })
     }
     if (url.includes('/api/admin/')) {
@@ -128,8 +148,92 @@ describe('MemberInfoScreen', () => {
     expect(screen.getByRole('status').textContent).toContain('미연결')
     expect(screen.getByRole('checkbox', { name: 'SMS/카카오톡' })).toHaveProperty('checked', true)
     expect(screen.getByRole('checkbox', { name: 'SMS/카카오톡' })).toHaveProperty('disabled', true)
-    expect(screen.getByRole('button', { name: '카카오 인증하기' })).toBeTruthy()
+    const phoneVerifyButton = screen.getByRole('button', { name: '휴대폰번호 인증하기' })
+    expect(phoneVerifyButton).toHaveProperty('textContent', '인증하기')
+    expect(phoneVerifyButton.getAttribute('aria-describedby'))
+      .toBe('member-phone-kakao-status member-phone-kakao-help')
     expect(screen.getByRole('button', { name: '저장하기' })).toBeTruthy()
+    expect(screen.queryByRole('heading', { name: '카카오 메시지' })).toBeNull()
+    expect(screen.getByRole('heading', { level: 2, name: '정산 정보' })).toBeTruthy()
+    expect(screen.getByDisplayValue('국민은행')).toBeTruthy()
+    expect(screen.getByDisplayValue('900101-1234567')).toBeTruthy()
+    expect(screen.getAllByRole('radio', { name: '개인' })[0]).toHaveProperty('disabled', true)
+    expect(screen.queryByRole('link', { name: '정산 정보 수정' })).toBeNull()
+
+    const phoneField = screen.getByDisplayValue('010-****-0348').closest('.member-info-field')
+    expect(phoneField).toBeTruthy()
+    expect(within(phoneField as HTMLElement).getByText('카카오 계정을 연결하면 운영 메시지를 받을 수 있어요.')).toBeTruthy()
+    expect(within(phoneField as HTMLElement).queryByText('본인 명의의 휴대폰번호일 경우에만 변경하실 수 있습니다.')).toBeNull()
+  })
+
+  it('keeps the inline settlement form available for previous access', async () => {
+    authenticate('PREVIOUS')
+    mockMemberApis({ accessLevel: 'PREVIOUS' })
+    window.history.replaceState({}, '', '/mypage/member')
+
+    render(<App />)
+
+    expect(await screen.findByRole('heading', { level: 2, name: '정산 정보' })).toBeTruthy()
+    expect(screen.getByDisplayValue('국민은행')).toBeTruthy()
+  })
+
+  it('lets legacy accounts confirm a missing settlement type instead of locking the wrong type', async () => {
+    authenticate()
+    mockMemberApis({
+      settlement: {
+        accountHolder: '테스트법인',
+        accountNumber: '123-456-789',
+        bankName: '국민은행',
+      },
+    })
+    window.history.replaceState({}, '', '/mypage/member')
+
+    render(<App />)
+
+    await screen.findByDisplayValue('국민은행')
+    expect(screen.getByText('정산 유형을 다시 확인한 후 저장해 주세요.')).toBeTruthy()
+    expect(screen.getByRole('radio', { name: '법인사업자' })).toHaveProperty('disabled', false)
+  })
+
+  it.each(['BLACKLIST', 'NONE'] as const)('hides settlement information for %s access', async (accessLevel) => {
+    authenticate(accessLevel)
+    mockMemberApis({ accessLevel })
+    window.history.replaceState({}, '', '/mypage/member')
+
+    render(<App />)
+
+    await screen.findByDisplayValue('hon****@*********')
+    expect(screen.queryByRole('heading', { level: 2, name: '정산 정보' })).toBeNull()
+    expect(screen.queryByRole('textbox', { name: '은행명' })).toBeNull()
+  })
+
+  it('saves the inline settlement form with the member information action', async () => {
+    authenticate()
+    const fetchSpy = mockMemberApis()
+    window.history.replaceState({}, '', '/mypage/member')
+
+    render(<App />)
+
+    await screen.findByDisplayValue('국민은행')
+    const saveButton = screen.getByRole('button', { name: '저장하기' }) as HTMLButtonElement
+    await waitFor(() => expect(saveButton.disabled).toBe(false))
+    fireEvent.click(saveButton)
+
+    await waitFor(() => expect(fetchSpy.mock.calls.some(([input, init]) => (
+      requestUrl(input).endsWith('/api/settlements/account') && init?.method === 'PUT'
+    ))).toBe(true))
+    const putCall = fetchSpy.mock.calls.find(([input, init]) => (
+      requestUrl(input).endsWith('/api/settlements/account') && init?.method === 'PUT'
+    ))
+    expect(JSON.parse(String(putCall?.[1]?.body))).toEqual({
+      accountHolder: '홍길동',
+      accountNumber: '123-456-789',
+      bankName: '국민은행',
+      residentRegistrationNumber: '900101-1234567',
+      settlementType: 'INDIVIDUAL',
+    })
+    expect((await screen.findByRole('alertdialog', { name: '알림' })).textContent)
+      .toContain('회원정보를 저장했어요.')
   })
 
   it('shows receivable status without exposing kakao identifiers', async () => {
@@ -156,7 +260,7 @@ describe('MemberInfoScreen', () => {
     expect(await screen.findByText('수신 가능')).toBeTruthy()
   })
 
-  it('starts kakao authorization from the independent kakao row', async () => {
+  it('starts kakao authorization from the phone verification button', async () => {
     authenticate()
     const originalLocation = window.location
     const assignSpy = vi.fn()
@@ -175,7 +279,7 @@ describe('MemberInfoScreen', () => {
     try {
       mockMemberApis({ authorizeUrl: 'https://kauth.kakao.com/oauth/authorize?demo=1' })
       render(<App />)
-      fireEvent.click(await screen.findByRole('button', { name: '카카오 인증하기' }))
+      fireEvent.click(await screen.findByRole('button', { name: '휴대폰번호 인증하기' }))
 
       await waitFor(() => expect(assignSpy).toHaveBeenCalledTimes(1))
       expect(assignSpy).toHaveBeenCalledWith('https://kauth.kakao.com/oauth/authorize?demo=1')
@@ -216,7 +320,7 @@ describe('MemberInfoScreen', () => {
     window.history.replaceState({}, '', '/mypage/member')
     render(<App />)
 
-    await screen.findByRole('button', { name: '카카오 인증하기' })
+    await screen.findByRole('button', { name: '휴대폰번호 인증하기' })
     fireEvent.click(screen.getByRole('button', { name: '이메일주소 변경하기' }))
 
     expect(screen.getByRole('alertdialog', { name: '알림' }).textContent).toContain('시연 화면에서는 조회만 가능합니다.')
@@ -441,7 +545,7 @@ describe('MemberInfoScreen', () => {
     fireEvent.click(screen.getByRole('button', { name: '마스킹 해제' }))
 
     expect(screen.getByDisplayValue('hiuser1')).toBeTruthy()
-    expect(screen.getByDisplayValue('홍길동')).toBeTruthy()
+    expect(screen.getByRole('textbox', { name: '이름' })).toHaveProperty('value', '홍길동')
     expect(screen.getByDisplayValue('hong@example.com')).toBeTruthy()
     expect(screen.getByDisplayValue('01012340348')).toBeTruthy()
   })
@@ -452,7 +556,7 @@ describe('MemberInfoScreen', () => {
 
     expect(screen.getByText('회원정보는 로그인 후 확인할 수 있습니다.')).toBeTruthy()
     expect(screen.getByRole('link', { name: '로그인하기' }).getAttribute('href')).toBe('/login')
-    expect(screen.queryByRole('button', { name: '카카오 인증하기' })).toBeNull()
+    expect(screen.queryByRole('button', { name: '휴대폰번호 인증하기' })).toBeNull()
   })
 
   it('does not treat a missing status endpoint as disconnected', async () => {
