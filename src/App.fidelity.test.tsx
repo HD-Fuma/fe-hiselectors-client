@@ -143,6 +143,7 @@ describe('shared panel and campaign fidelity', () => {
       productName: '테스트 상품',
       brandName: '테스트 브랜드',
       thumbnailUrl: '/product.jpg',
+      detailUrl: 'https://example.com/product',
       clickCount: 2840,
       conversionCount: 92,
       conversionAmount: 10_826_667,

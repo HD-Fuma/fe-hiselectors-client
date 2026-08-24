@@ -2027,7 +2027,7 @@ input:focus-visible + .custom-check {
   text-align: right;
 }
 
-.table-product {
+.table-product > a {
   display: grid;
   grid-template-columns: 58px minmax(0, 1fr);
   gap: 9px;
@@ -2035,13 +2035,13 @@ input:focus-visible + .custom-check {
   text-align: left;
 }
 
-.table-product img {
+.table-product > a img {
   width: 58px;
   height: 58px;
   object-fit: cover;
 }
 
-.table-product > span {
+.table-product > a > span {
   display: flex;
   flex-direction: column;
   min-width: 0;

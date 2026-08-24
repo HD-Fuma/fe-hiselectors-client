@@ -165,11 +165,11 @@ export function PerformanceSummaryScreen() {
           <div className="section-link-heading"><div><h2>전환 상위 상품</h2><p>구매 전환 수를 기준으로 정렬했어요.</p></div><a href="/performance/products">전체 보기 <ArrowRightIcon size={14} /></a></div>
           <div className="top-product-list">
             {summary?.topProducts.length ? summary.topProducts.map((product, index) => (
-              <article className="top-product-row" key={product.productId}>
+              <a className="top-product-row" href={product.detailUrl ?? undefined} key={product.productId} rel="noreferrer" target="_blank">
                 <b>{index + 1}</b><img alt={product.productName} src={product.thumbnailUrl} />
                 <div><span>{product.brandName}</span><strong>{product.productName}</strong><small>전환 {numberFormatter.format(product.conversionCount)}건</small></div>
                 <em>{numberFormatter.format(product.estimatedSettlementAmount)}원</em>
-              </article>
+              </a>
             )) : <div className="performance-empty">전환 상품이 없습니다.</div>}
           </div>
         </section>
@@ -227,7 +227,7 @@ export function ProductPerformanceScreen() {
               const rate = `${product.conversionRate.toFixed(2)}%`
               const commission = `${numberFormatter.format(product.estimatedSettlementAmount)}원`
               return <div className="performance-table-row" key={product.productId} role="row">
-                <div className="table-product" role="cell"><img alt={product.productName} src={product.thumbnailUrl} /><span><small>{product.brandName}</small><strong>{product.productName}</strong></span></div>
+                <div className="table-product" role="cell"><a href={product.detailUrl ?? undefined} rel="noreferrer" target="_blank"><img alt={product.productName} src={product.thumbnailUrl} /><span><small>{product.brandName}</small><strong>{product.productName}</strong></span></a></div>
                 <span aria-label={`클릭 ${clicks}`} role="cell">{clicks}</span>
                 <span aria-label={`전환 ${conversions}`} role="cell">{conversions}</span>
                 <span aria-label={`전환율 ${rate}`} role="cell">{rate}</span>
