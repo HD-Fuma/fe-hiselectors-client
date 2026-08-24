@@ -156,9 +156,8 @@ describe('MemberInfoScreen', () => {
     expect(screen.queryByRole('heading', { name: '카카오 메시지' })).toBeNull()
     expect(screen.getByRole('heading', { level: 2, name: '정산 정보' })).toBeTruthy()
     expect(screen.getByDisplayValue('국민은행')).toBeTruthy()
-    expect(screen.getByDisplayValue('******-*******')).toHaveProperty('disabled', true)
-    expect(screen.getByText('주민등록번호는 최초 등록 후 변경할 수 없습니다.')).toBeTruthy()
-    expect(screen.getAllByRole('radio', { name: '개인' })[0]).toHaveProperty('disabled', true)
+    expect(screen.getByDisplayValue('******-*******')).toHaveProperty('disabled', false)
+    expect(screen.getAllByRole('radio', { name: '개인' })[0]).toHaveProperty('disabled', false)
     expect(screen.queryByRole('link', { name: '정산 정보 수정' })).toBeNull()
 
     const phoneField = screen.getByDisplayValue('010-****-0348').closest('.member-info-field')
@@ -261,7 +260,7 @@ describe('MemberInfoScreen', () => {
     await screen.findByRole('alertdialog', { name: '알림' })
     const identifier = screen.getByRole('textbox', { name: '주민등록번호' })
     expect(identifier).toHaveProperty('value', '******-*******')
-    expect(identifier).toHaveProperty('disabled', true)
+    expect(identifier).toHaveProperty('disabled', false)
     expect(screen.queryByDisplayValue('900101-1234567')).toBeNull()
   })
 

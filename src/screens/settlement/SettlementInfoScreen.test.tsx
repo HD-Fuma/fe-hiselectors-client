@@ -134,10 +134,8 @@ describe('SettlementInfoScreen', () => {
     expect(screen.getByDisplayValue('123-45-67890')).toBeTruthy()
     expect(screen.getByRole('heading', { level: 1, name: '정산 정보 수정' })).toBeTruthy()
     expect(screen.getByRole('link', { name: '뒤로 가기' }).getAttribute('href')).toBe('/mypage/member')
-    expect(screen.getByText('정산 유형은 최초 등록 후 변경할 수 없습니다.')).toBeTruthy()
-
     const radios = screen.getAllByRole('radio') as HTMLInputElement[]
-    expect(radios.every((radio) => radio.disabled)).toBe(true)
+    expect(radios.every((radio) => !radio.disabled)).toBe(true)
     expect(screen.getByRole('radio', { name: '개인사업자' })).toHaveProperty('checked', true)
     expect(screen.getByRole('textbox', { name: '사업자등록번호' })).toHaveProperty('disabled', false)
     fireEvent.change(screen.getByRole('textbox', { name: '사업자등록번호' }), {
@@ -154,7 +152,7 @@ describe('SettlementInfoScreen', () => {
     })
   })
 
-  it('shows a masked resident registration number without sending it during editing', async () => {
+  it('allows replacing a masked resident registration number during editing', async () => {
     const fetchSpy = mockAccountFetch({
       get: {
         bankName: '국민은행',
@@ -176,16 +174,18 @@ describe('SettlementInfoScreen', () => {
 
     const identifier = await screen.findByRole('textbox', { name: '주민등록번호' })
     expect(identifier).toHaveProperty('value', '******-*******')
-    expect(identifier).toHaveProperty('disabled', true)
-    expect(screen.getByText('주민등록번호는 최초 등록 후 변경할 수 없습니다.')).toBeTruthy()
+    expect(identifier).toHaveProperty('disabled', false)
+    fireEvent.change(identifier, { target: { value: '900101-7654321' } })
 
     fireEvent.click(screen.getByRole('button', { name: '수정하기' }))
     await waitFor(() => expect(window.location.pathname).toBe('/mypage/member'))
 
     const putCall = fetchSpy.mock.calls.find(([, init]) => init?.method === 'PUT')
     const payload = JSON.parse(String(putCall?.[1]?.body))
-    expect(payload).toMatchObject({ settlementType: 'INDIVIDUAL' })
-    expect(payload).not.toHaveProperty('businessNumber')
+    expect(payload).toMatchObject({
+      settlementType: 'INDIVIDUAL',
+      businessNumber: '900101-7654321',
+    })
     expect(payload).not.toHaveProperty('residentRegistrationNumber')
   })
 

@@ -80,9 +80,9 @@ export function useSettlementAccountForm(enabled = true) {
   const isPersonal = settlementType === 'personal'
   const isEditMode = accountMode === 'edit' || accountMode === 'legacy'
   const isFormUnavailable = accountMode === 'loading' || accountMode === 'error'
-  const isPersonalIdentifierLocked = accountMode === 'edit'
+  const isMaskedPersonalIdentifier = accountMode === 'edit'
     && isPersonal
-    && Boolean(residentRegistrationNumber)
+    && residentRegistrationNumber === maskedResidentRegistrationNumber
 
   const save = async () => {
     if (isSaving || isFormUnavailable) return false
@@ -99,7 +99,7 @@ export function useSettlementAccountForm(enabled = true) {
         ? {
           ...common,
           settlementType: 'INDIVIDUAL',
-          ...(!isPersonalIdentifierLocked ? { businessNumber: residentRegistrationNumber } : {}),
+          ...(!isMaskedPersonalIdentifier ? { businessNumber: residentRegistrationNumber } : {}),
         }
         : {
           ...common,
@@ -132,7 +132,7 @@ export function useSettlementAccountForm(enabled = true) {
     isEditMode,
     isFormUnavailable,
     isPersonal,
-    isPersonalIdentifierLocked,
+    isMaskedPersonalIdentifier,
     isSaving,
     loadAccount,
     loadError,
@@ -162,7 +162,7 @@ export function SettlementAccountFields({ form }: SettlementAccountFieldsProps) 
     businessNumber,
     isFormUnavailable,
     isPersonal,
-    isPersonalIdentifierLocked,
+    isMaskedPersonalIdentifier,
     loadAccount,
     loadError,
     residentRegistrationNumber,
@@ -206,10 +206,10 @@ export function SettlementAccountFields({ form }: SettlementAccountFieldsProps) 
         <legend className="field-label">정산 유형</legend>
         <div className="settlement-type-options">
           {settlementTypes.map(({ label, value }) => (
-            <label className={accountMode === 'edit' ? 'is-locked' : undefined} key={value}>
+            <label key={value}>
               <input
                 checked={settlementType === value}
-                disabled={accountMode !== 'create' && accountMode !== 'legacy'}
+                disabled={isFormUnavailable}
                 name="settlement-type"
                 onChange={() => setSettlementType(value)}
                 type="radio"
@@ -219,9 +219,7 @@ export function SettlementAccountFields({ form }: SettlementAccountFieldsProps) 
             </label>
           ))}
         </div>
-        {accountMode === 'edit' ? (
-          <p className="settlement-type-help">정산 유형은 최초 등록 후 변경할 수 없습니다.</p>
-        ) : accountMode === 'legacy' ? (
+        {accountMode === 'legacy' ? (
           <p className="settlement-type-help">정산 유형을 다시 확인한 후 저장해 주세요.</p>
         ) : null}
       </fieldset>
@@ -281,7 +279,7 @@ export function SettlementAccountFields({ form }: SettlementAccountFieldsProps) 
           </label>
           <input
             autoComplete="off"
-            disabled={isFormUnavailable || isPersonalIdentifierLocked}
+            disabled={isFormUnavailable}
             id={isPersonal ? 'resident-registration-number' : 'business-registration-number'}
             inputMode="numeric"
             maxLength={isPersonal ? 14 : 12}
@@ -293,15 +291,14 @@ export function SettlementAccountFields({ form }: SettlementAccountFieldsProps) 
               }
               setBusinessNumber(event.target.value)
             }}
-            pattern={isPersonal ? '[0-9]{6}-?[0-9]{7}' : '[0-9]{3}-?[0-9]{2}-?[0-9]{5}'}
+            pattern={isPersonal
+              ? (isMaskedPersonalIdentifier ? undefined : '[0-9]{6}-?[0-9]{7}')
+              : '[0-9]{3}-?[0-9]{2}-?[0-9]{5}'}
             placeholder={isPersonal ? '000000-0000000' : '000-00-00000'}
-            required={!isPersonalIdentifierLocked}
+            required={!isMaskedPersonalIdentifier}
             type="text"
             value={isPersonal ? residentRegistrationNumber : businessNumber}
           />
-          {isPersonalIdentifierLocked ? (
-            <p className="settlement-type-help">주민등록번호는 최초 등록 후 변경할 수 없습니다.</p>
-          ) : null}
         </div>
       ) : (
         <p className="settlement-type-help">정산 유형을 선택하면 식별번호 입력란이 표시됩니다.</p>
