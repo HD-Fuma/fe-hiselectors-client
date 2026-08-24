@@ -234,7 +234,7 @@ describe('MemberInfoScreen', () => {
     fireEvent.click(pageButton)
     const dialog = await screen.findByRole('dialog', { name: '셀렉터스 활동을 종료할까요?' })
     expect(confirmSpy).not.toHaveBeenCalled()
-    expect(dialog).toHaveAttribute('aria-modal', 'true')
+    expect(dialog.getAttribute('aria-modal')).toBe('true')
     const describedById = dialog.getAttribute('aria-describedby')
     expect(describedById).toBeTruthy()
     expect(describedById ? document.getElementById(describedById)?.textContent : null).toBe(
@@ -275,7 +275,7 @@ describe('MemberInfoScreen', () => {
     expect(screen.queryByRole('dialog', { name: '셀렉터스 활동을 종료할까요?' })).toBeNull()
     expect(fetchSpy.mock.calls.some(([, init]) => init?.method === 'DELETE')).toBe(false)
     expect(JSON.parse(localStorage.getItem('selectors-auth') ?? '{}').selectorAccessLevel).toBe('CURRENT')
-    expect(pageButton).toHaveFocus()
+    expect(document.activeElement).toBe(pageButton)
   })
 
   it('closes selector activity confirmation with Escape', async () => {
@@ -291,7 +291,7 @@ describe('MemberInfoScreen', () => {
 
     expect(screen.queryByRole('dialog', { name: '셀렉터스 활동을 종료할까요?' })).toBeNull()
     expect(fetchSpy.mock.calls.some(([, init]) => init?.method === 'DELETE')).toBe(false)
-    expect(pageButton).toHaveFocus()
+    expect(document.activeElement).toBe(pageButton)
   })
 
   it('prevents duplicate selector activity end requests while pending', async () => {
@@ -309,7 +309,7 @@ describe('MemberInfoScreen', () => {
 
     expect(screen.queryByRole('dialog', { name: '셀렉터스 활동을 종료할까요?' })).toBeNull()
     const pendingButton = screen.getByRole('button', { name: '종료 처리 중...' })
-    expect(pendingButton).toBeDisabled()
+    expect((pendingButton as HTMLButtonElement).disabled).toBe(true)
     fireEvent.click(pendingButton)
     expect(fetchSpy.mock.calls.filter(([input, init]) => (
       requestUrl(input).endsWith('/api/me/selector-access') && init?.method === 'DELETE'

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useId, useRef, useState, type FormEvent, type RefObject } from 'react'
 
 import {
   canManageSelectorOperations,
@@ -15,6 +15,7 @@ import BottomActionBar from '../../components/BottomActionBar'
 import { ArrowRightIcon, CheckIcon } from '../../components/Icons'
 import ScreenHeader from '../../components/ScreenHeader'
 import ShopStatus from '../shop/ShopStatus'
+import useModalFocus from '../shop/useModalFocus'
 import {
   KAKAO_OAUTH_PENDING_KEY,
   connectKakaoAccount,
@@ -58,6 +59,43 @@ function maskPhone(value: string) {
   return `${digits.slice(0, 3)}-****-${digits.slice(-4)}`
 }
 
+type SelectorActivityEndDialogProps = {
+  invokerRef: RefObject<HTMLElement | null>
+  onClose: () => void
+  onConfirm: () => void
+}
+
+function SelectorActivityEndDialog({
+  invokerRef,
+  onClose,
+  onConfirm,
+}: SelectorActivityEndDialogProps) {
+  const containerRef = useRef<HTMLElement>(null)
+  const titleId = useId()
+  const descriptionId = useId()
+  useModalFocus({ containerRef, invokerRef, onClose })
+
+  return (
+    <div className="group-dialog-backdrop">
+      <section
+        aria-describedby={descriptionId}
+        aria-labelledby={titleId}
+        aria-modal="true"
+        className="group-dialog selector-activity-end-dialog"
+        ref={containerRef}
+        role="dialog"
+      >
+        <h2 id={titleId}>셀렉터스 활동을 종료할까요?</h2>
+        <p id={descriptionId}>{'종료 즉시 셀렉터스 자격이 사라지며 이 작업은 되돌릴 수 없습니다.\n미정산 금액은 예정대로 정산됩니다.'}</p>
+        <div className="group-dialog-actions">
+          <button onClick={onClose} type="button">취소</button>
+          <button onClick={onConfirm} type="button">활동 종료</button>
+        </div>
+      </section>
+    </div>
+  )
+}
+
 export default function MemberInfoScreen() {
   const session = readAuthSession()
   const canView = hasValidUserSession(session) && session?.role === 'USER'
@@ -68,12 +106,14 @@ export default function MemberInfoScreen() {
   const [isLoading, setIsLoading] = useState(true)
   const [isConnecting, setIsConnecting] = useState(false)
   const [isEndingActivity, setIsEndingActivity] = useState(false)
+  const [isEndActivityDialogOpen, setIsEndActivityDialogOpen] = useState(false)
   const [privacyAgreed, setPrivacyAgreed] = useState(true)
   const [emailMarketing, setEmailMarketing] = useState(false)
   const [pushMarketing, setPushMarketing] = useState(false)
   const [status, setStatus] = useState<string | null>(null)
   const [loadError, setLoadError] = useState<unknown>(null)
   const connectLock = useRef(false)
+  const endActivityButtonRef = useRef<HTMLButtonElement>(null)
 
   const hasKakaoCallback = () => {
     const params = new URLSearchParams(window.location.search)
@@ -204,9 +244,7 @@ export default function MemberInfoScreen() {
   }
 
   const handleEndActivity = async () => {
-    if (isEndingActivity || !window.confirm(
-      '셀렉터스 활동을 종료할까요?\n종료 즉시 셀렉터스 자격이 사라지며 이 작업은 되돌릴 수 없습니다. 미정산 금액은 예정대로 정산됩니다.',
-    )) return
+    if (isEndingActivity) return
 
     const requestSession = readAuthSession()
     if (!requestSession) {
@@ -509,7 +547,8 @@ export default function MemberInfoScreen() {
               <p>활동 종료 즉시 셀렉터스 자격이 사라집니다. 미정산 금액은 예정대로 정산됩니다.</p>
               <button
                 disabled={isEndingActivity}
-                onClick={() => void handleEndActivity()}
+                onClick={() => setIsEndActivityDialogOpen(true)}
+                ref={endActivityButtonRef}
                 type="button"
               >
                 {isEndingActivity ? '종료 처리 중...' : '셀렉터스 활동 종료'}
@@ -522,6 +561,16 @@ export default function MemberInfoScreen() {
         event.preventDefault()
         setStatus('회원정보를 저장했어요.')
       }} />
+      {isEndActivityDialogOpen ? (
+        <SelectorActivityEndDialog
+          invokerRef={endActivityButtonRef}
+          onClose={() => setIsEndActivityDialogOpen(false)}
+          onConfirm={() => {
+            setIsEndActivityDialogOpen(false)
+            void handleEndActivity()
+          }}
+        />
+      ) : null}
       <ShopStatus onClose={() => setStatus(null)} status={status} />
     </div>
   )
