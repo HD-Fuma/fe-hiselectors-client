@@ -41,8 +41,20 @@ describe('ProductPerformanceScreen', () => {
         data: {
           activityMonth,
           conversionCount: activityMonth === previousMonth ? 7 : 8,
-          totalProductCount: 0,
-          products: [],
+          totalProductCount: 1,
+          products: [{
+            productId: 1,
+            productCode: 'P-1',
+            productName: '테스트 상품',
+            brandName: '테스트 브랜드',
+            thumbnailUrl: 'https://example.com/product.jpg',
+            detailUrl: 'https://example.com/product',
+            clickCount: 10,
+            conversionCount: 3,
+            conversionAmount: 30_000,
+            conversionRate: 30,
+            estimatedSettlementAmount: 900,
+          }],
         },
       })))
     })
@@ -55,6 +67,8 @@ describe('ProductPerformanceScreen', () => {
     expect(monthSelect.value).toBe(initialMonth)
     expect(within(periodRow as HTMLElement).getAllByText(monthLabel(initialMonth))).toHaveLength(1)
     expect(await screen.findByText('8건')).toBeTruthy()
+    expect(screen.getByRole('link', { name: /테스트 상품/ }).getAttribute('href'))
+      .toBe('https://example.com/product')
 
     fireEvent.change(monthSelect, { target: { value: previousMonth } })
 
@@ -64,6 +78,7 @@ describe('ProductPerformanceScreen', () => {
     expect(monthSelect.value).toBe(previousMonth)
     expect(within(periodRow as HTMLElement).getAllByText(monthLabel(previousMonth))).toHaveLength(1)
     expect(await screen.findByText('7건')).toBeTruthy()
-    expect(screen.getByText('월별 성과')).toBeTruthy()
+    expect(screen.queryByText('조회 기간')).toBeNull()
+    expect(screen.queryByText('월별 성과')).toBeNull()
   })
 })

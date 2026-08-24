@@ -21,6 +21,7 @@ export type ProductPerformance = PerformanceMetrics & {
   productName: string
   brandName: string
   thumbnailUrl: string
+  detailUrl: string | null
 }
 
 export type PerformanceSummary = {
@@ -88,6 +89,7 @@ function isProduct(value: unknown): value is ProductPerformance {
     && typeof product.productName === 'string'
     && typeof product.brandName === 'string'
     && typeof product.thumbnailUrl === 'string'
+    && (product.detailUrl === null || typeof product.detailUrl === 'string')
 }
 
 export async function getPerformanceSummary(activityMonth: string): Promise<PerformanceSummary> {
