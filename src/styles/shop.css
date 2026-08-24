@@ -1510,7 +1510,7 @@
 .product-option-card {
   margin: 0 16px;
   padding: 18px 16px 16px;
-  background: var(--gray-100);
+  background: var(--surface);
 }
 
 .product-option-card > strong {
