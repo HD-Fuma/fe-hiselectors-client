@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent, type RefObject } from 'react'
 
 import {
+  canManageSettlement,
   canManageSelectorOperations,
   clearAuthSession,
   endSelectorActivity,
@@ -14,6 +15,10 @@ import {
 import BottomActionBar from '../../components/BottomActionBar'
 import { ArrowRightIcon, CheckIcon } from '../../components/Icons'
 import ScreenHeader from '../../components/ScreenHeader'
+import {
+  SettlementAccountFields,
+  useSettlementAccountForm,
+} from '../settlement/SettlementAccountFields'
 import ShopStatus from '../shop/ShopStatus'
 import useModalFocus from '../shop/useModalFocus'
 import {
@@ -99,6 +104,8 @@ function SelectorActivityEndDialog({
 export default function MemberInfoScreen() {
   const session = readAuthSession()
   const canView = hasValidUserSession(session) && session?.role === 'USER'
+  const canEditSettlement = canManageSettlement(session)
+  const settlementForm = useSettlementAccountForm(canEditSettlement)
   const [profile, setProfile] = useState<MemberProfile | null>(null)
   const [kakao, setKakao] = useState<KakaoConnectionState>(unlinkedKakaoState())
   const [kakaoError, setKakaoError] = useState<unknown>(null)
@@ -114,6 +121,7 @@ export default function MemberInfoScreen() {
   const [loadError, setLoadError] = useState<unknown>(null)
   const connectLock = useRef(false)
   const endActivityButtonRef = useRef<HTMLButtonElement>(null)
+  const memberFormRef = useRef<HTMLFormElement>(null)
 
   const hasKakaoCallback = () => {
     const params = new URLSearchParams(window.location.search)
@@ -210,11 +218,7 @@ export default function MemberInfoScreen() {
   const phoneValue = isMasked ? maskPhone(displayed.phone) : displayed.phone
   const smsMarketing = displayed.alimtalk === 'Y'
   const kakaoBusy = isConnecting || isLoading
-  const kakaoButtonLabel = isConnecting
-    ? '연결 중...'
-    : kakao.status === 'REAUTH_REQUIRED' || kakao.status === 'INACTIVE'
-      ? '다시 연결하기'
-      : '카카오 인증하기'
+  const kakaoButtonLabel = isConnecting ? '인증 중...' : '인증하기'
 
   const handleDummyChange = () => {
     setStatus('시연 화면에서는 조회만 가능합니다.')
@@ -238,8 +242,9 @@ export default function MemberInfoScreen() {
     }
   }
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (canEditSettlement && !(await settlementForm.save())) return
     setStatus('회원정보를 저장했어요.')
   }
 
@@ -337,7 +342,11 @@ export default function MemberInfoScreen() {
           </div>
         ) : null}
 
-        <form aria-busy={isLoading || undefined} onSubmit={handleSubmit}>
+        <form
+          aria-busy={isLoading || (canEditSettlement && settlementForm.accountMode === 'loading') || undefined}
+          onSubmit={handleSubmit}
+          ref={memberFormRef}
+        >
           <section className="member-info-intro">
             <h2>고객님의 정보를 안전하게 보호합니다</h2>
             <button
@@ -418,33 +427,8 @@ export default function MemberInfoScreen() {
                 value={phoneValue}
               />
               <button
-                aria-label="휴대폰번호 변경하기"
-                className="member-info-change-button"
-                onClick={handleDummyChange}
-                type="button"
-              >
-                변경하기
-              </button>
-            </div>
-            <p className="member-info-help">본인 명의의 휴대폰번호일 경우에만 변경하실 수 있습니다.</p>
-          </div>
-
-          <section aria-labelledby="kakao-message-heading" className="member-info-kakao">
-            <h2 className="field-label" id="kakao-message-heading">카카오 메시지</h2>
-            <div className="member-info-field-row">
-              <p
-                aria-live="polite"
-                className="member-info-kakao-status"
-                role="status"
-              >
-                {kakaoBusy && !isConnecting
-                  ? '연결 상태 확인 중'
-                  : kakaoError
-                    ? '확인 실패'
-                    : getKakaoStatusLabel(kakao.status)}
-              </p>
-              <button
-                aria-label={kakaoButtonLabel}
+                aria-describedby="member-phone-kakao-status member-phone-kakao-help"
+                aria-label="휴대폰번호 인증하기"
                 className="member-info-change-button"
                 disabled={kakaoBusy}
                 onClick={() => {
@@ -455,15 +439,40 @@ export default function MemberInfoScreen() {
                 {kakaoButtonLabel}
               </button>
             </div>
+            <p
+              aria-live="polite"
+              className="member-info-help member-info-kakao-inline-status"
+              id="member-phone-kakao-status"
+              role="status"
+            >
+              카카오 메시지: <strong>
+                {kakaoBusy && !isConnecting
+                  ? '연결 상태 확인 중'
+                  : kakaoError
+                    ? '확인 실패'
+                    : getKakaoStatusLabel(kakao.status)}
+              </strong>
+            </p>
             {kakaoError ? (
-              <div className="member-info-help member-info-kakao-error" role="alert">
+              <div
+                className="member-info-help member-info-kakao-error"
+                id="member-phone-kakao-help"
+                role="alert"
+              >
                 <p>{getKakaoErrorMessage(kakaoError)}</p>
                 <button onClick={() => void load()} type="button">재요청</button>
               </div>
             ) : (
-              <p className="member-info-help">{getKakaoStatusHelp(kakao.status)}</p>
+              <p className="member-info-help" id="member-phone-kakao-help">{getKakaoStatusHelp(kakao.status)}</p>
             )}
-          </section>
+          </div>
+
+          {canEditSettlement ? (
+            <section aria-labelledby="settlement-info-heading" className="member-info-settlement">
+              <h2 id="settlement-info-heading">정산 정보</h2>
+              <SettlementAccountFields form={settlementForm} />
+            </section>
+          ) : null}
 
           <section className="member-info-consent" aria-labelledby="privacy-notice-heading">
             <div className="member-info-consent-row">
@@ -557,10 +566,11 @@ export default function MemberInfoScreen() {
           ) : null}
         </form>
       </div>
-      <BottomActionBar label="저장하기" onClick={(event) => {
-        event.preventDefault()
-        setStatus('회원정보를 저장했어요.')
-      }} />
+      <BottomActionBar
+        disabled={canEditSettlement && (settlementForm.isSaving || settlementForm.isFormUnavailable)}
+        label={settlementForm.isSaving ? '저장 중...' : '저장하기'}
+        onClick={() => memberFormRef.current?.requestSubmit()}
+      />
       {isEndActivityDialogOpen ? (
         <SelectorActivityEndDialog
           invokerRef={endActivityButtonRef}

@@ -52,20 +52,21 @@ afterEach(() => {
 })
 
 describe('SettlementInfoScreen', () => {
-  it('switches identifier fields without sending them to the account API', async () => {
+  it('saves a corporate account with its settlement type and business number', async () => {
     const fetchSpy = mockAccountFetch()
     window.history.replaceState({}, '', '/settlement/info')
 
     render(<SettlementInfoScreen />)
 
-    await waitFor(() => expect(fetchSpy).toHaveBeenCalled())
+    await waitFor(() => expect(screen.getByRole('radio', { name: '개인' })).toHaveProperty('disabled', false))
     expect(screen.getByRole('link', { name: '뒤로 가기' }).getAttribute('href')).toBe('/home')
     expect(screen.getAllByRole('radio').map((radio) => radio.parentElement?.textContent)).toEqual([
       '개인',
       '개인사업자',
       '법인사업자',
     ])
-    expect(screen.getByRole('textbox', { name: '주민등록번호' })).toBeTruthy()
+    expect(screen.getByText('정산 유형을 선택하면 식별번호 입력란이 표시됩니다.')).toBeTruthy()
+    expect(screen.queryByRole('textbox', { name: '주민등록번호' })).toBeNull()
 
     fireEvent.click(screen.getByRole('radio', { name: '법인사업자' }))
     expect(screen.queryByRole('textbox', { name: '주민등록번호' })).toBeNull()
@@ -85,12 +86,44 @@ describe('SettlementInfoScreen', () => {
       bankName: '테스트은행',
       accountNumber: '123-456-789',
       accountHolder: '테스트법인',
+      settlementType: 'CORPORATION',
+      businessNumber: '123-45-67890',
     })
   })
 
-  it('prefills registered account information for editing', async () => {
-    mockAccountFetch({
-      get: { bankName: '국민은행', accountNumber: '123-456', accountHolder: '홍길동' },
+  it('saves a personal account with its resident registration number', async () => {
+    const fetchSpy = mockAccountFetch()
+
+    render(<SettlementInfoScreen />)
+    await waitFor(() => expect(screen.getByRole('radio', { name: '개인' })).toHaveProperty('disabled', false))
+    fireEvent.click(screen.getByRole('radio', { name: '개인' }))
+
+    fillAccountFields()
+    fireEvent.change(screen.getByRole('textbox', { name: '주민등록번호' }), {
+      target: { value: '900101-1234567' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '저장하기' }))
+
+    await waitFor(() => expect(window.location.pathname).toBe('/settlement'))
+    const putCall = fetchSpy.mock.calls.find(([, init]) => init?.method === 'PUT')
+    expect(JSON.parse(String(putCall?.[1]?.body))).toEqual({
+      bankName: '테스트은행',
+      accountNumber: '123-456-789',
+      accountHolder: '테스트법인',
+      settlementType: 'INDIVIDUAL',
+      businessNumber: '900101-1234567',
+    })
+  })
+
+  it('prefills registered account information and locks its type while editing', async () => {
+    const fetchSpy = mockAccountFetch({
+      get: {
+        bankName: '국민은행',
+        accountNumber: '123-456',
+        accountHolder: '홍길동',
+        settlementType: 'SOLE_PROPRIETOR',
+        businessNumber: '123-45-67890',
+      },
     })
 
     render(<SettlementInfoScreen />)
@@ -98,6 +131,92 @@ describe('SettlementInfoScreen', () => {
     expect(await screen.findByDisplayValue('국민은행')).toBeTruthy()
     expect(screen.getByDisplayValue('123-456')).toBeTruthy()
     expect(screen.getByDisplayValue('홍길동')).toBeTruthy()
+    expect(screen.getByDisplayValue('123-45-67890')).toBeTruthy()
+    expect(screen.getByRole('heading', { level: 1, name: '정산 정보 수정' })).toBeTruthy()
+    expect(screen.getByRole('link', { name: '뒤로 가기' }).getAttribute('href')).toBe('/mypage/member')
+    const radios = screen.getAllByRole('radio') as HTMLInputElement[]
+    expect(radios.every((radio) => !radio.disabled)).toBe(true)
+    expect(screen.getByRole('radio', { name: '개인사업자' })).toHaveProperty('checked', true)
+    expect(screen.getByRole('textbox', { name: '사업자등록번호' })).toHaveProperty('disabled', false)
+    fireEvent.change(screen.getByRole('textbox', { name: '사업자등록번호' }), {
+      target: { value: '987-65-43210' },
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: '수정하기' }))
+    await waitFor(() => expect(window.location.pathname).toBe('/mypage/member'))
+
+    const putCall = fetchSpy.mock.calls.find(([, init]) => init?.method === 'PUT')
+    expect(JSON.parse(String(putCall?.[1]?.body))).toMatchObject({
+      settlementType: 'SOLE_PROPRIETOR',
+      businessNumber: '987-65-43210',
+    })
+  })
+
+  it('allows replacing a masked resident registration number during editing', async () => {
+    const fetchSpy = mockAccountFetch({
+      get: {
+        bankName: '국민은행',
+        accountNumber: '123-456',
+        accountHolder: '홍길동',
+        settlementType: 'INDIVIDUAL',
+        businessNumber: '******-*******',
+      },
+      put: {
+        bankName: '국민은행',
+        accountNumber: '123-456',
+        accountHolder: '홍길동',
+        settlementType: 'INDIVIDUAL',
+        businessNumber: '******-*******',
+      },
+    })
+
+    render(<SettlementInfoScreen />)
+
+    const identifier = await screen.findByRole('textbox', { name: '주민등록번호' })
+    expect(identifier).toHaveProperty('value', '******-*******')
+    expect(identifier).toHaveProperty('disabled', false)
+    fireEvent.change(identifier, { target: { value: '900101-7654321' } })
+
+    fireEvent.click(screen.getByRole('button', { name: '수정하기' }))
+    await waitFor(() => expect(window.location.pathname).toBe('/mypage/member'))
+
+    const putCall = fetchSpy.mock.calls.find(([, init]) => init?.method === 'PUT')
+    const payload = JSON.parse(String(putCall?.[1]?.body))
+    expect(payload).toMatchObject({
+      settlementType: 'INDIVIDUAL',
+      businessNumber: '900101-7654321',
+    })
+    expect(payload).not.toHaveProperty('residentRegistrationNumber')
+  })
+
+  it('keeps the type selectable for a legacy account response without settlement type', async () => {
+    mockAccountFetch({
+      get: { bankName: '국민은행', accountNumber: '123-456', accountHolder: '홍길동' },
+    })
+
+    render(<SettlementInfoScreen />)
+
+    expect(await screen.findByText('정산 유형을 다시 확인한 후 저장해 주세요.')).toBeTruthy()
+    expect(screen.getByRole('heading', { level: 1, name: '정산 정보 수정' })).toBeTruthy()
+    expect(screen.getAllByRole('radio').every((radio) => !(radio as HTMLInputElement).disabled)).toBe(true)
+    expect(screen.getAllByRole('radio').every((radio) => !(radio as HTMLInputElement).checked)).toBe(true)
+    expect(screen.queryByRole('textbox', { name: '주민등록번호' })).toBeNull()
+    expect(screen.queryByRole('textbox', { name: '사업자등록번호' })).toBeNull()
+  })
+
+  it('requires an explicit settlement type selection before saving', async () => {
+    const fetchSpy = mockAccountFetch()
+
+    render(<SettlementInfoScreen />)
+    await waitFor(() => expect(screen.getByRole('radio', { name: '개인' })).toHaveProperty('disabled', false))
+    fillAccountFields()
+    fireEvent.click(screen.getByRole('button', { name: '저장하기' }))
+
+    expect(await screen.findByRole('alert')).toHaveProperty(
+      'textContent',
+      expect.stringContaining('정산 유형을 선택해 주세요.'),
+    )
+    expect(fetchSpy.mock.calls.some(([, init]) => init?.method === 'PUT')).toBe(false)
   })
 
   it('keeps the form open when saving the account fails', async () => {
@@ -108,6 +227,7 @@ describe('SettlementInfoScreen', () => {
     render(<SettlementInfoScreen />)
     await screen.findByRole('textbox', { name: '은행명' })
 
+    fireEvent.click(screen.getByRole('radio', { name: '개인' }))
     fillAccountFields()
     fireEvent.change(screen.getByRole('textbox', { name: '주민등록번호' }), {
       target: { value: '900101-1234567' },

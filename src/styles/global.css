@@ -2096,8 +2096,22 @@ input:focus-visible + .custom-check {
   border-color: var(--black);
 }
 
+.settlement-type-options label.is-locked {
+  cursor: not-allowed;
+}
+
+.settlement-type-options label.is-locked:not(:has(input:checked)) {
+  opacity: 0.45;
+}
+
 .settlement-type-options input {
   accent-color: var(--black);
+}
+
+.settlement-type-help {
+  margin-top: 9px;
+  color: var(--gray-700);
+  font-size: 11px;
 }
 
 .settlement-info-field {
@@ -2116,6 +2130,12 @@ input:focus-visible + .custom-check {
 
 .settlement-info-field input:focus {
   border-color: var(--black);
+}
+
+.settlement-info-field input:disabled {
+  background: var(--surface);
+  color: var(--gray-500);
+  cursor: not-allowed;
 }
 
 .settlement-info-field input::placeholder {
@@ -2356,8 +2376,7 @@ input:focus-visible + .custom-check {
   margin-bottom: 20px;
 }
 
-.member-info-field input,
-.member-info-kakao-status {
+.member-info-field input {
   width: 100%;
   height: 52px;
   padding: 0 15px;
@@ -2414,6 +2433,11 @@ input:focus-visible + .custom-check {
   line-height: 1.5;
 }
 
+.member-info-kakao-inline-status strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
 .member-info-kakao-error {
   display: flex;
   align-items: center;
@@ -2422,18 +2446,15 @@ input:focus-visible + .custom-check {
   color: #c72c2c;
 }
 
-.member-info-kakao {
-  padding-top: 8px;
+.member-info-settlement {
+  padding-top: 28px;
   margin: 28px 0;
   border-top: 1px solid var(--line);
 }
 
-.member-info-kakao-status {
-  display: flex;
-  align-items: center;
-  margin: 0;
-  background: var(--surface);
-  font-size: 14px;
+.member-info-settlement > h2 {
+  margin-bottom: 20px;
+  font-size: 18px;
 }
 
 .member-info-consent {

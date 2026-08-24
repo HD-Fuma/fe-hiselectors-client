@@ -37,11 +37,31 @@ export type SettlementHistories = {
   histories: SettlementEstimate[]
 }
 
+export type SettlementAccountType = 'INDIVIDUAL' | 'SOLE_PROPRIETOR' | 'CORPORATION'
+
 export type SettlementAccount = {
   bankName: string
   accountNumber: string
   accountHolder: string
+  settlementType?: SettlementAccountType | null
+  businessNumber?: string | null
 }
+
+type SettlementAccountBaseInput = Pick<
+  SettlementAccount,
+  'bankName' | 'accountNumber' | 'accountHolder'
+>
+
+export type SettlementAccountUpsertInput = SettlementAccountBaseInput & (
+  | {
+    settlementType: 'INDIVIDUAL'
+    businessNumber?: string
+  }
+  | {
+    settlementType: 'SOLE_PROPRIETOR' | 'CORPORATION'
+    businessNumber: string
+  }
+)
 
 export class SettlementApiError extends Error {
   readonly status: number
@@ -146,18 +166,42 @@ export async function getSettlementHistories(year: number): Promise<SettlementHi
 }
 
 function isSettlementAccount(value: unknown): value is SettlementAccount {
-  return typeof value === 'object'
-    && value !== null
-    && typeof (value as SettlementAccount).bankName === 'string'
-    && typeof (value as SettlementAccount).accountNumber === 'string'
-    && typeof (value as SettlementAccount).accountHolder === 'string'
+  if (typeof value !== 'object' || value === null) return false
+
+  const account = value as SettlementAccount
+  const hasValidOptionalString = (candidate: unknown) => (
+    candidate == null || typeof candidate === 'string'
+  )
+  const hasValidSettlementType = account.settlementType == null
+    || ['INDIVIDUAL', 'SOLE_PROPRIETOR', 'CORPORATION'].includes(account.settlementType)
+
+  return typeof account.bankName === 'string'
+    && typeof account.accountNumber === 'string'
+    && typeof account.accountHolder === 'string'
+    && hasValidSettlementType
+    && hasValidOptionalString(account.businessNumber)
 }
 
-function normalizeSettlementAccount(account: SettlementAccount): SettlementAccount {
-  return {
+function normalizeSettlementAccount(account: SettlementAccountUpsertInput): SettlementAccountUpsertInput {
+  const common = {
     bankName: account.bankName.trim(),
     accountNumber: account.accountNumber.trim(),
     accountHolder: account.accountHolder.trim(),
+  }
+
+  if (account.settlementType === 'INDIVIDUAL') {
+    const businessNumber = account.businessNumber?.trim()
+    return {
+      ...common,
+      settlementType: account.settlementType,
+      ...(businessNumber ? { businessNumber } : {}),
+    }
+  }
+
+  return {
+    ...common,
+    settlementType: account.settlementType,
+    businessNumber: account.businessNumber.trim(),
   }
 }
 
@@ -169,7 +213,7 @@ export async function getSettlementAccount(): Promise<SettlementAccount> {
   return account
 }
 
-export async function upsertSettlementAccount(account: SettlementAccount): Promise<SettlementAccount> {
+export async function upsertSettlementAccount(account: SettlementAccountUpsertInput): Promise<SettlementAccount> {
   const payload = normalizeSettlementAccount(account)
   const saved = await request<SettlementAccount | null>(
     '/api/settlements/account',
