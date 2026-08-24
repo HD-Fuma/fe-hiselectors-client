@@ -551,7 +551,7 @@ export default function MemberInfoScreen() {
                 ref={endActivityButtonRef}
                 type="button"
               >
-                {isEndingActivity ? '종료 처리 중...' : '셀렉터스 활동 종료'}
+                {isEndingActivity ? '종료 처리 중...' : '셀렉터스 활동 종료하기'}
               </button>
             </section>
           ) : null}

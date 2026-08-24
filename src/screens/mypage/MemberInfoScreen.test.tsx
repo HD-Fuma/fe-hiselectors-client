@@ -98,7 +98,7 @@ function mockMemberApis(options?: {
 }
 
 async function confirmSelectorActivityEnd() {
-  fireEvent.click(await screen.findByRole('button', { name: '셀렉터스 활동 종료' }))
+  fireEvent.click(await screen.findByRole('button', { name: '셀렉터스 활동 종료하기' }))
   const dialog = await screen.findByRole('dialog', { name: '셀렉터스 활동을 종료할까요?' })
   fireEvent.click(within(dialog).getByRole('button', { name: '활동 종료' }))
 }
@@ -230,7 +230,7 @@ describe('MemberInfoScreen', () => {
     window.history.replaceState({}, '', '/mypage/member')
 
     render(<App />)
-    const pageButton = await screen.findByRole('button', { name: '셀렉터스 활동 종료' })
+    const pageButton = await screen.findByRole('button', { name: '셀렉터스 활동 종료하기' })
     fireEvent.click(pageButton)
     const dialog = await screen.findByRole('dialog', { name: '셀렉터스 활동을 종료할까요?' })
     expect(confirmSpy).not.toHaveBeenCalled()
@@ -258,7 +258,7 @@ describe('MemberInfoScreen', () => {
     ).toBe('셀렉터스 활동이 종료되었습니다.\n미정산 금액은 예정대로 정산됩니다.'))
     expect(confirmSpy).not.toHaveBeenCalled()
     expect(screen.queryByRole('dialog', { name: '셀렉터스 활동을 종료할까요?' })).toBeNull()
-    expect(screen.queryByRole('button', { name: '셀렉터스 활동 종료' })).toBeNull()
+    expect(screen.queryByRole('button', { name: '셀렉터스 활동 종료하기' })).toBeNull()
   })
 
   it('does not end selector activity when confirmation is cancelled', async () => {
@@ -267,7 +267,7 @@ describe('MemberInfoScreen', () => {
     window.history.replaceState({}, '', '/mypage/member')
 
     render(<App />)
-    const pageButton = await screen.findByRole('button', { name: '셀렉터스 활동 종료' })
+    const pageButton = await screen.findByRole('button', { name: '셀렉터스 활동 종료하기' })
     fireEvent.click(pageButton)
     const dialog = await screen.findByRole('dialog', { name: '셀렉터스 활동을 종료할까요?' })
     fireEvent.click(within(dialog).getByRole('button', { name: '취소' }))
@@ -284,7 +284,7 @@ describe('MemberInfoScreen', () => {
     window.history.replaceState({}, '', '/mypage/member')
 
     render(<App />)
-    const pageButton = await screen.findByRole('button', { name: '셀렉터스 활동 종료' })
+    const pageButton = await screen.findByRole('button', { name: '셀렉터스 활동 종료하기' })
     fireEvent.click(pageButton)
     const dialog = await screen.findByRole('dialog', { name: '셀렉터스 활동을 종료할까요?' })
     fireEvent.keyDown(dialog, { key: 'Escape' })
