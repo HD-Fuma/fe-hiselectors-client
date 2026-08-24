@@ -64,6 +64,7 @@ describe('ProductPerformanceScreen', () => {
     expect(monthSelect.value).toBe(previousMonth)
     expect(within(periodRow as HTMLElement).getAllByText(monthLabel(previousMonth))).toHaveLength(1)
     expect(await screen.findByText('7건')).toBeTruthy()
-    expect(screen.getByText('월별 성과')).toBeTruthy()
+    expect(within(periodRow as HTMLElement).getByText('조회 기간')).toBeTruthy()
+    expect(screen.queryByText('월별 성과')).toBeNull()
   })
 })
