@@ -81,7 +81,7 @@ describe('shop product detail', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: '구매 옵션 닫기' }))
 
     expect(backdrop.classList.contains('is-closing')).toBe(true)
-    act(() => vi.advanceTimersByTime(360))
+    act(() => vi.advanceTimersByTime(520))
     expect(screen.queryByRole('dialog', { name: '구매 옵션' })).toBeNull()
     expect(document.activeElement).toBe(purchaseButton)
   })

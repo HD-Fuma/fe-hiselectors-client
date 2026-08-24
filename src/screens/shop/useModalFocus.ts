@@ -41,7 +41,7 @@ export default function useModalFocus({
       return undefined
     }
 
-    getFocusableControls(container)[0]?.focus()
+    getFocusableControls(container)[0]?.focus({ preventScroll: true })
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {

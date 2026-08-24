@@ -53,6 +53,7 @@ function PurchaseOptionSheet({
   setQuantity,
 }: PurchaseOptionSheetProps) {
   const [closing, setClosing] = useState(false)
+  const [visible, setVisible] = useState(false)
   const closeTimerRef = useRef<number>(undefined)
   const containerRef = useRef<HTMLElement>(null)
   const unitPrice = Number(product.salePrice.replace(/[^0-9]/g, ''))
@@ -60,15 +61,20 @@ function PurchaseOptionSheet({
   const requestClose = () => {
     if (closing) return
     setClosing(true)
-    const closeDelay = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 0 : 360
+    setVisible(false)
+    const closeDelay = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 0 : 520
     closeTimerRef.current = window.setTimeout(onClose, closeDelay)
   }
   useModalFocus({ containerRef, invokerRef, onClose: requestClose })
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => setVisible(true))
+    return () => window.cancelAnimationFrame(frame)
+  }, [])
   useEffect(() => () => window.clearTimeout(closeTimerRef.current), [])
 
   return (
     <div
-      className={`product-option-backdrop${closing ? ' is-closing' : ''}`}
+      className={`product-option-backdrop${visible ? ' is-open' : ''}${closing ? ' is-closing' : ''}`}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) requestClose()
       }}
