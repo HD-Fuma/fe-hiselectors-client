@@ -204,7 +204,7 @@ export function ProductPerformanceScreen() {
       <ScreenHeader backHref="/performance" title="상품별 성과" />
       <div className="screen-scroll product-performance-screen" aria-busy={loading}>
         <div className="period-row product-period-row">
-          <div><span>조회 기간</span><strong>{monthLabel(selectedMonth)}</strong></div>
+          <div><span>조회 기간</span><strong>월별 성과</strong></div>
           <MonthSelect onChange={setSelectedMonth} value={selectedMonth} />
         </div>
 
