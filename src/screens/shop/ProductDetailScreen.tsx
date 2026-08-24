@@ -52,15 +52,26 @@ function PurchaseOptionSheet({
   quantity,
   setQuantity,
 }: PurchaseOptionSheetProps) {
+  const [closing, setClosing] = useState(false)
+  const closeTimerRef = useRef<number>(undefined)
   const containerRef = useRef<HTMLElement>(null)
   const unitPrice = Number(product.salePrice.replace(/[^0-9]/g, ''))
   const totalPrice = `${(unitPrice * quantity).toLocaleString('ko-KR')}원`
-  useModalFocus({ containerRef, invokerRef, onClose })
+  const requestClose = () => {
+    if (closing) return
+    setClosing(true)
+    closeTimerRef.current = window.setTimeout(onClose, 220)
+  }
+  useModalFocus({ containerRef, invokerRef, onClose: requestClose })
+  useEffect(() => () => window.clearTimeout(closeTimerRef.current), [])
 
   return (
-    <div className="product-option-backdrop" onMouseDown={(event) => {
-      if (event.target === event.currentTarget) onClose()
-    }}>
+    <div
+      className={`product-option-backdrop${closing ? ' is-closing' : ''}`}
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) requestClose()
+      }}
+    >
       <section
         aria-label="구매 옵션"
         aria-modal="true"
@@ -68,7 +79,7 @@ function PurchaseOptionSheet({
         ref={containerRef}
         role="dialog"
       >
-        <button aria-label="구매 옵션 닫기" className="product-option-close" onClick={onClose} type="button">
+        <button aria-label="구매 옵션 닫기" className="product-option-close" onClick={requestClose} type="button">
           <span />
         </button>
         <div className="product-option-card">
@@ -200,26 +211,30 @@ export default function ProductDetailScreen() {
               </div>
               <p className="product-detail-delivery">등록된 판매 상품 정보를 기준으로 제공됩니다.</p>
             </section>
-            <div className="product-purchase-bar">
-              <button onClick={() => setPurchaseOpen(true)} ref={purchaseTriggerRef} type="button">
-                구매하기
-              </button>
-            </div>
-            {purchaseOpen ? (
-              <PurchaseOptionSheet
-                invokerRef={purchaseTriggerRef}
-                onClose={() => setPurchaseOpen(false)}
-                onPurchase={() => void handlePurchase()}
-                product={product}
-                purchaseMessage={purchaseMessage}
-                purchasing={purchasing}
-                quantity={quantity}
-                setQuantity={setQuantity}
-              />
-            ) : null}
           </>
         ) : null}
       </div>
+      {!loading && product ? (
+        <>
+          <div className="product-purchase-bar">
+            <button onClick={() => setPurchaseOpen(true)} ref={purchaseTriggerRef} type="button">
+              구매하기
+            </button>
+          </div>
+          {purchaseOpen ? (
+            <PurchaseOptionSheet
+              invokerRef={purchaseTriggerRef}
+              onClose={() => setPurchaseOpen(false)}
+              onPurchase={() => void handlePurchase()}
+              product={product}
+              purchaseMessage={purchaseMessage}
+              purchasing={purchasing}
+              quantity={quantity}
+              setQuantity={setQuantity}
+            />
+          ) : null}
+        </>
+      ) : null}
     </div>
   )
 }

@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import ProductDetailScreen from './ProductDetailScreen'
@@ -13,6 +13,7 @@ describe('shop product detail', () => {
 
   afterEach(() => {
     cleanup()
+    vi.useRealTimers()
     vi.unstubAllGlobals()
     window.history.replaceState({}, '', '/')
   })
@@ -21,10 +22,11 @@ describe('shop product detail', () => {
     render(<ShopDemoProvider><ProductDetailScreen /></ShopDemoProvider>)
 
     expect(screen.getByRole('heading', { name: /Cale ribbed half sleeve KN/ })).toBeTruthy()
-    expect(screen.getByRole('button', { name: '구매하기' })).toBeTruthy()
+    const purchaseButton = screen.getByRole('button', { name: '구매하기' })
+    expect(purchaseButton.closest('.screen-scroll')).toBeNull()
     expect(screen.queryByRole('link', { name: /더현대/ })).toBeNull()
 
-    fireEvent.click(screen.getByRole('button', { name: '구매하기' }))
+    fireEvent.click(purchaseButton)
     const dialog = screen.getByRole('dialog', { name: '구매 옵션' })
     expect((within(dialog).getByRole('button', { name: '수량 줄이기' }) as HTMLButtonElement).disabled).toBe(true)
     fireEvent.click(within(dialog).getByRole('button', { name: '구매하기' }))
@@ -63,5 +65,21 @@ describe('shop product detail', () => {
     expect(JSON.parse(fetchSpy.mock.calls[0][1].body)).toMatchObject({
       selectorsCode: 'RC000003200T', productCode: '40B1342672', quantity: 2,
     })
+  })
+
+  it('closes the purchase options after the exit animation', () => {
+    vi.useFakeTimers()
+    render(<ShopDemoProvider><ProductDetailScreen /></ShopDemoProvider>)
+    const purchaseButton = screen.getByRole('button', { name: '구매하기' })
+    fireEvent.click(purchaseButton)
+
+    const dialog = screen.getByRole('dialog', { name: '구매 옵션' })
+    const backdrop = dialog.parentElement as HTMLElement
+    fireEvent.click(within(dialog).getByRole('button', { name: '구매 옵션 닫기' }))
+
+    expect(backdrop.classList.contains('is-closing')).toBe(true)
+    act(() => vi.advanceTimersByTime(220))
+    expect(screen.queryByRole('dialog', { name: '구매 옵션' })).toBeNull()
+    expect(document.activeElement).toBe(purchaseButton)
   })
 })
