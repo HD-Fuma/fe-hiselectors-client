@@ -1465,6 +1465,10 @@
   background: var(--white);
 }
 
+.product-purchase-bar select {
+  text-align: center;
+}
+
 .product-purchase-bar button {
   background: var(--black);
   color: var(--white);

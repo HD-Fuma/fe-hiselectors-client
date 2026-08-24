@@ -92,7 +92,7 @@ export default function ProductDetailScreen() {
     setPurchaseMessage(null)
     try {
       const result = await purchaseProduct(selectorsCode, product.code ?? product.id, quantity)
-      setPurchaseMessage(`구매가 기록되었습니다. 주문번호 ${result.orderNo}`)
+      window.alert(`구매 완료되었습니다. 주문번호 ${result.orderNo}`)
     } catch (purchaseError) {
       setPurchaseMessage(purchaseError instanceof Error ? purchaseError.message : '구매를 기록하지 못했습니다.')
     } finally {
@@ -133,7 +133,6 @@ export default function ProductDetailScreen() {
               </button>
             </div>
             {purchaseMessage ? <p aria-live="polite" className="product-purchase-message">{purchaseMessage}</p> : null}
-            <p className="shop-disclosure">이 상품 구매로 발생한 수익의 일부가 셀렉터스에게 제공됩니다.</p>
           </>
         ) : null}
       </div>
