@@ -18,16 +18,17 @@ const settlementTypes = [
 
 type SettlementType = (typeof settlementTypes)[number]['value']
 type AccountMode = 'loading' | 'create' | 'edit' | 'legacy' | 'error'
+const maskedResidentRegistrationNumber = '******-*******'
 
-function getSettlementType(account: SettlementAccount): SettlementType {
+function getSettlementType(account: SettlementAccount): SettlementType | null {
   const matchedType = settlementTypes.find(({ apiValue }) => apiValue === account.settlementType)
   if (matchedType) return matchedType.value
 
-  return account.businessNumber ? 'sole-proprietor' : 'personal'
+  return null
 }
 
 export function useSettlementAccountForm(enabled = true) {
-  const [settlementType, setSettlementType] = useState<SettlementType>('personal')
+  const [settlementType, setSettlementType] = useState<SettlementType | null>(null)
   const [bankName, setBankName] = useState('')
   const [accountNumber, setAccountNumber] = useState('')
   const [accountHolder, setAccountHolder] = useState('')
@@ -43,15 +44,27 @@ export function useSettlementAccountForm(enabled = true) {
     setLoadError(null)
     try {
       const account = await getSettlementAccount()
-      setSettlementType(getSettlementType(account))
+      const nextSettlementType = getSettlementType(account)
+      setSettlementType(nextSettlementType)
       setBankName(account.bankName)
       setAccountNumber(account.accountNumber)
       setAccountHolder(account.accountHolder)
-      setResidentRegistrationNumber(account.residentRegistrationNumber ?? '')
-      setBusinessNumber(account.businessNumber ?? '')
+      setResidentRegistrationNumber(
+        nextSettlementType === 'personal' && account.businessNumber
+          ? maskedResidentRegistrationNumber
+          : '',
+      )
+      setBusinessNumber(
+        nextSettlementType && nextSettlementType !== 'personal'
+          ? account.businessNumber ?? ''
+          : '',
+      )
       setAccountMode(account.settlementType ? 'edit' : 'legacy')
     } catch (error) {
       if (isSettlementAccountNotRegistered(error)) {
+        setSettlementType(null)
+        setResidentRegistrationNumber('')
+        setBusinessNumber('')
         setAccountMode('create')
         return
       }
@@ -67,19 +80,26 @@ export function useSettlementAccountForm(enabled = true) {
   const isPersonal = settlementType === 'personal'
   const isEditMode = accountMode === 'edit' || accountMode === 'legacy'
   const isFormUnavailable = accountMode === 'loading' || accountMode === 'error'
+  const isPersonalIdentifierLocked = accountMode === 'edit'
+    && isPersonal
+    && Boolean(residentRegistrationNumber)
 
   const save = async () => {
     if (isSaving || isFormUnavailable) return false
+    if (!settlementType) {
+      setSaveError(new Error('정산 유형을 선택해 주세요.'))
+      return false
+    }
 
     setIsSaving(true)
     setSaveError(null)
     try {
       const common = { bankName, accountNumber, accountHolder }
-      await upsertSettlementAccount(isPersonal
+      const saved = await upsertSettlementAccount(isPersonal
         ? {
           ...common,
-          residentRegistrationNumber,
           settlementType: 'INDIVIDUAL',
+          ...(!isPersonalIdentifierLocked ? { businessNumber: residentRegistrationNumber } : {}),
         }
         : {
           ...common,
@@ -88,6 +108,11 @@ export function useSettlementAccountForm(enabled = true) {
             ? 'SOLE_PROPRIETOR'
             : 'CORPORATION',
         })
+      if (isPersonal) {
+        setResidentRegistrationNumber(maskedResidentRegistrationNumber)
+      } else {
+        setBusinessNumber(saved.businessNumber ?? businessNumber)
+      }
       setAccountMode('edit')
       return true
     } catch (error) {
@@ -107,6 +132,7 @@ export function useSettlementAccountForm(enabled = true) {
     isEditMode,
     isFormUnavailable,
     isPersonal,
+    isPersonalIdentifierLocked,
     isSaving,
     loadAccount,
     loadError,
@@ -136,6 +162,7 @@ export function SettlementAccountFields({ form }: SettlementAccountFieldsProps) 
     businessNumber,
     isFormUnavailable,
     isPersonal,
+    isPersonalIdentifierLocked,
     loadAccount,
     loadError,
     residentRegistrationNumber,
@@ -244,34 +271,41 @@ export function SettlementAccountFields({ form }: SettlementAccountFieldsProps) 
         />
       </div>
 
-      <div className="settlement-info-field">
-        <label
-          className="field-label"
-          htmlFor={isPersonal ? 'resident-registration-number' : 'business-registration-number'}
-        >
-          {isPersonal ? '주민등록번호' : '사업자등록번호'}
-        </label>
-        <input
-          autoComplete="off"
-          disabled={isFormUnavailable}
-          id={isPersonal ? 'resident-registration-number' : 'business-registration-number'}
-          inputMode="numeric"
-          maxLength={isPersonal ? 14 : 12}
-          name={isPersonal ? 'residentRegistrationNumber' : 'businessNumber'}
-          onChange={(event) => {
-            if (isPersonal) {
-              setResidentRegistrationNumber(event.target.value)
-              return
-            }
-            setBusinessNumber(event.target.value)
-          }}
-          pattern={isPersonal ? '[0-9]{6}-?[0-9]{7}' : '[0-9]{3}-?[0-9]{2}-?[0-9]{5}'}
-          placeholder={isPersonal ? '000000-0000000' : '000-00-00000'}
-          required
-          type="text"
-          value={isPersonal ? residentRegistrationNumber : businessNumber}
-        />
-      </div>
+      {settlementType ? (
+        <div className="settlement-info-field">
+          <label
+            className="field-label"
+            htmlFor={isPersonal ? 'resident-registration-number' : 'business-registration-number'}
+          >
+            {isPersonal ? '주민등록번호' : '사업자등록번호'}
+          </label>
+          <input
+            autoComplete="off"
+            disabled={isFormUnavailable || isPersonalIdentifierLocked}
+            id={isPersonal ? 'resident-registration-number' : 'business-registration-number'}
+            inputMode="numeric"
+            maxLength={isPersonal ? 14 : 12}
+            name={isPersonal ? 'residentRegistrationNumber' : 'businessNumber'}
+            onChange={(event) => {
+              if (isPersonal) {
+                setResidentRegistrationNumber(event.target.value)
+                return
+              }
+              setBusinessNumber(event.target.value)
+            }}
+            pattern={isPersonal ? '[0-9]{6}-?[0-9]{7}' : '[0-9]{3}-?[0-9]{2}-?[0-9]{5}'}
+            placeholder={isPersonal ? '000000-0000000' : '000-00-00000'}
+            required={!isPersonalIdentifierLocked}
+            type="text"
+            value={isPersonal ? residentRegistrationNumber : businessNumber}
+          />
+          {isPersonalIdentifierLocked ? (
+            <p className="settlement-type-help">주민등록번호는 최초 등록 후 변경할 수 없습니다.</p>
+          ) : null}
+        </div>
+      ) : (
+        <p className="settlement-type-help">정산 유형을 선택하면 식별번호 입력란이 표시됩니다.</p>
+      )}
 
       <p className="settlement-security-note">
         입력한 정보는 정산 지급과 세무 처리를 위해 안전하게 사용됩니다.

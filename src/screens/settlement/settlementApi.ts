@@ -44,7 +44,6 @@ export type SettlementAccount = {
   accountNumber: string
   accountHolder: string
   settlementType?: SettlementAccountType | null
-  residentRegistrationNumber?: string | null
   businessNumber?: string | null
 }
 
@@ -56,7 +55,7 @@ type SettlementAccountBaseInput = Pick<
 export type SettlementAccountUpsertInput = SettlementAccountBaseInput & (
   | {
     settlementType: 'INDIVIDUAL'
-    residentRegistrationNumber: string
+    businessNumber?: string
   }
   | {
     settlementType: 'SOLE_PROPRIETOR' | 'CORPORATION'
@@ -180,7 +179,6 @@ function isSettlementAccount(value: unknown): value is SettlementAccount {
     && typeof account.accountNumber === 'string'
     && typeof account.accountHolder === 'string'
     && hasValidSettlementType
-    && hasValidOptionalString(account.residentRegistrationNumber)
     && hasValidOptionalString(account.businessNumber)
 }
 
@@ -191,17 +189,20 @@ function normalizeSettlementAccount(account: SettlementAccountUpsertInput): Sett
     accountHolder: account.accountHolder.trim(),
   }
 
-  return account.settlementType === 'INDIVIDUAL'
-    ? {
+  if (account.settlementType === 'INDIVIDUAL') {
+    const businessNumber = account.businessNumber?.trim()
+    return {
       ...common,
       settlementType: account.settlementType,
-      residentRegistrationNumber: account.residentRegistrationNumber.trim(),
+      ...(businessNumber ? { businessNumber } : {}),
     }
-    : {
-      ...common,
-      settlementType: account.settlementType,
-      businessNumber: account.businessNumber.trim(),
-    }
+  }
+
+  return {
+    ...common,
+    settlementType: account.settlementType,
+    businessNumber: account.businessNumber.trim(),
+  }
 }
 
 export async function getSettlementAccount(): Promise<SettlementAccount> {

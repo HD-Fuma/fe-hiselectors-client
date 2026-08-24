@@ -87,7 +87,7 @@ function mockMemberApis(options?: {
           accountHolder: '홍길동',
           accountNumber: '123-456-789',
           bankName: '국민은행',
-          residentRegistrationNumber: '900101-1234567',
+          businessNumber: '******-*******',
           settlementType: 'INDIVIDUAL',
         },
       })
@@ -156,7 +156,8 @@ describe('MemberInfoScreen', () => {
     expect(screen.queryByRole('heading', { name: '카카오 메시지' })).toBeNull()
     expect(screen.getByRole('heading', { level: 2, name: '정산 정보' })).toBeTruthy()
     expect(screen.getByDisplayValue('국민은행')).toBeTruthy()
-    expect(screen.getByDisplayValue('900101-1234567')).toBeTruthy()
+    expect(screen.getByDisplayValue('******-*******')).toHaveProperty('disabled', true)
+    expect(screen.getByText('주민등록번호는 최초 등록 후 변경할 수 없습니다.')).toBeTruthy()
     expect(screen.getAllByRole('radio', { name: '개인' })[0]).toHaveProperty('disabled', true)
     expect(screen.queryByRole('link', { name: '정산 정보 수정' })).toBeNull()
 
@@ -193,6 +194,8 @@ describe('MemberInfoScreen', () => {
     await screen.findByDisplayValue('국민은행')
     expect(screen.getByText('정산 유형을 다시 확인한 후 저장해 주세요.')).toBeTruthy()
     expect(screen.getByRole('radio', { name: '법인사업자' })).toHaveProperty('disabled', false)
+    expect(screen.getAllByRole('radio', { name: /개인|법인/ })
+      .every((radio) => !(radio as HTMLInputElement).checked)).toBe(true)
   })
 
   it.each(['BLACKLIST', 'NONE'] as const)('hides settlement information for %s access', async (accessLevel) => {
@@ -229,11 +232,37 @@ describe('MemberInfoScreen', () => {
       accountHolder: '홍길동',
       accountNumber: '123-456-789',
       bankName: '국민은행',
-      residentRegistrationNumber: '900101-1234567',
       settlementType: 'INDIVIDUAL',
     })
     expect((await screen.findByRole('alertdialog', { name: '알림' })).textContent)
       .toContain('회원정보를 저장했어요.')
+  })
+
+  it('masks a newly registered resident number even when saving returns no body', async () => {
+    authenticate()
+    mockMemberApis({
+      settlement: jsonResponse({ code: 'RESOURCE_NOT_FOUND', message: '리소스를 찾을 수 없습니다.' }, 404),
+      settlementPut: new Response(null, { status: 204 }),
+    })
+    window.history.replaceState({}, '', '/mypage/member')
+
+    render(<App />)
+
+    await waitFor(() => expect(screen.getByRole('radio', { name: '개인' })).toHaveProperty('disabled', false))
+    fireEvent.click(screen.getByRole('radio', { name: '개인' }))
+    fireEvent.change(screen.getByRole('textbox', { name: '은행명' }), { target: { value: '국민은행' } })
+    fireEvent.change(screen.getByRole('textbox', { name: '계좌번호' }), { target: { value: '123-456-789' } })
+    fireEvent.change(screen.getByRole('textbox', { name: '예금주' }), { target: { value: '홍길동' } })
+    fireEvent.change(screen.getByRole('textbox', { name: '주민등록번호' }), {
+      target: { value: '900101-1234567' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '저장하기' }))
+
+    await screen.findByRole('alertdialog', { name: '알림' })
+    const identifier = screen.getByRole('textbox', { name: '주민등록번호' })
+    expect(identifier).toHaveProperty('value', '******-*******')
+    expect(identifier).toHaveProperty('disabled', true)
+    expect(screen.queryByDisplayValue('900101-1234567')).toBeNull()
   })
 
   it('shows receivable status without exposing kakao identifiers', async () => {
