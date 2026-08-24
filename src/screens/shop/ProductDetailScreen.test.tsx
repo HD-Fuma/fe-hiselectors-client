@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import ProductDetailScreen from './ProductDetailScreen'
@@ -25,6 +25,9 @@ describe('shop product detail', () => {
     expect(screen.queryByRole('link', { name: /더현대/ })).toBeNull()
 
     fireEvent.click(screen.getByRole('button', { name: '구매하기' }))
+    const dialog = screen.getByRole('dialog', { name: '구매 옵션' })
+    expect((within(dialog).getByRole('button', { name: '수량 줄이기' }) as HTMLButtonElement).disabled).toBe(true)
+    fireEvent.click(within(dialog).getByRole('button', { name: '구매하기' }))
     expect(sessionStorage.getItem('postLoginRedirect')).toBe(
       '/product/40B1342672?ptrsRefCd=RC000003200T',
     )
@@ -44,8 +47,11 @@ describe('shop product detail', () => {
     vi.stubGlobal('alert', alertSpy)
     render(<ShopDemoProvider><ProductDetailScreen /></ShopDemoProvider>)
 
-    fireEvent.change(screen.getByLabelText('수량'), { target: { value: '2' } })
     fireEvent.click(screen.getByRole('button', { name: '구매하기' }))
+    const dialog = screen.getByRole('dialog', { name: '구매 옵션' })
+    fireEvent.click(within(dialog).getByRole('button', { name: '수량 늘리기' }))
+    expect(within(dialog).getByLabelText('수량').textContent).toBe('2')
+    fireEvent.click(within(dialog).getByRole('button', { name: '구매하기' }))
 
     await waitFor(() => expect(alertSpy).toHaveBeenCalledWith('구매 완료되었습니다. 주문번호 ORD202600003'))
     expect(screen.queryByText(/구매가 기록되었습니다/)).toBeNull()
