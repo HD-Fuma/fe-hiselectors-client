@@ -30,6 +30,9 @@ describe('shop product detail', () => {
     const dialog = screen.getByRole('dialog', { name: '구매 옵션' })
     expect((within(dialog).getByRole('button', { name: '수량 줄이기' }) as HTMLButtonElement).disabled).toBe(true)
     fireEvent.click(within(dialog).getByRole('button', { name: '구매하기' }))
+    const loginDialog = screen.getByRole('dialog', { name: '로그인이 필요합니다' })
+    expect(window.location.pathname).toBe('/product/40B1342672')
+    fireEvent.click(within(loginDialog).getByRole('button', { name: '로그인하기' }))
     expect(sessionStorage.getItem('postLoginRedirect')).toBe(
       '/product/40B1342672?ptrsRefCd=RC000003200T',
     )
@@ -78,8 +81,48 @@ describe('shop product detail', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: '구매 옵션 닫기' }))
 
     expect(backdrop.classList.contains('is-closing')).toBe(true)
-    act(() => vi.advanceTimersByTime(220))
+    act(() => vi.advanceTimersByTime(360))
     expect(screen.queryByRole('dialog', { name: '구매 옵션' })).toBeNull()
     expect(document.activeElement).toBe(purchaseButton)
+  })
+
+  it('does not record the same product view again after returning from login', async () => {
+    window.history.replaceState({}, '', '/product/40A2125547?ptrsRefCd=RC000005203T')
+    const apiProduct = {
+      id: 42,
+      code: '40A2125547',
+      name: '사운즈포레스트 퍼퓸카드',
+      brand: '더현대 수비니어',
+      category: '라이프',
+      regularPrice: 5600,
+      salePrice: 5600,
+      status: 'SALE',
+      thumbnailUrl: '/perfume-card.jpg',
+      detailUrl: '',
+    }
+    const fetchSpy = vi.fn().mockImplementation((input) => Promise.resolve(
+      String(input).includes('/api/view-logs')
+        ? new Response(null, { status: 204 })
+        : new Response(JSON.stringify({ data: apiProduct }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }),
+    ))
+    vi.stubGlobal('fetch', fetchSpy)
+    const viewCalls = () => fetchSpy.mock.calls.filter(([input]) => String(input).includes('/api/view-logs'))
+    render(<ShopDemoProvider><ProductDetailScreen /></ShopDemoProvider>)
+    await screen.findByRole('heading', { name: '사운즈포레스트 퍼퓸카드' })
+    await waitFor(() => expect(viewCalls()).toHaveLength(1))
+
+    fireEvent.click(screen.getByRole('button', { name: '구매하기' }))
+    fireEvent.click(within(screen.getByRole('dialog', { name: '구매 옵션' })).getByRole('button', { name: '구매하기' }))
+    fireEvent.click(within(screen.getByRole('dialog', { name: '로그인이 필요합니다' })).getByRole('button', { name: '로그인하기' }))
+
+    cleanup()
+    window.history.replaceState({}, '', '/product/40A2125547?ptrsRefCd=RC000005203T')
+    render(<ShopDemoProvider><ProductDetailScreen /></ShopDemoProvider>)
+    await screen.findByRole('heading', { name: '사운즈포레스트 퍼퓸카드' })
+    await waitFor(() => expect(sessionStorage.getItem('selectors-shop-skip-next-view')).toBeNull())
+    expect(viewCalls()).toHaveLength(1)
   })
 })

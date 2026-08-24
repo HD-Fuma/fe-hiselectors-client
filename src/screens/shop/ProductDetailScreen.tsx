@@ -9,7 +9,7 @@ import { useShopDemo } from './ShopDemoContext'
 import type { ShopProduct } from './shopData'
 import { buildPublicShopPath, parseProductDetailLocation } from './shopRoute'
 import useModalFocus from './useModalFocus'
-import { useShopViewLog } from './useShopViewLog'
+import { skipNextShopViewLog, useShopViewLog } from './useShopViewLog'
 
 function mapProduct(product: Awaited<ReturnType<typeof getPublicProduct>>): ShopProduct {
   const regularPrice = Number(product.regularPrice)
@@ -60,7 +60,8 @@ function PurchaseOptionSheet({
   const requestClose = () => {
     if (closing) return
     setClosing(true)
-    closeTimerRef.current = window.setTimeout(onClose, 220)
+    const closeDelay = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 0 : 360
+    closeTimerRef.current = window.setTimeout(onClose, closeDelay)
   }
   useModalFocus({ containerRef, invokerRef, onClose: requestClose })
   useEffect(() => () => window.clearTimeout(closeTimerRef.current), [])
@@ -131,6 +132,7 @@ export default function ProductDetailScreen() {
   const [error, setError] = useState<string | null>(null)
   const [quantity, setQuantity] = useState(1)
   const [purchaseOpen, setPurchaseOpen] = useState(false)
+  const [loginRequired, setLoginRequired] = useState(false)
   const [purchasing, setPurchasing] = useState(false)
   const [purchaseMessage, setPurchaseMessage] = useState<string | null>(null)
   const purchaseTriggerRef = useRef<HTMLButtonElement>(null)
@@ -172,11 +174,7 @@ export default function ProductDetailScreen() {
     if (!product) return
     const session = readAuthSession()
     if (!hasValidUserSession(session) || session?.role !== 'USER') {
-      sessionStorage.setItem(
-        'postLoginRedirect',
-        `/product/${encodeURIComponent(productCode)}?ptrsRefCd=${encodeURIComponent(selectorsCode)}`,
-      )
-      navigate('/login')
+      setLoginRequired(true)
       return
     }
 
@@ -190,6 +188,16 @@ export default function ProductDetailScreen() {
     } finally {
       setPurchasing(false)
     }
+  }
+
+  const handleGoToLogin = () => {
+    sessionStorage.setItem(
+      'postLoginRedirect',
+      `/product/${encodeURIComponent(productCode)}?ptrsRefCd=${encodeURIComponent(selectorsCode)}`,
+    )
+    if (canRecordView) skipNextShopViewLog(selectorsCode, 'PRODUCT', numericProductId)
+    setLoginRequired(false)
+    navigate('/login')
   }
 
   return (
@@ -232,6 +240,18 @@ export default function ProductDetailScreen() {
               quantity={quantity}
               setQuantity={setQuantity}
             />
+          ) : null}
+          {loginRequired ? (
+            <div aria-modal="true" className="auth-gate-backdrop" role="dialog" aria-labelledby="product-login-required-title">
+              <div className="auth-gate-modal">
+                <h3 id="product-login-required-title">로그인이 필요합니다</h3>
+                <p>상품 구매는 로그인한 더현대 HI 회원만 이용할 수 있어요. 로그인 페이지로 이동할까요?</p>
+                <div className="auth-gate-actions">
+                  <button className="secondary-action" onClick={() => setLoginRequired(false)} type="button">취소</button>
+                  <button className="primary-action" onClick={handleGoToLogin} type="button">로그인하기</button>
+                </div>
+              </div>
+            </div>
           ) : null}
         </>
       ) : null}
