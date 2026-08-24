@@ -246,7 +246,7 @@ export default function MemberInfoScreen() {
         window.dispatchEvent(new CustomEvent('auth:changed', { detail: nextSession }))
         if (selectorAccessLevel !== 'CURRENT') {
           setStatus(selectorAccessLevel === 'PREVIOUS'
-            ? '셀렉터스 활동이 종료되었습니다. 미정산 금액은 예정대로 정산됩니다.'
+            ? '셀렉터스 활동이 종료되었습니다.\n미정산 금액은 예정대로 정산됩니다.'
             : '셀렉터스 활동 상태가 갱신되었습니다.')
           return
         }
@@ -264,7 +264,7 @@ export default function MemberInfoScreen() {
         window.dispatchEvent(new CustomEvent('auth:changed', { detail: nextSession }))
         setStatus(endError
           ? '활동 종료 결과를 확인하지 못했습니다. 네트워크 연결 후 다시 확인해 주세요.'
-          : '셀렉터스 활동이 종료되었습니다. 미정산 금액은 예정대로 정산됩니다.')
+          : '셀렉터스 활동이 종료되었습니다.\n미정산 금액은 예정대로 정산됩니다.')
         return
       }
 

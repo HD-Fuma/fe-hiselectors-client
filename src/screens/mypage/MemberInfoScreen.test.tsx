@@ -236,7 +236,9 @@ describe('MemberInfoScreen', () => {
     ))
     expect((deleteCall?.[1]?.headers as Headers).get('Authorization')).toBe('Bearer demo.jwt')
     expect(JSON.parse(localStorage.getItem('selectors-auth') ?? '{}').selectorAccessLevel).toBe('PREVIOUS')
-    expect(screen.getByRole('alertdialog', { name: '알림' }).textContent).toContain('셀렉터스 활동이 종료되었습니다.')
+    await waitFor(() => expect(
+      screen.getByRole('alertdialog', { name: '알림' }).querySelector('p')?.textContent,
+    ).toBe('셀렉터스 활동이 종료되었습니다.\n미정산 금액은 예정대로 정산됩니다.'))
     expect(screen.queryByRole('button', { name: '셀렉터스 활동 종료' })).toBeNull()
   })
 
