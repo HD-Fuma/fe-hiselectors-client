@@ -111,6 +111,70 @@ describe('selector access refresh', () => {
     expect(fetchSpy.mock.calls.filter(([input]) => String(input).endsWith('/api/me/selector-access'))).toHaveLength(2)
   })
 
+  it('does not overwrite a local access change with an older refresh response', async () => {
+    const currentSession = {
+      accessToken: 'selector.jwt', tokenType: 'Bearer', role: 'USER', loginId: 'selector-user',
+      selectorAccessLevel: 'CURRENT',
+    }
+    localStorage.setItem('selectors-auth', JSON.stringify(currentSession))
+    window.history.replaceState({}, '', '/home')
+    let resolveAccess!: (response: Response) => void
+    const accessResponse = new Promise<Response>((resolve) => { resolveAccess = resolve })
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation((input) => (
+      String(input).endsWith('/api/me/selector-access')
+        ? accessResponse
+        : Promise.resolve(json({ data: { id: 1 } }))
+    ))
+
+    render(<App />)
+    await vi.waitFor(() => expect(fetchSpy.mock.calls.some(([input]) => (
+      String(input).endsWith('/api/me/selector-access')
+    ))).toBe(true))
+
+    localStorage.setItem('selectors-auth', JSON.stringify({
+      ...currentSession,
+      selectorAccessLevel: 'PREVIOUS',
+    }))
+    window.dispatchEvent(new CustomEvent('auth:changed'))
+    resolveAccess(json({ data: { accessLevel: 'CURRENT' } }))
+
+    await new Promise((resolve) => window.setTimeout(resolve, 0))
+    expect(JSON.parse(localStorage.getItem('selectors-auth') ?? '{}'))
+      .toMatchObject({ selectorAccessLevel: 'PREVIOUS' })
+  })
+
+  it('does not fail closed from an older refresh rejection after a local access change', async () => {
+    const currentSession = {
+      accessToken: 'selector.jwt', tokenType: 'Bearer', role: 'USER', loginId: 'selector-user',
+      selectorAccessLevel: 'CURRENT',
+    }
+    localStorage.setItem('selectors-auth', JSON.stringify(currentSession))
+    window.history.replaceState({}, '', '/home')
+    let rejectAccess!: (reason: unknown) => void
+    const accessResponse = new Promise<Response>((_resolve, reject) => { rejectAccess = reject })
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation((input) => (
+      String(input).endsWith('/api/me/selector-access')
+        ? accessResponse
+        : Promise.resolve(json({ data: { id: 1 } }))
+    ))
+
+    render(<App />)
+    await vi.waitFor(() => expect(fetchSpy.mock.calls.some(([input]) => (
+      String(input).endsWith('/api/me/selector-access')
+    ))).toBe(true))
+
+    localStorage.setItem('selectors-auth', JSON.stringify({
+      ...currentSession,
+      selectorAccessLevel: 'PREVIOUS',
+    }))
+    window.dispatchEvent(new CustomEvent('auth:changed'))
+    rejectAccess(new TypeError('Failed to fetch'))
+
+    await new Promise((resolve) => window.setTimeout(resolve, 0))
+    expect(JSON.parse(localStorage.getItem('selectors-auth') ?? '{}'))
+      .toMatchObject({ selectorAccessLevel: 'PREVIOUS' })
+  })
+
   it('reconciles the route when focus discovers an expired session', async () => {
     let now = 1_800_000_000_000
     vi.spyOn(Date, 'now').mockImplementation(() => now)

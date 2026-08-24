@@ -166,8 +166,23 @@ describe('SettlementScreen', () => {
     expect(window.location.pathname).toBe('/login')
   })
 
-  it.each(['PREVIOUS', 'BLACKLIST'] as const)('loads history only for %s access', async (accessLevel) => {
-    setSession(accessLevel)
+  it('keeps estimate and account management available for previous access', async () => {
+    setSession('PREVIOUS')
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation((input) => Promise.resolve(
+      requestUrl(input).includes('/histories')
+        ? historyResponse(2026)
+        : json({ data: estimate }),
+    ))
+
+    render(<SettlementScreen />)
+
+    expect(await screen.findByText('2026년 7월 활동 예상 수수료')).toBeTruthy()
+    expect(screen.getByRole('link', { name: '정보 수정' }).getAttribute('href')).toBe('/settlement/info')
+    expect(fetchSpy.mock.calls.some(([input]) => requestUrl(input).endsWith('/api/settlements/estimates'))).toBe(true)
+  })
+
+  it('loads history only for blacklisted access', async () => {
+    setSession('BLACKLIST')
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(historyResponse(2026))
 
     render(<SettlementScreen />)

@@ -107,6 +107,11 @@ export function canManageSelectorOperations(session: AuthSession | null): boolea
   return getSelectorAccessLevel(session) === 'CURRENT'
 }
 
+export function canManageSettlement(session: AuthSession | null): boolean {
+  const accessLevel = getSelectorAccessLevel(session)
+  return accessLevel === 'CURRENT' || accessLevel === 'PREVIOUS'
+}
+
 export function canViewSelectorShop(session: AuthSession | null): boolean {
   const accessLevel = getSelectorAccessLevel(session)
   return accessLevel === 'CURRENT' || accessLevel === 'PREVIOUS'
@@ -145,11 +150,29 @@ export async function fetchSelectorAccessLevel(
   return accessLevel
 }
 
+export async function endSelectorActivity(): Promise<void> {
+  const response = await authFetch(`${API_BASE_URL}/api/me/selector-access`, {
+    method: 'DELETE',
+    signal: AbortSignal.timeout(10_000),
+  })
+
+  if (response.ok) return
+
+  let message = '셀렉터스 활동 종료에 실패했습니다. 잠시 후 다시 시도해 주세요.'
+  try {
+    const payload = await response.json() as { message?: unknown }
+    if (typeof payload.message === 'string' && payload.message.trim()) {
+      message = payload.message
+    }
+  } catch {}
+  throw new SelectorAccessRequestError(response.status, message)
+}
+
 export class SelectorAccessRequestError extends Error {
   readonly status: number
 
-  constructor(status: number) {
-    super('셀렉터스 권한 정보를 확인하지 못했습니다.')
+  constructor(status: number, message = '셀렉터스 권한 정보를 확인하지 못했습니다.') {
+    super(message)
     this.status = status
   }
 }

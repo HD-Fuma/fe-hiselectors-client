@@ -2503,6 +2503,32 @@ input:focus-visible + .custom-check {
   color: var(--gray-500);
 }
 
+.member-info-activity-end {
+  padding-top: 24px;
+  margin-top: 28px;
+  border-top: 1px solid var(--line);
+}
+
+.member-info-activity-end p {
+  margin: 8px 0 14px;
+  color: var(--gray-700);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.member-info-activity-end button {
+  width: 100%;
+  height: 52px;
+  border: 1px solid #c72c2c;
+  color: #c72c2c;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.member-info-activity-end button:disabled {
+  opacity: 0.5;
+}
+
 .member-info-feedback {
   padding: 22px 16px;
   margin-bottom: 20px;

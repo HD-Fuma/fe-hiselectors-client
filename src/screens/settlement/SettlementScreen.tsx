@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
-import { canManageSelectorOperations, readAuthSession, redirectToLoginScreen } from '../../auth'
+import { canManageSettlement, readAuthSession, redirectToLoginScreen } from '../../auth'
 import ScreenHeader from '../../components/ScreenHeader'
 import {
   getSettlementErrorMessage,
@@ -105,7 +105,7 @@ function SettlementHistoryRow({ history }: { history: SettlementEstimate }) {
 }
 
 export default function SettlementScreen() {
-  const canManage = canManageSelectorOperations(readAuthSession())
+  const canManage = canManageSettlement(readAuthSession())
   const [selectedYear, setSelectedYear] = useState(getCurrentSettlementYear)
   const [estimate, setEstimate] = useState<SettlementEstimate | null>(null)
   const [histories, setHistories] = useState<SettlementEstimate[]>([])

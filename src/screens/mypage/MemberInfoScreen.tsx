@@ -1,9 +1,15 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 
 import {
+  canManageSelectorOperations,
+  clearAuthSession,
+  endSelectorActivity,
+  fetchSelectorAccessLevel,
   hasValidUserSession,
+  persistAuthSession,
   readAuthSession,
   redirectToLoginScreen,
+  SelectorAccessRequestError,
 } from '../../auth'
 import BottomActionBar from '../../components/BottomActionBar'
 import { ArrowRightIcon, CheckIcon } from '../../components/Icons'
@@ -61,6 +67,7 @@ export default function MemberInfoScreen() {
   const [isMasked, setIsMasked] = useState(true)
   const [isLoading, setIsLoading] = useState(true)
   const [isConnecting, setIsConnecting] = useState(false)
+  const [isEndingActivity, setIsEndingActivity] = useState(false)
   const [privacyAgreed, setPrivacyAgreed] = useState(true)
   const [emailMarketing, setEmailMarketing] = useState(false)
   const [pushMarketing, setPushMarketing] = useState(false)
@@ -194,6 +201,80 @@ export default function MemberInfoScreen() {
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setStatus('회원정보를 저장했어요.')
+  }
+
+  const handleEndActivity = async () => {
+    if (isEndingActivity || !window.confirm(
+      '셀렉터스 활동을 종료할까요?\n종료 즉시 셀렉터스 자격이 사라지며 이 작업은 되돌릴 수 없습니다. 미정산 금액은 예정대로 정산됩니다.',
+    )) return
+
+    const requestSession = readAuthSession()
+    if (!requestSession) {
+      redirectToLoginScreen()
+      return
+    }
+    const isSameSession = () => {
+      const latestSession = readAuthSession()
+      return latestSession?.accessToken === requestSession.accessToken
+        && latestSession.selectorAccessLevel === requestSession.selectorAccessLevel
+    }
+    setIsEndingActivity(true)
+    try {
+      let endError: unknown = null
+      try {
+        await endSelectorActivity()
+      } catch (error) {
+        endError = error
+      }
+      if (!isSameSession()) return
+      if (endError instanceof SelectorAccessRequestError && endError.status === 401) {
+        clearAuthSession()
+        redirectToLoginScreen()
+        return
+      }
+
+      try {
+        const selectorAccessLevel = await fetchSelectorAccessLevel(
+          requestSession.accessToken,
+          requestSession.tokenType,
+        )
+        if (!isSameSession()) return
+        const latestSession = readAuthSession()
+        if (!latestSession) return
+        const nextSession = { ...latestSession, selectorAccessLevel }
+        persistAuthSession(nextSession)
+        window.dispatchEvent(new CustomEvent('auth:changed', { detail: nextSession }))
+        if (selectorAccessLevel !== 'CURRENT') {
+          setStatus(selectorAccessLevel === 'PREVIOUS'
+            ? '셀렉터스 활동이 종료되었습니다. 미정산 금액은 예정대로 정산됩니다.'
+            : '셀렉터스 활동 상태가 갱신되었습니다.')
+          return
+        }
+      } catch (error) {
+        if (!isSameSession()) return
+        if (error instanceof SelectorAccessRequestError && [401, 403].includes(error.status)) {
+          clearAuthSession()
+          redirectToLoginScreen()
+          return
+        }
+        const latestSession = readAuthSession()
+        if (!latestSession) return
+        const nextSession = { ...latestSession, selectorAccessLevel: 'NONE' as const }
+        persistAuthSession(nextSession)
+        window.dispatchEvent(new CustomEvent('auth:changed', { detail: nextSession }))
+        setStatus(endError
+          ? '활동 종료 결과를 확인하지 못했습니다. 네트워크 연결 후 다시 확인해 주세요.'
+          : '셀렉터스 활동이 종료되었습니다. 미정산 금액은 예정대로 정산됩니다.')
+        return
+      }
+
+      if (!isSameSession()) return
+      setStatus(endError instanceof SelectorAccessRequestError
+        ? endError.message
+        : '셀렉터스 활동 종료에 실패했습니다. 잠시 후 다시 시도해 주세요.')
+    } finally {
+      setIsEndingActivity(false)
+    }
   }
 
   return (
@@ -421,6 +502,20 @@ export default function MemberInfoScreen() {
               </button>
             </div>
           </section>
+
+          {canManageSelectorOperations(session) ? (
+            <section aria-labelledby="selector-activity-heading" className="member-info-activity-end">
+              <h2 className="field-label" id="selector-activity-heading">셀렉터스 활동</h2>
+              <p>활동 종료 즉시 셀렉터스 자격이 사라집니다. 미정산 금액은 예정대로 정산됩니다.</p>
+              <button
+                disabled={isEndingActivity}
+                onClick={() => void handleEndActivity()}
+                type="button"
+              >
+                {isEndingActivity ? '종료 처리 중...' : '셀렉터스 활동 종료'}
+              </button>
+            </section>
+          ) : null}
         </form>
       </div>
       <BottomActionBar label="저장하기" onClick={(event) => {
