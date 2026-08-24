@@ -116,7 +116,6 @@ export function PerformanceSummaryScreen() {
       <ScreenHeader backHref="/home" title="셀렉터스 성과" />
       <div className="screen-scroll performance-screen" aria-busy={loading}>
         <div className="period-row">
-          <div><strong>조회 기간</strong></div>
           <MonthSelect onChange={setSelectedMonth} value={selectedMonth} />
         </div>
 
@@ -204,7 +203,6 @@ export function ProductPerformanceScreen() {
       <ScreenHeader backHref="/performance" title="상품별 성과" />
       <div className="screen-scroll product-performance-screen" aria-busy={loading}>
         <div className="period-row product-period-row">
-          <div><strong>조회 기간</strong></div>
           <MonthSelect onChange={setSelectedMonth} value={selectedMonth} />
         </div>
 

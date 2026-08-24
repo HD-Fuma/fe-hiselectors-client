@@ -1578,25 +1578,7 @@ input:focus-visible + .custom-check {
 
 .period-row {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 15px 16px;
-  border: 1px solid var(--line);
-}
-
-.period-row > div {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.period-row > div span {
-  color: var(--gray-500);
-  font-size: 10px;
-}
-
-.period-row > div strong {
-  font-size: 12px;
+  justify-content: flex-end;
 }
 
 .period-row select,
