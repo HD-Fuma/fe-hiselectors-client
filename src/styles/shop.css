@@ -1497,7 +1497,7 @@
   justify-content: center;
   width: 64px;
   height: 28px;
-  margin: 0 auto;
+  margin: 4px auto 16px;
 }
 
 .product-option-close span {
@@ -1508,6 +1508,7 @@
 }
 
 .product-option-card {
+  margin: 0 16px;
   padding: 18px 16px 16px;
   background: var(--gray-100);
 }
@@ -1569,6 +1570,7 @@
   justify-content: flex-end;
   gap: 8px;
   min-height: 88px;
+  padding: 0 16px;
 }
 
 .product-option-total span {
@@ -1577,8 +1579,9 @@
 }
 
 .product-option-purchase {
-  width: 100%;
+  width: calc(100% - 32px);
   height: 52px;
+  margin: 0 16px max(12px, env(safe-area-inset-bottom));
   background: var(--black);
   color: var(--white);
   font-weight: 700;
@@ -1589,7 +1592,7 @@
 }
 
 .product-purchase-message {
-  margin-bottom: 12px;
+  margin: 0 16px 12px;
   color: var(--gray-700);
   font-size: 13px;
   line-height: 20px;
