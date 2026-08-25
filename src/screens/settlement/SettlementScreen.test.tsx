@@ -3,23 +3,29 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import SettlementScreen, {
   formatPaymentDate,
+  formatSettlementMonth,
   formatSettlementPeriod,
+  getCurrentPaymentActivityMonth,
+  shiftMonth,
 } from './SettlementScreen'
 import type { SettlementEstimate } from './settlementApi'
+
+const paymentActivityMonth = getCurrentPaymentActivityMonth()
+const paymentMonth = shiftMonth(paymentActivityMonth, 2)
 
 const estimate: SettlementEstimate = {
   settlementId: 1,
   selectorsId: 7,
   selectorsCode: 'SELECTORS-7',
   selectorsNickname: '셀렉터스',
-  activityMonth: '2026-07',
-  settlementMonth: '2026-08',
-  paymentMonth: '2026-09',
+  activityMonth: paymentActivityMonth,
+  settlementMonth: shiftMonth(paymentActivityMonth, 1),
+  paymentMonth,
   confirmedPurchaseCount: 386,
   confirmedSalesAmount: 42_820_000,
   settlementRate: 3,
   settlementAmount: 1_284_600,
-  status: 'CALCULATING',
+  status: 'PAYMENT_PENDING',
   calculatedAt: '2026-08-10T00:00:00',
   updatedAt: '2026-08-10T00:00:00',
 }
@@ -54,14 +60,14 @@ afterEach(() => {
 })
 
 describe('SettlementScreen', () => {
-  it('loads the authenticated estimate and selected-year histories', async () => {
+  it('loads this month\'s payout estimate and selected-year histories', async () => {
     setSession()
     const settled: SettlementEstimate = {
       ...estimate,
       settlementId: 2,
-      activityMonth: '2026-06',
-      settlementMonth: '2026-07',
-      paymentMonth: '2026-08',
+      activityMonth: shiftMonth(paymentActivityMonth, -1),
+      settlementMonth: paymentActivityMonth,
+      paymentMonth: shiftMonth(paymentActivityMonth, 1),
       settlementAmount: 742_800,
       status: 'SETTLED',
     }
@@ -73,29 +79,28 @@ describe('SettlementScreen', () => {
 
     render(<SettlementScreen />)
 
-    expect(await screen.findByText('2026년 7월 활동 예상 수수료')).toBeTruthy()
+    expect(await screen.findByText('이번달 지급 예정 수수료')).toBeTruthy()
+    expect(screen.getByText(`활동월 ${formatSettlementMonth(paymentActivityMonth)}`)).toBeTruthy()
     expect(screen.queryByRole('link', { name: '정보 수정' })).toBeNull()
-    expect(screen.getByText('취소나 환불에 따른 금액 변동 가능')).toBeTruthy()
+    expect(document.querySelector('.pending-settlement-card')).toBeNull()
     expect(screen.getByText('구매 확정 386건')).toBeTruthy()
-    expect(screen.getByText('정산 예정일 2026.09.20')).toBeTruthy()
+    expect(screen.getAllByText(`지급 예정일 ${formatPaymentDate(paymentMonth)}`).length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByText('지급 대기')).toBeTruthy()
     expect(screen.getByText('지급 완료')).toBeTruthy()
-    expect(screen.getByText('2026.08.20 지급')).toBeTruthy()
+    expect(screen.getByText(`${formatPaymentDate(settled.paymentMonth)} 지급`)).toBeTruthy()
     expect((screen.getByLabelText('정산 이력 연도') as HTMLSelectElement).value).toBe('2026')
 
-    const estimateCall = fetchSpy.mock.calls.find(([input]) => requestUrl(input).endsWith('/api/settlements/estimates'))
-    expect(requestUrl(estimateCall?.[0] ?? '')).not.toContain('activityMonth=')
+    const estimateCall = fetchSpy.mock.calls.find(([input]) => requestUrl(input).includes('/api/settlements/estimates'))
+    expect(requestUrl(estimateCall?.[0] ?? '')).toContain(`activityMonth=${encodeURIComponent(paymentActivityMonth)}`)
     expect((estimateCall?.[1]?.headers as Headers).get('Authorization')).toBe('Bearer selector.jwt')
   })
 
-  it('uses the live provisional estimate for the current-month summary', async () => {
+  it('uses the confirmed payout settlement instead of the live provisional estimate', async () => {
     setSession()
-    const currentMonth: SettlementEstimate = {
+    const payout: SettlementEstimate = {
       ...estimate,
-      activityMonth: '2026-08',
-      settlementMonth: '2026-09',
-      paymentMonth: '2026-10',
-      confirmedPurchaseCount: 120,
-      settlementAmount: 400_000,
+      confirmedPurchaseCount: 4,
+      settlementAmount: 42_084,
       provisionalEstimate: {
         purchaseCount: 412,
         settlementAmount: 1_512_300,
@@ -104,18 +109,18 @@ describe('SettlementScreen', () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation((input) => Promise.resolve(
       requestUrl(input).includes('/histories')
         ? historyResponse(2026, [])
-        : json({ data: currentMonth }),
+        : json({ data: payout }),
     ))
 
     render(<SettlementScreen />)
 
-    expect(await screen.findByText('2026년 8월 활동 예상 수수료')).toBeTruthy()
-    expect(screen.getByText('취소나 환불에 따른 금액 변동 가능')).toBeTruthy()
-    expect(screen.getByText('1,512,300')).toBeTruthy()
-    expect(screen.getByText('구매 확정 412건')).toBeTruthy()
-    expect(screen.getByText('정산 예정일 2026.10.20')).toBeTruthy()
-    expect(screen.queryByText('1,284,600')).toBeNull()
-    expect(screen.queryByText('구매 확정 120건')).toBeNull()
+    expect(await screen.findByText('이번달 지급 예정 수수료')).toBeTruthy()
+    expect(screen.getByText('42,084')).toBeTruthy()
+    expect(screen.getByText('구매 확정 4건')).toBeTruthy()
+    expect(screen.getByText(`지급 예정일 ${formatPaymentDate(paymentMonth)}`)).toBeTruthy()
+    expect(screen.queryByText('1,512,300')).toBeNull()
+    expect(screen.queryByText('구매 확정 412건')).toBeNull()
+    expect(screen.queryByText('취소나 환불에 따른 금액 변동 가능')).toBeNull()
   })
 
   it('reloads histories when the selected year changes', async () => {
@@ -136,14 +141,14 @@ describe('SettlementScreen', () => {
     })
 
     render(<SettlementScreen />)
-    await screen.findByText('2026년 7월 활동 예상 수수료')
+    await screen.findByText('이번달 지급 예정 수수료')
     fireEvent.change(screen.getByLabelText('정산 이력 연도'), { target: { value: '2025' } })
 
     expect(await screen.findByText('2025년 12월')).toBeTruthy()
     expect(fetchSpy.mock.calls.some(([input]) => requestUrl(input).includes('/histories?year=2025'))).toBe(true)
   })
 
-  it('keeps the page usable when the current estimate has not been calculated', async () => {
+  it('shows a zero payout summary when this month\'s estimate has not been calculated', async () => {
     setSession()
     vi.spyOn(globalThis, 'fetch').mockImplementation((input) => Promise.resolve(
       requestUrl(input).includes('/histories')
@@ -153,8 +158,38 @@ describe('SettlementScreen', () => {
 
     render(<SettlementScreen />)
 
-    expect(await screen.findByText('아직 계산된 정산 내역이 없습니다.')).toBeTruthy()
-    expect(screen.getByText('선택한 연도에 정산 내역이 없습니다.')).toBeTruthy()
+    expect(await screen.findByText('이번달 지급 예정 수수료')).toBeTruthy()
+    expect(screen.getByText(`활동월 ${formatSettlementMonth(paymentActivityMonth)}`)).toBeTruthy()
+    expect(screen.getByText('0')).toBeTruthy()
+    expect(screen.getByText('구매 확정 0건')).toBeTruthy()
+    expect(screen.getByText(`지급 예정일 ${formatPaymentDate(paymentMonth)}`)).toBeTruthy()
+    expect(screen.queryByText('아직 계산된 정산 내역이 없습니다.')).toBeNull()
+    expect(screen.getByText('지급 내역이 없습니다.')).toBeTruthy()
+  })
+
+  it('hides future payout months from the monthly history list', async () => {
+    setSession()
+    const futurePayout: SettlementEstimate = {
+      ...estimate,
+      settlementId: 4,
+      activityMonth: shiftMonth(paymentActivityMonth, 1),
+      settlementMonth: shiftMonth(paymentActivityMonth, 2),
+      paymentMonth: shiftMonth(paymentMonth, 1),
+      settlementAmount: 392,
+      status: 'CALCULATING',
+    }
+    vi.spyOn(globalThis, 'fetch').mockImplementation((input) => Promise.resolve(
+      requestUrl(input).includes('/histories')
+        ? historyResponse(2026, [futurePayout, estimate])
+        : json({ data: estimate }),
+    ))
+
+    render(<SettlementScreen />)
+
+    expect(await screen.findByText('지급 대기')).toBeTruthy()
+    expect(screen.getByText(formatSettlementMonth(paymentActivityMonth))).toBeTruthy()
+    expect(screen.queryByText('392원')).toBeNull()
+    expect(screen.queryByText(formatSettlementMonth(futurePayout.activityMonth))).toBeNull()
   })
 
   it('sends unauthorized retries to the login screen', async () => {
@@ -177,9 +212,9 @@ describe('SettlementScreen', () => {
 
     render(<SettlementScreen />)
 
-    expect(await screen.findByText('2026년 7월 활동 예상 수수료')).toBeTruthy()
+    expect(await screen.findByText('이번달 지급 예정 수수료')).toBeTruthy()
     expect(screen.queryByRole('link', { name: '정보 수정' })).toBeNull()
-    expect(fetchSpy.mock.calls.some(([input]) => requestUrl(input).endsWith('/api/settlements/estimates'))).toBe(true)
+    expect(fetchSpy.mock.calls.some(([input]) => requestUrl(input).includes('/api/settlements/estimates'))).toBe(true)
   })
 
   it('loads history only for blacklisted access', async () => {
@@ -188,7 +223,7 @@ describe('SettlementScreen', () => {
 
     render(<SettlementScreen />)
 
-    expect(await screen.findByText('2026년 7월')).toBeTruthy()
+    expect(await screen.findByText(formatSettlementMonth(paymentActivityMonth))).toBeTruthy()
     expect(screen.queryByRole('link', { name: '정보 수정' })).toBeNull()
     expect(document.querySelector('.settlement-summary')).toBeNull()
     expect(fetchSpy.mock.calls.every(([input]) => requestUrl(input).includes('/histories'))).toBe(true)
@@ -197,5 +232,7 @@ describe('SettlementScreen', () => {
   it('calculates settlement and payment dates across year boundaries', () => {
     expect(formatSettlementPeriod('2024-02')).toBe('2024.02.01 - 2024.02.29')
     expect(formatPaymentDate('2025-12')).toBe('2025.12.20')
+    expect(shiftMonth('2026-08', -2)).toBe('2026-06')
+    expect(shiftMonth('2026-01', -2)).toBe('2025-11')
   })
 })

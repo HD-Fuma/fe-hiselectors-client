@@ -175,10 +175,13 @@ describe('shared panel and campaign fidelity', () => {
     expect(await screen.findByRole('img', {
       name: '2026년 8월 클릭, 구매 전환 수, 구매 전환 금액 추이',
     })).toBeTruthy()
-    const aggregateCommission = screen.getByText('예상 정산 수수료').closest('.metric-card') as HTMLElement
-    expect(within(aggregateCommission).getByText('예상 정산 수수료')).toBeTruthy()
+    const aggregateCommission = screen.getByText('이번달 예상 수수료').closest('.metric-card') as HTMLElement
+    expect(within(aggregateCommission).getByText('이번달 예상 수수료')).toBeTruthy()
     expect(within(aggregateCommission).getByText('1,284,600')).toBeTruthy()
     expect(within(aggregateCommission).getByText('원')).toBeTruthy()
+    expect(within(aggregateCommission).getByText('2026.10.20 지급 예정')).toBeTruthy()
+    expect(within(aggregateCommission).queryByText('2026.08.01 - 2026.08.31')).toBeNull()
+    expect(within(aggregateCommission).queryByText('지급 예정월 2026년 10월')).toBeNull()
 
     cleanup()
     window.history.replaceState({}, '', '/performance/products')
@@ -199,27 +202,27 @@ describe('shared panel and campaign fidelity', () => {
             selectorsId: 1,
             selectorsCode: 'SELECTORS-1',
             selectorsNickname: '셀렉터스',
-            activityMonth: '2026-08',
-            settlementMonth: '2026-09',
-            paymentMonth: '2026-10',
+            activityMonth: '2026-06',
+            settlementMonth: '2026-07',
+            paymentMonth: '2026-08',
             confirmedPurchaseCount: 386,
             confirmedSalesAmount: 42_820_000,
             settlementRate: 3,
             settlementAmount: 1_284_600,
-            status: 'CALCULATING',
-            calculatedAt: '2026-09-01T00:00:00',
-            updatedAt: '2026-09-01T00:00:00',
-            provisionalEstimate: {
-              purchaseCount: 386,
-              settlementAmount: 1_284_600,
-            },
+            status: 'PAYMENT_PENDING',
+            calculatedAt: '2026-07-21T00:00:00',
+            updatedAt: '2026-07-21T00:00:00',
           },
         })),
     ))
     render(<App />)
-    const settlementSummary = (await screen.findByText('2026년 8월 활동 예상 수수료')).closest('.settlement-summary') as HTMLElement
-    expect(within(settlementSummary).getByText('2026년 8월 활동 예상 수수료')).toBeTruthy()
+    const settlementSummary = (await screen.findByText('이번달 지급 예정 수수료')).closest('.settlement-summary') as HTMLElement
+    expect(within(settlementSummary).getByText('이번달 지급 예정 수수료')).toBeTruthy()
+    expect(within(settlementSummary).getByText('활동월 2026년 6월')).toBeTruthy()
     expect(within(settlementSummary).getByText('1,284,600')).toBeTruthy()
     expect(within(settlementSummary).getByText('원')).toBeTruthy()
+    expect(within(settlementSummary).getByText('구매 확정 386건')).toBeTruthy()
+    expect(within(settlementSummary).getByText('지급 예정일 2026.08.20')).toBeTruthy()
   })
 })
+

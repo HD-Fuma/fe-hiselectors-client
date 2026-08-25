@@ -1,19 +1,26 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { ProductPerformanceScreen } from './PerformanceScreens'
-
-function monthValue(date: Date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-}
-
-function monthLabel(month: string) {
-  const [year, value] = month.split('-')
-  return `${year}년 ${Number(value)}월`
-}
+import {
+  PerformanceSummaryScreen,
+  ProductPerformanceScreen,
+  formatActivityPeriod,
+  formatExpectedPaymentDate,
+  getCurrentActivityMonth,
+  monthLabel,
+  shiftMonth,
+} from './PerformanceScreens'
 
 function requestUrl(input: RequestInfo | URL) {
   return typeof input === 'string' ? input : input.toString()
+}
+
+const metrics = {
+  estimatedSettlementAmount: 1_284_600,
+  conversionAmount: 42_820_000,
+  conversionCount: 386,
+  clickCount: 12_840,
+  conversionRate: 3.01,
 }
 
 beforeEach(() => {
@@ -30,11 +37,41 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
+describe('PerformanceSummaryScreen', () => {
+  it('loads the current activity month performance summary by default', async () => {
+    const currentMonth = getCurrentActivityMonth()
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({
+      data: {
+        activityMonth: currentMonth,
+        settlementRate: 3,
+        metrics,
+        previousMonthMetrics: metrics,
+        trends: [{ date: `${currentMonth}-01`, clickCount: 420, conversionCount: 12, conversionAmount: 1_340_000 }],
+        topProducts: [],
+      },
+    })))
+
+    render(<PerformanceSummaryScreen />)
+
+    expect(await screen.findByText('이번달 예상 수수료')).toBeTruthy()
+    const featuredCard = screen.getByText('이번달 예상 수수료').closest('.metric-card') as HTMLElement
+    expect(within(featuredCard).getByText(`${formatExpectedPaymentDate(currentMonth)} 지급 예정`)).toBeTruthy()
+    expect(within(featuredCard).queryByText(formatActivityPeriod(currentMonth))).toBeNull()
+    expect(screen.queryByText(`지급 예정월 ${monthLabel(shiftMonth(currentMonth, 2))}`)).toBeNull()
+    expect(document.querySelector('.performance-screen > .period-row .period-caption')).toBeNull()
+    expect(screen.getByText('구매 전환 금액', { selector: '.metric-card > span' })).toBeTruthy()
+    expect(screen.getByText('구매 전환 수', { selector: '.metric-card > span' })).toBeTruthy()
+    expect(screen.getByText('누적 클릭 수', { selector: '.metric-card > span' })).toBeTruthy()
+    expect(screen.getByText('전환율', { selector: '.metric-card > span' })).toBeTruthy()
+    expect((screen.getByRole('combobox', { name: '조회 월 선택' }) as HTMLSelectElement).value).toBe(currentMonth)
+    expect(String(fetchSpy.mock.calls[0][0])).toContain(`/api/performance/summary?activityMonth=${encodeURIComponent(currentMonth)}`)
+  })
+})
+
 describe('ProductPerformanceScreen', () => {
   it('shows the selected month once and reloads product performance when it changes', async () => {
-    const now = new Date()
-    const initialMonth = monthValue(now)
-    const previousMonth = monthValue(new Date(now.getFullYear(), now.getMonth() - 1, 1))
+    const initialMonth = getCurrentActivityMonth()
+    const previousMonth = shiftMonth(initialMonth, -1)
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation((input) => {
       const activityMonth = new URL(requestUrl(input)).searchParams.get('activityMonth') ?? ''
       return Promise.resolve(new Response(JSON.stringify({

@@ -23,13 +23,6 @@ const statusLabels: Record<SettlementStatus, string> = {
   EXPIRED: '정산 만료',
 }
 
-const activeStatuses: SettlementStatus[] = [
-  'CALCULATING',
-  'PAYMENT_PENDING',
-  'PAYMENT_HOLD_INFO',
-  'PAYMENT_HOLD_BLACK',
-]
-
 function getSeoulDatePart(part: Intl.DateTimeFormatPartTypes): number {
   const value = new Intl.DateTimeFormat('en-US', {
     timeZone: 'Asia/Seoul',
@@ -40,6 +33,26 @@ function getSeoulDatePart(part: Intl.DateTimeFormatPartTypes): number {
 
 export function getCurrentSettlementYear(): number {
   return getSeoulDatePart('year')
+}
+
+export function formatMonthKey(year: number, month: number): string {
+  return `${year}-${String(month).padStart(2, '0')}`
+}
+
+export function shiftMonth(month: string, delta: number): string {
+  const [year, value] = month.split('-').map(Number)
+  const date = new Date(Date.UTC(year, value - 1 + delta, 1))
+  return formatMonthKey(date.getUTCFullYear(), date.getUTCMonth() + 1)
+}
+
+/** 이번 달(지급월) YYYY-MM */
+export function getCurrentPaymentMonth(): string {
+  return formatMonthKey(getSeoulDatePart('year'), getSeoulDatePart('month'))
+}
+
+/** 이번 달(지급월)에 계좌로 지급되는 활동월 = 현재월 - 2개월 */
+export function getCurrentPaymentActivityMonth(): string {
+  return shiftMonth(getCurrentPaymentMonth(), -2)
 }
 
 export function formatSettlementMonth(month: string): string {
@@ -72,20 +85,17 @@ function statusClass(status: SettlementStatus): string {
   return status.toLowerCase().replaceAll('_', '-')
 }
 
-function summaryAmount(estimate: SettlementEstimate): number {
-  return estimate.provisionalEstimate?.settlementAmount ?? estimate.settlementAmount
-}
-
-function summaryPurchaseCount(estimate: SettlementEstimate): number {
-  return estimate.provisionalEstimate?.purchaseCount ?? estimate.confirmedPurchaseCount
-}
-
 function paymentText(history: SettlementEstimate): string {
   if (history.status === 'PAYMENT_HOLD_INFO') return '지급 정보 확인 필요'
   if (history.status === 'PAYMENT_HOLD_BLACK') return '지급이 보류되었습니다.'
   if (history.status === 'EXPIRED') return '정산 기한이 만료되었습니다.'
   if (history.status === 'SETTLED') return `${formatPaymentDate(history.paymentMonth)} 지급`
-  return `정산 예정일 ${formatPaymentDate(history.paymentMonth)}`
+  return `지급 예정일 ${formatPaymentDate(history.paymentMonth)}`
+}
+
+/** 이번달(포함) 이전 지급분만 — 아직 지급월이 오지 않은 미래 분은 제외 */
+export function isPayoutHistoryVisible(history: SettlementEstimate, currentPaymentMonth = getCurrentPaymentMonth()): boolean {
+  return history.paymentMonth <= currentPaymentMonth
 }
 
 function SettlementHistoryRow({ history }: { history: SettlementEstimate }) {
@@ -119,7 +129,7 @@ export default function SettlementScreen() {
     setIsSummaryLoading(true)
     setSummaryError(null)
     try {
-      setEstimate(await getSettlementEstimate())
+      setEstimate(await getSettlementEstimate(getCurrentPaymentActivityMonth()))
     } catch (error) {
       if (isSettlementNotCalculated(error)) {
         setEstimate(null)
@@ -157,8 +167,18 @@ export default function SettlementScreen() {
     const years = new Set([selectedYear, ...availableYears])
     return [...years].sort((left, right) => right - left)
   }, [availableYears, selectedYear])
-  const pendingHistory = histories.find((history) => activeStatuses.includes(history.status)) ?? null
-  const listHistories = histories.filter((history) => history.settlementId !== pendingHistory?.settlementId)
+  const currentPaymentMonth = getCurrentPaymentMonth()
+  const payoutHistories = useMemo(
+    () => histories
+      .filter((history) => isPayoutHistoryVisible(history, currentPaymentMonth))
+      .sort((left, right) => right.paymentMonth.localeCompare(left.paymentMonth)
+        || right.activityMonth.localeCompare(left.activityMonth)),
+    [currentPaymentMonth, histories],
+  )
+  const summaryAmount = estimate?.settlementAmount ?? 0
+  const summaryPurchaseCount = estimate?.confirmedPurchaseCount ?? 0
+  const summaryPaymentMonth = estimate?.paymentMonth ?? currentPaymentMonth
+  const summaryActivityMonth = estimate?.activityMonth ?? getCurrentPaymentActivityMonth()
 
   return (
     <>
@@ -183,24 +203,21 @@ export default function SettlementScreen() {
               </button>
             </div>
           ) : null}
-          {!isSummaryLoading && !summaryError && estimate ? (
+          {!isSummaryLoading && !summaryError ? (
             <>
-              <span>{formatSettlementMonth(estimate.activityMonth)} 활동 예상 수수료</span>
-              <strong>{formatNumber(summaryAmount(estimate))}<small>원</small></strong>
-              <p className="settlement-summary-hint">취소나 환불에 따른 금액 변동 가능</p>
+              <span className="settlement-summary-title">이번달 지급 예정 수수료</span>
+              <p className="settlement-summary-activity">활동월 {formatSettlementMonth(summaryActivityMonth)}</p>
+              <strong>{formatNumber(summaryAmount)}<small>원</small></strong>
               <div>
-                <span>구매 확정 {formatNumber(summaryPurchaseCount(estimate))}건</span>
-                <span>정산 예정일 {formatPaymentDate(estimate.paymentMonth)}</span>
+                <span>구매 확정 {formatNumber(summaryPurchaseCount)}건</span>
+                <span>지급 예정일 {formatPaymentDate(summaryPaymentMonth)}</span>
               </div>
             </>
-          ) : null}
-          {!isSummaryLoading && !summaryError && !estimate ? (
-            <p className="settlement-feedback">아직 계산된 정산 내역이 없습니다.</p>
           ) : null}
         </section> : null}
 
         <div className="month-selector-row">
-          <div><h2>월별 정산 내역</h2><p>구매 확정일 기준으로 집계됩니다.</p></div>
+          <div><h2>월별 정산 내역</h2><p>이번달부터 이전 지급 수수료를 확인할 수 있어요.</p></div>
           <label className="sr-only" htmlFor="settlement-history-year">정산 이력 연도</label>
           <select
             id="settlement-history-year"
@@ -229,23 +246,13 @@ export default function SettlementScreen() {
             </button>
           </div>
         ) : null}
-        {!isHistoryLoading && !historyError && histories.length === 0 ? (
-          <p className="settlement-content-feedback">선택한 연도에 정산 내역이 없습니다.</p>
-        ) : null}
-        {!isHistoryLoading && !historyError && pendingHistory ? (
-          <article className="pending-settlement-card">
-            <div>
-              <span className={`settlement-status ${statusClass(pendingHistory.status)}`}>{statusLabels[pendingHistory.status]}</span>
-              <strong>{formatSettlementMonth(pendingHistory.activityMonth)}</strong>
-              <small>{formatSettlementPeriod(pendingHistory.activityMonth)}</small>
-            </div>
-            <strong>{formatCurrency(pendingHistory.settlementAmount)}</strong>
-          </article>
+        {!isHistoryLoading && !historyError && payoutHistories.length === 0 ? (
+          <p className="settlement-content-feedback">지급 내역이 없습니다.</p>
         ) : null}
 
-        {!isHistoryLoading && !historyError && listHistories.length > 0 ? (
+        {!isHistoryLoading && !historyError && payoutHistories.length > 0 ? (
           <div className="settlement-history-list">
-            {listHistories.map((history) => <SettlementHistoryRow history={history} key={history.settlementId} />)}
+            {payoutHistories.map((history) => <SettlementHistoryRow history={history} key={history.settlementId} />)}
           </div>
         ) : null}
 

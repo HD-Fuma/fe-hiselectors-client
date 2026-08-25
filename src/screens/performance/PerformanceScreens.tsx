@@ -21,22 +21,50 @@ const zeroMetrics: PerformanceMetrics = {
   conversionRate: 0,
 }
 
-function currentMonth() {
-  const now = new Date()
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+function getSeoulDatePart(part: Intl.DateTimeFormatPartTypes): number {
+  const value = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Seoul',
+    [part]: 'numeric',
+  }).formatToParts(new Date()).find((item) => item.type === part)?.value
+  return Number(value)
 }
 
-function monthLabel(month: string) {
-  const [year, value] = month.split('-')
-  return `${year}년 ${Number(value)}월`
+export function formatMonthKey(year: number, month: number): string {
+  return `${year}-${String(month).padStart(2, '0')}`
+}
+
+/** 성과 조회 기본값 = 서울 기준 이번달 활동월 */
+export function getCurrentActivityMonth(): string {
+  return formatMonthKey(getSeoulDatePart('year'), getSeoulDatePart('month'))
+}
+
+export function shiftMonth(month: string, delta: number): string {
+  const [year, value] = month.split('-').map(Number)
+  const date = new Date(Date.UTC(year, value - 1 + delta, 1))
+  return formatMonthKey(date.getUTCFullYear(), date.getUTCMonth() + 1)
+}
+
+export function monthLabel(month: string) {
+  const [year, value] = month.split('-').map(Number)
+  return `${year}년 ${value}월`
+}
+
+export function formatActivityPeriod(month: string): string {
+  const [year, value] = month.split('-').map(Number)
+  const lastDay = new Date(Date.UTC(year, value, 0)).getUTCDate()
+  return `${year}.${String(value).padStart(2, '0')}.01 - ${year}.${String(value).padStart(2, '0')}.${lastDay}`
+}
+
+/** 활동월 익익월 20일 지급 예정일 */
+export function formatExpectedPaymentDate(activityMonth: string): string {
+  const paymentMonth = shiftMonth(activityMonth, 2)
+  const [year, value] = paymentMonth.split('-').map(Number)
+  return `${year}.${String(value).padStart(2, '0')}.20`
 }
 
 function monthOptions(count = 24) {
-  const now = new Date()
-  return Array.from({ length: count }, (_, index) => {
-    const date = new Date(now.getFullYear(), now.getMonth() - index, 1)
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-  })
+  const current = getCurrentActivityMonth()
+  return Array.from({ length: count }, (_, index) => shiftMonth(current, -index))
 }
 
 function percentChange(current: number, previous: number) {
@@ -74,8 +102,27 @@ function MonthSelect({ value, onChange }: { value: string; onChange: (month: str
   )
 }
 
+function PeriodRow({
+  className,
+  value,
+  onChange,
+  caption,
+}: {
+  className?: string
+  value: string
+  onChange: (month: string) => void
+  caption?: string
+}) {
+  return (
+    <div className={className ? `period-row ${className}` : 'period-row'}>
+      {caption ? <p className="period-caption">{caption}</p> : null}
+      <MonthSelect onChange={onChange} value={value} />
+    </div>
+  )
+}
+
 export function PerformanceSummaryScreen() {
-  const [selectedMonth, setSelectedMonth] = useState(currentMonth)
+  const [selectedMonth, setSelectedMonth] = useState(getCurrentActivityMonth)
   const [summary, setSummary] = useState<PerformanceSummary | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
@@ -97,7 +144,13 @@ export function PerformanceSummaryScreen() {
   const metrics = summary?.metrics ?? zeroMetrics
   const previous = summary?.previousMonthMetrics ?? zeroMetrics
   const summaryMetrics = [
-    { label: '예상 정산 수수료', value: metrics.estimatedSettlementAmount, unit: '원', change: percentChange(metrics.estimatedSettlementAmount, previous.estimatedSettlementAmount), featured: true },
+    {
+      label: '이번달 예상 수수료',
+      value: metrics.estimatedSettlementAmount,
+      unit: '원',
+      change: percentChange(metrics.estimatedSettlementAmount, previous.estimatedSettlementAmount),
+      featured: true,
+    },
     { label: '구매 전환 금액', value: metrics.conversionAmount, unit: '원', change: percentChange(metrics.conversionAmount, previous.conversionAmount) },
     { label: '구매 전환 수', value: metrics.conversionCount, unit: '건', change: percentChange(metrics.conversionCount, previous.conversionCount) },
     { label: '누적 클릭 수', value: metrics.clickCount, unit: '회', change: percentChange(metrics.clickCount, previous.clickCount) },
@@ -115,9 +168,7 @@ export function PerformanceSummaryScreen() {
     <>
       <ScreenHeader backHref="/home" title="셀렉터스 성과" />
       <div className="screen-scroll performance-screen" aria-busy={loading}>
-        <div className="period-row">
-          <MonthSelect onChange={setSelectedMonth} value={selectedMonth} />
-        </div>
+        <PeriodRow onChange={setSelectedMonth} value={selectedMonth} />
 
         {error && <div className="performance-feedback performance-feedback-error" role="alert"><span>{error}</span><button onClick={() => void load()} type="button">다시 시도</button></div>}
 
@@ -125,6 +176,9 @@ export function PerformanceSummaryScreen() {
           {summaryMetrics.map((metric) => (
             <article className={`metric-card${metric.featured ? ' metric-card-featured' : ''}`} key={metric.label}>
               <span>{metric.label}</span>
+              {metric.featured ? (
+                <p className="metric-card-period">{formatExpectedPaymentDate(selectedMonth)} 지급 예정</p>
+              ) : null}
               <strong>{metric.decimal ? metric.value.toFixed(2) : numberFormatter.format(metric.value)}<small>{metric.unit}</small></strong>
               <em><span>전월 대비</span>{metric.change}</em>
             </article>
@@ -133,7 +187,7 @@ export function PerformanceSummaryScreen() {
 
         <section className="trend-card">
           <div className="trend-heading">
-            <div><span>월별 집계</span><strong>성과 추이</strong></div>
+            <div><span>활동월 집계</span><strong>성과 추이</strong></div>
             <span>{monthLabel(selectedMonth)}</span>
           </div>
           <div className="trend-legend" aria-label="성과 추이 범례">
@@ -178,7 +232,7 @@ export function PerformanceSummaryScreen() {
 }
 
 export function ProductPerformanceScreen() {
-  const [selectedMonth, setSelectedMonth] = useState(currentMonth)
+  const [selectedMonth, setSelectedMonth] = useState(getCurrentActivityMonth)
   const [result, setResult] = useState<ProductPerformanceList | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
@@ -202,15 +256,18 @@ export function ProductPerformanceScreen() {
     <>
       <ScreenHeader backHref="/performance" title="상품별 성과" />
       <div className="screen-scroll product-performance-screen" aria-busy={loading}>
-        <div className="period-row product-period-row">
-          <MonthSelect onChange={setSelectedMonth} value={selectedMonth} />
-        </div>
+        <PeriodRow
+          caption={`활동 ${formatActivityPeriod(selectedMonth)} · ${formatExpectedPaymentDate(selectedMonth)} 지급 예정`}
+          className="product-period-row"
+          onChange={setSelectedMonth}
+          value={selectedMonth}
+        />
 
         {error && <div className="performance-feedback performance-feedback-error" role="alert"><span>{error}</span><button onClick={() => void load()} type="button">다시 시도</button></div>}
 
         <section className="product-performance-summary">
           <div><ChartIcon size={22} /><span>구매 전환 수</span><strong>{numberFormatter.format(result?.conversionCount ?? 0)}건</strong></div>
-          <p>상품별 클릭과 구매 전환 성과를 확인할 수 있어요.</p>
+          <p>선택한 활동월의 상품별 클릭과 구매 전환 성과를 확인할 수 있어요.</p>
         </section>
 
         <section className="performance-table-section">
