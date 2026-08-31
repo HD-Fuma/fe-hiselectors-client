@@ -664,6 +664,37 @@ describe('apply flow', () => {
     })
   })
 
+  it('automatically connects the only verified YouTube channel', async () => {
+    authenticate()
+    sessionStorage.setItem('oauthProvider', 'youtube')
+    window.history.replaceState(
+      window.history.state,
+      '',
+      '/apply/form?code=abc123&state=state-1',
+    )
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = requestUrl(input)
+      if (url.endsWith('/api/generations/active')) {
+        return jsonResponse({ data: { id: 1 } })
+      }
+      if (url.endsWith('/api/youtube/oauth/verify')) {
+        return jsonResponse({ data: {
+          verified: true,
+          channels: [youtubeOAuthResult.channels[0]],
+        } })
+      }
+      throw new Error(`Unexpected request: ${url}`)
+    })
+    render(<App />)
+
+    expect(await screen.findByRole('button', { name: '인증 완료' })).toHaveProperty('disabled', true)
+    expect(screen.queryByRole('combobox', { name: '지원할 YouTube 채널' })).toBeNull()
+    expect(JSON.parse(sessionStorage.getItem('oauthVerified') ?? 'null')).toMatchObject({
+      accountId: 'UC-channel-id',
+      verificationToken: 'youtube-verification-token',
+    })
+  })
+
   it('blocks a legacy verified session without a token and asks for SNS reauthentication', async () => {
     authenticate()
     sessionStorage.setItem('oauthVerified', JSON.stringify({
