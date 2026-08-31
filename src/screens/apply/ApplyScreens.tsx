@@ -229,7 +229,7 @@ export function ApplyFormScreen() {
   const isCurrentChannelConnected = Boolean(
     selectedChannel && connectedAccount && connectedAccount.provider === selectedChannel.provider,
   )
-  const isWaitingForYoutubeChannel = selectedChannel?.provider === 'youtube' && youtubeChannels.length > 0
+  const shouldChooseYoutubeChannel = selectedChannel?.provider === 'youtube' && youtubeChannels.length > 1
   const shouldShowConnectedBadge = Boolean(
     selectedChannel && connectedAccount && connectedAccount.provider === selectedChannel.provider,
   )
@@ -264,6 +264,20 @@ export function ApplyFormScreen() {
     copyrightConfirmed &&
     (hasAlimtalkConsent || alarmAgreed)
 
+  const connectYoutubeChannel = (channel: YouTubeOAuthChannel) => {
+    const account = {
+      provider: 'youtube' as const,
+      accountId: channel.channelId,
+      verificationToken: channel.verificationToken,
+      followerCount: channel.followerCount ?? null,
+      contentCount: channel.contentCount ?? null,
+      label: channel.channelTitle?.trim() || channel.channelId,
+    }
+    setConnectedAccount(account)
+    setOauthStatus(`YouTube 채널 선택이 완료되었습니다. ${account.label}`)
+    sessionStorage.setItem('oauthVerified', JSON.stringify(account))
+  }
+
   const hydrateVerifiedAccount = () => {
     const verifiedJson = sessionStorage.getItem('oauthVerified')
     const youtubeChannelsJson = sessionStorage.getItem(YOUTUBE_CHANNELS_STORAGE_KEY)
@@ -284,6 +298,10 @@ export function ApplyFormScreen() {
         if (Array.isArray(channels) && channels.length > 0) {
           setYoutubeChannels(channels)
           setSelectedIndex(snsChannels.findIndex((channel) => channel.provider === 'youtube'))
+          if (channels.length === 1) {
+            connectYoutubeChannel(channels[0])
+            return
+          }
         }
       }
       if (!verifiedJson) {
@@ -417,17 +435,7 @@ export function ApplyFormScreen() {
       return
     }
 
-    const account = {
-      provider: 'youtube' as const,
-      accountId: channel.channelId,
-      verificationToken: channel.verificationToken,
-      followerCount: channel.followerCount ?? null,
-      contentCount: channel.contentCount ?? null,
-      label: channel.channelTitle?.trim() || channel.channelId,
-    }
-    setConnectedAccount(account)
-    setOauthStatus(`YouTube 채널 선택이 완료되었습니다. ${account.label}`)
-    sessionStorage.setItem('oauthVerified', JSON.stringify(account))
+    connectYoutubeChannel(channel)
   }
 
   const handleSubmit = async () => {
@@ -542,19 +550,19 @@ export function ApplyFormScreen() {
           </div>
           <button
             className={`oauth-connect-button${isCurrentChannelConnected ? ' is-connected' : ''}`}
-            disabled={!selectedChannel || isCurrentChannelConnected || isWaitingForYoutubeChannel}
+            disabled={!selectedChannel || isCurrentChannelConnected || shouldChooseYoutubeChannel}
             onClick={handleOAuthConnect}
             type="button"
           >
             {isCurrentChannelConnected
               ? '인증 완료'
-              : isWaitingForYoutubeChannel
+              : shouldChooseYoutubeChannel
                 ? '채널을 선택해 주세요'
                 : selectedChannel
                   ? `${selectedChannel.oauthLabel} 계정 연결하기`
                   : 'SNS 계정 연결하기'}
           </button>
-          {isWaitingForYoutubeChannel ? (
+          {shouldChooseYoutubeChannel ? (
             <div className="youtube-channel-picker">
               <label htmlFor="youtube-channel">지원할 YouTube 채널</label>
               <select
