@@ -2,15 +2,24 @@ import { API_BASE_URL, authFetch } from './auth'
 
 export type OAuthProvider = 'instagram' | 'facebook' | 'youtube'
 
+export const YOUTUBE_CHANNELS_STORAGE_KEY = 'oauthYoutubeChannels'
+
+export type YouTubeOAuthChannel = {
+  channelId: string
+  channelTitle?: string | null
+  followerCount?: number | null
+  contentCount?: number | null
+  verificationToken: string
+}
+
 export type OAuthVerificationResult = {
   verified: boolean
-  verificationToken: string
+  verificationToken?: string
   username?: string
   accountId?: string
   followerCount?: number | null
   contentCount?: number | null
-  channelId?: string
-  channelTitle?: string
+  channels?: YouTubeOAuthChannel[]
 }
 
 function extractErrorMessage(payload: string): string {
@@ -111,10 +120,25 @@ export async function verifyOAuth(provider: OAuthProvider, code: string, state: 
   }
 
   const verificationResult = result as Record<string, unknown>
-  if (verificationResult.verified === true && (
-    typeof verificationResult.verificationToken !== 'string' || !verificationResult.verificationToken.trim()
-  )) {
-    throw new Error('OAuth 인증 토큰을 응답에서 찾을 수 없습니다.')
+  if (verificationResult.verified === true) {
+    if (provider === 'youtube') {
+      const channels = verificationResult.channels
+      if (!Array.isArray(channels) || channels.length === 0) {
+        throw new Error('YouTube 채널을 인증 결과에서 찾을 수 없습니다.')
+      }
+      if (channels.some((channel) => (
+        typeof channel !== 'object' || channel === null ||
+        typeof channel.channelId !== 'string' || !channel.channelId.trim() ||
+        typeof channel.verificationToken !== 'string' || !channel.verificationToken.trim()
+      ))) {
+        throw new Error('YouTube 채널 인증 결과 형식이 올바르지 않습니다.')
+      }
+    } else if (
+      typeof verificationResult.verificationToken !== 'string' ||
+      !verificationResult.verificationToken.trim()
+    ) {
+      throw new Error('OAuth 인증 토큰을 응답에서 찾을 수 없습니다.')
+    }
   }
 
   return result as OAuthVerificationResult

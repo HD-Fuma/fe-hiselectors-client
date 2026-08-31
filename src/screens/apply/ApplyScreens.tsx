@@ -12,7 +12,12 @@ import BottomActionBar from '../../components/BottomActionBar'
 import { ArrowRightIcon, CartIcon, CheckIcon, ChevronDownIcon, CloseIcon, CoinIcon, GiftIcon, LinkIcon, PersonIcon } from '../../components/Icons'
 import ScreenHeader from '../../components/ScreenHeader'
 import { navigate } from '../../navigation'
-import { startOAuthAuthorization, type OAuthProvider } from '../../oauth'
+import {
+  startOAuthAuthorization,
+  type OAuthProvider,
+  type YouTubeOAuthChannel,
+  YOUTUBE_CHANNELS_STORAGE_KEY,
+} from '../../oauth'
 import { selectorsTermsFor } from './selectorsTerms'
 
 const flowSteps = [
@@ -197,6 +202,7 @@ export function ApplyFormScreen() {
   const [oauthError, setOauthError] = useState('')
   const [oauthStatus, setOauthStatus] = useState('')
   const [connectedAccount, setConnectedAccount] = useState<ConnectedAccount | null>(null)
+  const [youtubeChannels, setYoutubeChannels] = useState<YouTubeOAuthChannel[]>([])
   const session = readAuthSession()
   const isUserSessionValid = hasValidUserSession(session)
   const hasAlimtalkConsent = session?.alimtalk === 'Y'
@@ -208,10 +214,12 @@ export function ApplyFormScreen() {
     } else {
       sessionStorage.removeItem('selectedSnsProvider')
     }
-    if (connectedAccount) {
+    if (connectedAccount || youtubeChannels.length > 0) {
       setConnectedAccount(null)
+      setYoutubeChannels([])
       setOauthStatus('')
       sessionStorage.removeItem('oauthVerified')
+      sessionStorage.removeItem(YOUTUBE_CHANNELS_STORAGE_KEY)
     }
     setSelectedIndex(index)
     setIsSnsMenuOpen(false)
@@ -221,6 +229,7 @@ export function ApplyFormScreen() {
   const isCurrentChannelConnected = Boolean(
     selectedChannel && connectedAccount && connectedAccount.provider === selectedChannel.provider,
   )
+  const isWaitingForYoutubeChannel = selectedChannel?.provider === 'youtube' && youtubeChannels.length > 0
   const shouldShowConnectedBadge = Boolean(
     selectedChannel && connectedAccount && connectedAccount.provider === selectedChannel.provider,
   )
@@ -257,7 +266,8 @@ export function ApplyFormScreen() {
 
   const hydrateVerifiedAccount = () => {
     const verifiedJson = sessionStorage.getItem('oauthVerified')
-    if (!verifiedJson) {
+    const youtubeChannelsJson = sessionStorage.getItem(YOUTUBE_CHANNELS_STORAGE_KEY)
+    if (!verifiedJson && !youtubeChannelsJson) {
       const storedProvider = sessionStorage.getItem('selectedSnsProvider') as OAuthProvider | null
       if (storedProvider) {
         const providerIndex = snsChannels.findIndex((channel) => channel.provider === storedProvider)
@@ -269,6 +279,18 @@ export function ApplyFormScreen() {
     }
 
     try {
+      if (youtubeChannelsJson) {
+        const channels = JSON.parse(youtubeChannelsJson) as YouTubeOAuthChannel[]
+        if (Array.isArray(channels) && channels.length > 0) {
+          setYoutubeChannels(channels)
+          setSelectedIndex(snsChannels.findIndex((channel) => channel.provider === 'youtube'))
+        }
+      }
+      if (!verifiedJson) {
+        setConnectedAccount(null)
+        setOauthStatus('')
+        return
+      }
       const verified = JSON.parse(verifiedJson) as ConnectedAccount
       const providerIndex = snsChannels.findIndex((channel) => channel.provider === verified.provider)
       if (providerIndex >= 0) {
@@ -289,6 +311,7 @@ export function ApplyFormScreen() {
 
     return () => {
       sessionStorage.removeItem('oauthVerified')
+      sessionStorage.removeItem(YOUTUBE_CHANNELS_STORAGE_KEY)
       sessionStorage.removeItem('selectedSnsProvider')
       sessionStorage.removeItem('oauthProvider')
     }
@@ -363,6 +386,8 @@ export function ApplyFormScreen() {
     setOauthError('')
     setOauthStatus('')
     setSubmitError('')
+    setYoutubeChannels([])
+    sessionStorage.removeItem(YOUTUBE_CHANNELS_STORAGE_KEY)
 
     try {
       sessionStorage.setItem('oauthProvider', selectedChannel.provider)
@@ -381,6 +406,28 @@ export function ApplyFormScreen() {
       }
       setOauthError(message)
     }
+  }
+
+  const selectYoutubeChannel = (channelId: string) => {
+    const channel = youtubeChannels.find((candidate) => candidate.channelId === channelId)
+    if (!channel) {
+      setConnectedAccount(null)
+      setOauthStatus('')
+      sessionStorage.removeItem('oauthVerified')
+      return
+    }
+
+    const account = {
+      provider: 'youtube' as const,
+      accountId: channel.channelId,
+      verificationToken: channel.verificationToken,
+      followerCount: channel.followerCount ?? null,
+      contentCount: channel.contentCount ?? null,
+      label: channel.channelTitle?.trim() || channel.channelId,
+    }
+    setConnectedAccount(account)
+    setOauthStatus(`YouTube 채널 선택이 완료되었습니다. ${account.label}`)
+    sessionStorage.setItem('oauthVerified', JSON.stringify(account))
   }
 
   const handleSubmit = async () => {
@@ -495,12 +542,35 @@ export function ApplyFormScreen() {
           </div>
           <button
             className={`oauth-connect-button${isCurrentChannelConnected ? ' is-connected' : ''}`}
-            disabled={!selectedChannel || isCurrentChannelConnected}
+            disabled={!selectedChannel || isCurrentChannelConnected || isWaitingForYoutubeChannel}
             onClick={handleOAuthConnect}
             type="button"
           >
-            {isCurrentChannelConnected ? '인증 완료' : selectedChannel ? `${selectedChannel.oauthLabel} 계정 연결하기` : 'SNS 계정 연결하기'}
+            {isCurrentChannelConnected
+              ? '인증 완료'
+              : isWaitingForYoutubeChannel
+                ? '채널을 선택해 주세요'
+                : selectedChannel
+                  ? `${selectedChannel.oauthLabel} 계정 연결하기`
+                  : 'SNS 계정 연결하기'}
           </button>
+          {isWaitingForYoutubeChannel ? (
+            <div className="youtube-channel-picker">
+              <label htmlFor="youtube-channel">지원할 YouTube 채널</label>
+              <select
+                id="youtube-channel"
+                onChange={(event) => selectYoutubeChannel(event.target.value)}
+                value={connectedAccount?.provider === 'youtube' ? connectedAccount.accountId : ''}
+              >
+                <option value="">채널을 선택해 주세요</option>
+                {youtubeChannels.map((channel) => (
+                  <option key={channel.channelId} value={channel.channelId}>
+                    {channel.channelTitle?.trim() || channel.channelId}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null}
         </form>
 
         {shouldShowConnectedBadge && oauthStatus ? (

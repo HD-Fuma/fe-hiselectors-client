@@ -16,7 +16,7 @@ import {
 import { navigate } from './navigation'
 import { getRouteRedirect, routeMatchesPath, selectRouteByPath } from './routes'
 import { ShopDemoProvider } from './screens/shop/ShopDemoContext'
-import { verifyOAuth } from './oauth'
+import { verifyOAuth, YOUTUBE_CHANNELS_STORAGE_KEY } from './oauth'
 import { KAKAO_OAUTH_PENDING_KEY, MEMBER_INFO_PATH } from './screens/mypage/kakaoApi'
 import './styles/global.css'
 import './styles/shop.css'
@@ -228,24 +228,24 @@ function RoutedApp({ shopProbe }: AppProps) {
       try {
         const verified = await verifyOAuth(provider, code, state)
         if (verified.verified) {
-          const accountId = provider === 'instagram'
-            ? verified.username?.trim()
-            : verified.channelId?.trim()
-          if (!accountId) {
-            throw new Error(provider === 'instagram'
-              ? 'Instagram 사용자명을 인증 결과에서 찾을 수 없습니다.'
-              : 'YouTube 채널 ID를 인증 결과에서 찾을 수 없습니다.')
+          if (provider === 'youtube') {
+            sessionStorage.removeItem('oauthVerified')
+            sessionStorage.setItem(YOUTUBE_CHANNELS_STORAGE_KEY, JSON.stringify(verified.channels))
+          } else {
+            const accountId = verified.username?.trim()
+            if (!accountId) {
+              throw new Error('Instagram 사용자명을 인증 결과에서 찾을 수 없습니다.')
+            }
+            sessionStorage.removeItem(YOUTUBE_CHANNELS_STORAGE_KEY)
+            sessionStorage.setItem('oauthVerified', JSON.stringify({
+              provider,
+              accountId,
+              verificationToken: verified.verificationToken,
+              followerCount: verified.followerCount ?? null,
+              contentCount: verified.contentCount ?? null,
+              label: accountId,
+            }))
           }
-          const nextVerifiedState = {
-            provider,
-            accountId,
-            verificationToken: verified.verificationToken,
-            followerCount: verified.followerCount ?? null,
-            contentCount: verified.contentCount ?? null,
-            label: provider === 'instagram' ? accountId : (verified.channelTitle?.trim() || 'YouTube'),
-          }
-
-          sessionStorage.setItem('oauthVerified', JSON.stringify(nextVerifiedState))
           sessionStorage.setItem('selectedSnsProvider', provider)
           window.dispatchEvent(new CustomEvent('oauth-verified'))
         } else {

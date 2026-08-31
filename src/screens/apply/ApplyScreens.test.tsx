@@ -32,11 +32,22 @@ const instagramOAuthResult = {
 
 const youtubeOAuthResult = {
   verified: true,
-  verificationToken: 'youtube-verification-token',
-  channelId: 'UC-channel-id',
-  channelTitle: 'creator-channel',
-  followerCount: 456,
-  contentCount: 17,
+  channels: [
+    {
+      channelId: 'UC-channel-id',
+      channelTitle: 'creator-channel',
+      followerCount: 456,
+      contentCount: 17,
+      verificationToken: 'youtube-verification-token',
+    },
+    {
+      channelId: 'UC-brand-channel-id',
+      channelTitle: 'brand-channel',
+      followerCount: 999,
+      contentCount: 88,
+      verificationToken: 'youtube-brand-verification-token',
+    },
+  ],
 }
 
 function jsonResponse(data: unknown, status = 200) {
@@ -309,10 +320,12 @@ describe('apply flow', () => {
       provider: 'youtube',
       oauthResult: {
         verified: true,
-        verificationToken: 'youtube-verification-token',
-        channelTitle: 'creator-channel',
+        channels: [{
+          channelTitle: 'creator-channel',
+          verificationToken: 'youtube-verification-token',
+        }],
       },
-      message: 'YouTube 채널 ID를 인증 결과에서 찾을 수 없습니다.',
+      message: 'YouTube 채널 인증 결과 형식이 올바르지 않습니다.',
     },
   ])('rejects a $provider callback without its canonical identifier', async ({
     message,
@@ -518,16 +531,6 @@ describe('apply flow', () => {
 
   it.each([
     {
-      name: 'YouTube callback',
-      provider: 'youtube',
-      oauthResult: youtubeOAuthResult,
-      snsCode: 'YOUTUBE',
-      accountId: 'UC-channel-id',
-      verificationToken: 'youtube-verification-token',
-      followerCount: 456,
-      contentCount: 17,
-    },
-    {
       name: 'Instagram callback without contentCount',
       provider: 'instagram',
       oauthResult: {
@@ -594,6 +597,67 @@ describe('apply flow', () => {
         verificationToken,
         followerCount,
         contentCount,
+        privacyAgreed: true,
+        alarmAgreed: true,
+      }),
+    })
+  })
+
+  it('requires a YouTube channel choice and submits the selected channel token', async () => {
+    authenticate()
+    sessionStorage.setItem('oauthProvider', 'youtube')
+    window.history.replaceState(
+      window.history.state,
+      '',
+      '/apply/form?code=abc123&state=state-1',
+    )
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = requestUrl(input)
+      if (url.endsWith('/api/generations/active')) {
+        return jsonResponse({ data: { id: 1 } })
+      }
+      if (url.endsWith('/api/youtube/oauth/verify')) {
+        return jsonResponse({ data: youtubeOAuthResult })
+      }
+      if (url.endsWith('/api/applications')) {
+        return jsonResponse({ data: { applicationId: 10 } })
+      }
+      throw new Error(`Unexpected request: ${url}`)
+    })
+    render(<App />)
+
+    const channelSelect = await screen.findByRole('combobox', { name: '지원할 YouTube 채널' })
+    expect(screen.getByRole('button', { name: '채널을 선택해 주세요' })).toHaveProperty('disabled', true)
+    expect(sessionStorage.getItem('oauthVerified')).toBeNull()
+    expect(within(channelSelect).getAllByRole('option').map((option) => option.textContent)).toEqual([
+      '채널을 선택해 주세요',
+      'creator-channel',
+      'brand-channel',
+    ])
+
+    fireEvent.change(channelSelect, { target: { value: 'UC-brand-channel-id' } })
+
+    expect(screen.getByRole('button', { name: '인증 완료' })).toHaveProperty('disabled', true)
+    expect(JSON.parse(sessionStorage.getItem('oauthVerified') ?? 'null')).toMatchObject({
+      accountId: 'UC-brand-channel-id',
+      verificationToken: 'youtube-brand-verification-token',
+    })
+
+    agreeToAllTerms()
+    fireEvent.click(screen.getByRole('button', { name: '셀렉터스 신청하기' }))
+
+    await waitFor(() => expect(window.location.pathname).toBe('/apply/status'))
+    const applicationCall = fetchSpy.mock.calls.find(([input]) => (
+      requestUrl(input).endsWith('/api/applications')
+    ))
+    expect(applicationCall?.[1]).toMatchObject({
+      method: 'POST',
+      body: JSON.stringify({
+        snsCode: 'YOUTUBE',
+        snsAccountId: 'UC-brand-channel-id',
+        verificationToken: 'youtube-brand-verification-token',
+        followerCount: 999,
+        contentCount: 88,
         privacyAgreed: true,
         alarmAgreed: true,
       }),
