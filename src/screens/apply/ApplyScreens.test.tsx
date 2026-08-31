@@ -63,6 +63,10 @@ function chooseSns(label: string) {
   fireEvent.click(screen.getByRole('option', { name: label }))
 }
 
+function agreeToAllTerms() {
+  fireEvent.click(screen.getByRole('checkbox', { name: '모두 동의' }))
+}
+
 afterEach(() => {
   cleanup()
   window.history.replaceState({}, '', '/')
@@ -175,9 +179,9 @@ describe('apply flow', () => {
 
     fireEvent.click(trigger)
     expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual([
+      '유튜브',
       '인스타그램',
       '페이스북',
-      '유튜브',
     ])
     fireEvent.click(screen.getByRole('option', { name: '유튜브' }))
 
@@ -359,7 +363,7 @@ describe('apply flow', () => {
     const submit = screen.getByRole('button', { name: '셀렉터스 신청하기' })
     expect(submit).toHaveProperty('disabled', true)
     expect(screen.getByRole('button', { name: '인증 완료' })).toBeTruthy()
-    screen.getAllByRole('checkbox').forEach((checkbox) => fireEvent.click(checkbox))
+    agreeToAllTerms()
     expect(submit).toHaveProperty('disabled', false)
 
     fireEvent.click(submit)
@@ -404,13 +408,13 @@ describe('apply flow', () => {
     fireEvent.click(screen.getByRole('button', {
       name: 'SNS 콘텐츠 자동 수집 및 활용 동의 내용 보기',
     }))
-    const collectionDialog = screen.getByRole('dialog', {
+    const collectionDetail = screen.getByRole('region', {
       name: 'SNS 콘텐츠 자동 수집 및 활용 동의',
     })
-    expect(collectionDialog.classList.contains('consent-detail-modal')).toBe(true)
-    expect(collectionDialog.parentElement?.classList.contains('consent-detail-backdrop')).toBe(true)
-    expect(within(collectionDialog).getByText(/현대백화점이 주기적으로 자동 수집·저장·이용/)).toBeTruthy()
-    const closeButton = within(collectionDialog).getByRole('button', { name: '닫기' })
+    expect(collectionDetail.classList.contains('consent-detail-inline')).toBe(true)
+    expect(collectionDetail.closest('.consent-detail-backdrop')).toBeNull()
+    expect(within(collectionDetail).getByText(/현대백화점이 주기적으로 자동 수집·저장·이용/)).toBeTruthy()
+    const closeButton = within(collectionDetail).getByRole('button', { name: 'SNS 콘텐츠 자동 수집 및 활용 동의 닫기' })
     const closeIcon = closeButton.querySelector('svg')
     expect(closeIcon?.getAttribute('width')).toBe('24')
     expect(closeIcon?.getAttribute('height')).toBe('24')
@@ -420,18 +424,16 @@ describe('apply flow', () => {
     fireEvent.click(screen.getByRole('button', {
       name: '게시물 저작권 및 제3자 정보 확인 내용 보기',
     }))
-    const copyrightDialog = screen.getByRole('dialog', {
+    const copyrightDetail = screen.getByRole('region', {
       name: '게시물 저작권 및 제3자 정보 확인',
     })
-    expect(within(copyrightDialog).getByText(/제3자의 정보에 대해 필요한 동의를 확보/)).toBeTruthy()
+    expect(within(copyrightDetail).getByText(/제3자의 정보에 대해 필요한 동의를 확보/)).toBeTruthy()
     fireEvent.keyDown(window, { key: 'Escape' })
-    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.queryByRole('region', { name: '게시물 저작권 및 제3자 정보 확인' })).toBeNull()
 
-    screen.getAllByRole('checkbox').forEach((checkbox) => {
-      if (checkbox !== contentCollectionConsent && checkbox !== copyrightConfirmation) {
-        fireEvent.click(checkbox)
-      }
-    })
+    agreeToAllTerms()
+    fireEvent.click(contentCollectionConsent)
+    fireEvent.click(copyrightConfirmation)
     expect(submit).toHaveProperty('disabled', true)
 
     fireEvent.click(contentCollectionConsent)
@@ -439,6 +441,23 @@ describe('apply flow', () => {
 
     fireEvent.click(copyrightConfirmation)
     expect(submit).toHaveProperty('disabled', false)
+  })
+
+  it('selects and clears every required agreement at once', () => {
+    authenticate()
+    verifyInstagram()
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse({ data: { id: 1 } }))
+    window.history.replaceState({}, '', '/apply/form')
+    render(<App />)
+
+    const allTerms = screen.getByRole('checkbox', { name: '모두 동의' }) as HTMLInputElement
+    const individualTerms = screen.getAllByRole('checkbox').filter((checkbox) => checkbox !== allTerms) as HTMLInputElement[]
+
+    fireEvent.click(allTerms)
+    expect(individualTerms.every((checkbox) => checkbox.checked)).toBe(true)
+
+    fireEvent.click(allTerms)
+    expect(individualTerms.every((checkbox) => !checkbox.checked)).toBe(true)
   })
 
   it('checks an agreement when its row label is clicked', () => {
@@ -560,7 +579,7 @@ describe('apply flow', () => {
       accountId,
       verificationToken,
     })
-    screen.getAllByRole('checkbox').forEach((checkbox) => fireEvent.click(checkbox))
+    agreeToAllTerms()
     fireEvent.click(screen.getByRole('button', { name: '셀렉터스 신청하기' }))
 
     await waitFor(() => expect(window.location.pathname).toBe('/apply/status'))
@@ -597,7 +616,7 @@ describe('apply flow', () => {
     window.history.replaceState({}, '', '/apply/form')
     render(<App />)
 
-    screen.getAllByRole('checkbox').forEach((checkbox) => fireEvent.click(checkbox))
+    agreeToAllTerms()
     fireEvent.click(screen.getByRole('button', { name: '셀렉터스 신청하기' }))
 
     const dialog = await screen.findByRole('dialog', { name: '제출 실패' })
@@ -625,7 +644,7 @@ describe('apply flow', () => {
     window.history.replaceState({}, '', '/apply/form')
     render(<App />)
 
-    screen.getAllByRole('checkbox').forEach((checkbox) => fireEvent.click(checkbox))
+    agreeToAllTerms()
     fireEvent.click(screen.getByRole('button', { name: '셀렉터스 신청하기' }))
 
     const dialog = await screen.findByRole('dialog', { name: '제출 실패' })

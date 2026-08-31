@@ -1128,6 +1128,9 @@ ol {
   padding: 0 12px;
   margin-bottom: 4px;
   background: var(--surface);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .all-terms-row input,
@@ -1204,6 +1207,32 @@ input:focus-visible + .custom-check {
 
 .consent-term-row {
   min-height: 37px;
+}
+
+.consent-detail-inline {
+  margin: 0 0 8px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.consent-detail-inline .consent-detail-header {
+  border-bottom: 1px solid var(--line);
+}
+
+.consent-detail-inline .consent-detail-header h2 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.consent-detail-inline .consent-detail-body {
+  overflow: visible;
+  padding: 12px 14px 16px;
+}
+
+.consent-detail-inline .consent-detail-body p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.65;
 }
 
 .consent-detail-backdrop {

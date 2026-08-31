@@ -74,9 +74,9 @@ const privacyItems = [
 ] as const
 
 const snsChannels = [
+  { label: '유튜브', oauthLabel: 'YouTube', provider: 'youtube' },
   { label: '인스타그램', oauthLabel: 'Instagram', provider: 'instagram' },
   { label: '페이스북', oauthLabel: 'Facebook', provider: 'facebook' },
-  { label: '유튜브', oauthLabel: 'YouTube', provider: 'youtube' },
 ] as const
 
 type ConnectedAccount = {
@@ -138,6 +138,27 @@ function ConsentDocument({ content }: { content: string }) {
     }
     return <p key={`${index}-${line}`}>{line}</p>
   })
+}
+
+function InlineConsentDetail({ detailKey, onClose }: { detailKey: ConsentDetailKey, onClose: () => void }) {
+  const detail = consentDetails[detailKey]
+
+  return (
+    <section
+      aria-labelledby={`${detailKey}-consent-detail-title`}
+      className="consent-detail-inline"
+      id={`${detailKey}-consent-detail`}
+      role="region"
+    >
+      <div className="consent-detail-header">
+        <h2 id={`${detailKey}-consent-detail-title`}>{detail.title}</h2>
+        <button aria-label={`${detail.title} 닫기`} onClick={onClose} type="button"><CloseIcon size={24} /></button>
+      </div>
+      <div className="consent-detail-body">
+        <ConsentDocument content={detail.content} />
+      </div>
+    </section>
+  )
 }
 
 function extractErrorMessage(payload: string): string {
@@ -203,6 +224,20 @@ export function ApplyFormScreen() {
   const shouldShowConnectedBadge = Boolean(
     selectedChannel && connectedAccount && connectedAccount.provider === selectedChannel.provider,
   )
+  const allTermsAgreed =
+    privacyAgreed &&
+    shopTermsAgreed &&
+    contentCollectionAgreed &&
+    copyrightConfirmed &&
+    (hasAlimtalkConsent || alarmAgreed)
+
+  const setAllTermsAgreed = (checked: boolean) => {
+    setPrivacyAgreed(checked)
+    setShopTermsAgreed(checked)
+    setContentCollectionAgreed(checked)
+    setCopyrightConfirmed(checked)
+    setAlarmAgreed(checked)
+  }
 
   useEffect(() => {
     if (!isUserSessionValid) {
@@ -487,6 +522,11 @@ export function ApplyFormScreen() {
 
         <section className="terms-section">
           <h2>셀렉터스 이용 약관 동의</h2>
+          <label className="all-terms-row">
+            <input checked={allTermsAgreed} onChange={(event) => setAllTermsAgreed(event.target.checked)} type="checkbox" />
+            <span className="custom-check"><CheckIcon size={16} /></span>
+            <span>모두 동의</span>
+          </label>
           <div className="term-row">
             <label>
               <input checked={privacyAgreed} onChange={(event) => setPrivacyAgreed(event.target.checked)} type="checkbox" />
@@ -509,16 +549,34 @@ export function ApplyFormScreen() {
               <span className="custom-check"><CheckIcon size={16} /></span>
               <span>SNS 콘텐츠 자동 수집 및 활용 동의 (필수)</span>
             </label>
-            <button aria-label="SNS 콘텐츠 자동 수집 및 활용 동의 내용 보기" onClick={() => setOpenConsentDetail('contentCollection')} type="button"><ArrowRightIcon size={24} /></button>
+            <button
+              aria-controls="contentCollection-consent-detail"
+              aria-expanded={openConsentDetail === 'contentCollection'}
+              aria-label="SNS 콘텐츠 자동 수집 및 활용 동의 내용 보기"
+              onClick={() => setOpenConsentDetail((current) => current === 'contentCollection' ? null : 'contentCollection')}
+              type="button"
+            ><ArrowRightIcon size={24} /></button>
           </div>
+          {openConsentDetail === 'contentCollection' ? (
+            <InlineConsentDetail detailKey="contentCollection" onClose={() => setOpenConsentDetail(null)} />
+          ) : null}
           <div className="term-row consent-term-row">
             <label>
               <input checked={copyrightConfirmed} onChange={(event) => setCopyrightConfirmed(event.target.checked)} type="checkbox" />
               <span className="custom-check"><CheckIcon size={16} /></span>
               <span>게시물 저작권 및 제3자 정보 확인 (필수)</span>
             </label>
-            <button aria-label="게시물 저작권 및 제3자 정보 확인 내용 보기" onClick={() => setOpenConsentDetail('copyright')} type="button"><ArrowRightIcon size={24} /></button>
+            <button
+              aria-controls="copyright-consent-detail"
+              aria-expanded={openConsentDetail === 'copyright'}
+              aria-label="게시물 저작권 및 제3자 정보 확인 내용 보기"
+              onClick={() => setOpenConsentDetail((current) => current === 'copyright' ? null : 'copyright')}
+              type="button"
+            ><ArrowRightIcon size={24} /></button>
           </div>
+          {openConsentDetail === 'copyright' ? (
+            <InlineConsentDetail detailKey="copyright" onClose={() => setOpenConsentDetail(null)} />
+          ) : null}
           {hasAlimtalkConsent ? null : (
             <div className="term-row">
               <label>
@@ -533,7 +591,7 @@ export function ApplyFormScreen() {
 
       </div>
       <BottomActionBar disabled={!canSubmit} label="셀렉터스 신청하기" onClick={handleSubmit} />
-      {openConsentDetail ? (
+      {openConsentDetail && openConsentDetail !== 'contentCollection' && openConsentDetail !== 'copyright' ? (
         <div className="consent-detail-backdrop">
           <section
             aria-labelledby="consent-detail-title"
