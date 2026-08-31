@@ -110,6 +110,9 @@ export async function verifyOAuth(provider: OAuthProvider, code: string, state: 
   })
 
   if (!response.ok) {
+    if (response.status >= 500) {
+      throw new Error(`인증 서버 오류(${response.status})입니다. 잠시 후 다시 시도해 주세요.`)
+    }
     const rawMessage = await response.text()
     throw new Error(extractErrorMessage(rawMessage) || 'OAuth verification failed.')
   }
