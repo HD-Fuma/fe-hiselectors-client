@@ -225,6 +225,10 @@ function RoutedApp({ shopProbe }: AppProps) {
         return
       }
 
+      // authorization code는 일회용이므로 verify 호출 전에 동기적으로 URL에서 제거한다.
+      // (StrictMode 이중 실행 / 새로고침 / 뒤로가기로 같은 code가 두 번 교환되는 것을 막음)
+      clearOAuthQueryParams()
+
       try {
         const verified = await verifyOAuth(provider, code, state)
         if (verified.verified) {
@@ -259,7 +263,6 @@ function RoutedApp({ shopProbe }: AppProps) {
         window.dispatchEvent(new CustomEvent('oauth-verification-failed'))
       } finally {
         sessionStorage.removeItem('oauthProvider')
-        clearOAuthQueryParams()
         setRoute(selectCurrentRoute())
       }
     }
