@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 
 import AppShell from './components/layout/AppShell'
 import {
@@ -201,6 +201,8 @@ function RoutedApp({ shopProbe }: AppProps) {
     }
   }, [route.id])
 
+  const verifiedOAuthCodeRef = useRef<string | null>(null)
+
   useEffect(() => {
     const handleOAuthCallback = async () => {
       const params = new URLSearchParams(window.location.search)
@@ -210,6 +212,12 @@ function RoutedApp({ shopProbe }: AppProps) {
       if (!code || !state) {
         return
       }
+
+      // 같은 code로 verify를 두 번 교환하면 백엔드에서 이미 사용된 코드로 거부된다.
+      if (verifiedOAuthCodeRef.current === code) {
+        return
+      }
+      verifiedOAuthCodeRef.current = code
 
       const clearOAuthQueryParams = () => {
         window.history.replaceState(window.history.state, '', window.location.pathname)
