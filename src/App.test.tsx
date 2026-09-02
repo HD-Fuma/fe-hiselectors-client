@@ -39,7 +39,7 @@ const screenExpectations = [
     path: '/apply/status',
     id: 'apply-status',
     heading: '신청 완료',
-    content: '심사가 끝나면 결과를 안내해 드릴게요.',
+    content: '카카오 알림톡으로',
   },
   {
     path: '/campaigns',

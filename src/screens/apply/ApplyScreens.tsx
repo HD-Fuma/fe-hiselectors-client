@@ -726,9 +726,9 @@ export function ApplyStatusScreen() {
       <div className="screen-scroll apply-status-screen">
         <span aria-hidden="true">✓</span>
         <h2>셀렉터스 신청을 완료했어요.</h2>
-        <p>심사가 끝나면 결과를 안내해 드릴게요.<br />승인 후 캠페인부터 시작할 수 있어요.</p>
+        <p>심사가 끝나면 카카오 알림톡으로<br />결과를 안내해 드릴게요</p>
       </div>
-      <BottomActionBar href="/campaigns" label="캠페인으로 이동" />
+      <BottomActionBar href="/apply" label="신청 홈으로 이동" />
     </div>
   )
 }

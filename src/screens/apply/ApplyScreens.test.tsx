@@ -752,6 +752,8 @@ describe('apply flow', () => {
 
     expect(screen.getByRole('heading', { level: 1, name: '신청 완료' })).toBeTruthy()
     expect(screen.getByRole('heading', { level: 2, name: '셀렉터스 신청을 완료했어요.' })).toBeTruthy()
-    expect(screen.getByRole('link', { name: '캠페인으로 이동' }).getAttribute('href')).toBe('/campaigns')
+    const message = screen.getByText((_, element) => element?.tagName === 'P' && element.textContent === '심사가 끝나면 카카오 알림톡으로결과를 안내해 드릴게요')
+    expect(message.querySelector('br')).toBeTruthy()
+    expect(screen.getByRole('link', { name: '신청 홈으로 이동' }).getAttribute('href')).toBe('/apply')
   })
 })
