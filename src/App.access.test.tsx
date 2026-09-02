@@ -1,4 +1,5 @@
 import { cleanup, render, screen, within } from '@testing-library/react'
+import { StrictMode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import App from './App'
@@ -289,6 +290,32 @@ describe('selector access refresh', () => {
     } finally {
       window.removeEventListener('popstate', countHashChange)
     }
+  })
+
+  it('exchanges an OAuth code only once when the callback effect runs twice', async () => {
+    localStorage.setItem('selectors-auth', JSON.stringify({
+      accessToken: 'selector.jwt', tokenType: 'Bearer', role: 'USER', loginId: 'selector-user',
+      selectorAccessLevel: 'CURRENT',
+    }))
+    sessionStorage.setItem('oauthProvider', 'instagram')
+    window.history.replaceState({}, '', '/?code=oauth-code&state=oauth-state')
+    const searchAtVerify: string[] = []
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation((input) => {
+      const url = String(input)
+      if (url.endsWith('/api/me/selector-access')) return Promise.resolve(json({ data: { accessLevel: 'CURRENT' } }))
+      if (url.endsWith('/api/instagram/oauth/verify')) {
+        searchAtVerify.push(window.location.search)
+        return Promise.resolve(json({ data: { verified: true, verificationToken: 'verification-token', username: 'creator' } }))
+      }
+      return Promise.resolve(json({ data: [] }))
+    })
+
+    render(<StrictMode><App /></StrictMode>)
+
+    await vi.waitFor(() => expect(searchAtVerify).toHaveLength(1))
+    // code는 verify 호출 전에 URL에서 제거되어야 새로고침/뒤로가기로 재제출되지 않는다.
+    expect(searchAtVerify).toEqual([''])
+    expect(fetchSpy.mock.calls.filter(([input]) => String(input).endsWith('/api/instagram/oauth/verify'))).toHaveLength(1)
   })
 
   it('keeps a legacy applicant OAuth callback on the form while NONE access resolves', async () => {
