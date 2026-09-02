@@ -14,6 +14,7 @@ const compactCss = globalCss.replace(/\s+/g, ' ')
 
 afterEach(() => {
   cleanup()
+  vi.useRealTimers()
   localStorage.clear()
   sessionStorage.clear()
   window.history.replaceState({}, '', '/')
@@ -134,6 +135,8 @@ describe('shared panel and campaign fidelity', () => {
   })
 
   it('retains aggregate, product-level, and settlement commission reporting', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 7, 1))
     localStorage.setItem('selectors-auth', JSON.stringify({
       accessToken: 'test.jwt', role: 'USER', selectorAccessLevel: 'CURRENT',
     }))
